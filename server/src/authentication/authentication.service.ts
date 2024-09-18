@@ -1,4 +1,9 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { CreateAuthenticationDto } from './dto/create-authentication.dto';
 import { UpdateAuthenticationDto } from './dto/update-authentication.dto';
 import { UsersService } from 'src/users/users.service';
@@ -6,6 +11,7 @@ import { User } from 'src/users/entities/user.entity';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { hash, compare } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { HttpErrorByCode } from '@nestjs/common/utils/http-error-by-code.util';
 
 @Injectable()
 export class AuthenticationService {
@@ -60,5 +66,14 @@ export class AuthenticationService {
     return {
       access_token: this.jwtService.sign(payload),
     };
+  }
+
+  async refreshToken(accessToken?: string) {
+    if (!accessToken)
+      throw new UnprocessableEntityException(
+        HttpErrorByCode[422],
+        'A token is required in order to refresh it with a new one',
+      );
+    // decode jwt, get user in DB and create the jwt back
   }
 }

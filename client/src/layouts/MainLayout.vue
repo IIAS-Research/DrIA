@@ -1,12 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import { useUserStore } from 'stores/user-store';
+
+const userStore = useUserStore();
 
 const leftDrawerOpen = ref(false);
+
+onMounted(async () => {
+  userStore.setUserInfosFromCookies();
+});
 </script>
 
 <template>
   <q-layout view="hHh Lpr fFf">
     <div
+      v-if="userStore.isUserConnected"
       class="flex q-pa-md q-gutter-x-sm cursor-pointer fixed-top-left"
       style="z-index: 2;"
       @click="leftDrawerOpen = !leftDrawerOpen"
@@ -16,7 +24,7 @@ const leftDrawerOpen = ref(false);
       </q-avatar>
       <div class="column justify-center">
         <div class="text-weight-bold">
-          Didier Moulard
+          {{ userStore.currentUser?.firstName }} {{ userStore.currentUser?.lastName }}
         </div>
         <div
           class="text-caption text-italic text-grey-8"
@@ -26,7 +34,6 @@ const leftDrawerOpen = ref(false);
         </div>
       </div>
     </div>
-
     <q-drawer
       v-model="leftDrawerOpen"
       side="left"
@@ -34,6 +41,11 @@ const leftDrawerOpen = ref(false);
       bordered
     >
       <!-- drawer content -->
+      <q-btn
+        label="Déconnexion"
+        color="primary"
+        @click="async() => { await userStore.logout(); leftDrawerOpen = false }"
+      />
     </q-drawer>
 
     <q-page-container>

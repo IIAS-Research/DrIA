@@ -3,11 +3,9 @@
 GET {{HOST}}
 
 ###
-
 GET {{HOST}}/users
 
 ###
-
 POST {{HOST}}/authentication/login
 Content-Type: application/json
 
@@ -17,7 +15,6 @@ Content-Type: application/json
 }
 
 ###
-
 POST {{HOST}}/authentication/register
 Content-Type: application/json
 
@@ -29,8 +26,13 @@ Content-Type: application/json
 }
 
 ###
-
-
 DELETE {{HOST}}/users/3
 
 ###
+POST {{HOST}}/authentication/reset-password
+Content-Type: application/json
+
+{
+    "userId": "1",
+    "password": "lePassDeTest"
+}

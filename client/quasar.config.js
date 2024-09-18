@@ -11,6 +11,12 @@
 /* eslint func-names: 0 */
 /* eslint global-require: 0 */
 
+const configTargetApi = {
+  development: 'http://localhost:3000/api',
+};
+
+const API = process.env.NODE_ENV ? configTargetApi[process.env.NODE_ENV] : 'http://localhost:3000/api';
+
 const { configure } = require('quasar/wrappers');
 
 module.exports = configure((/* ctx */) => ({
@@ -70,7 +76,7 @@ module.exports = configure((/* ctx */) => ({
 
     // publicPath: '/',
     // analyze: true,
-    // env: {},
+    env: { API },
     // rawDefine: {}
     // ignorePublicFolder: true,
     // minify: false,

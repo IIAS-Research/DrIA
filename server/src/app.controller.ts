@@ -14,6 +14,8 @@ import { CreateUserDto } from './users/dto/create-user.dto';
 import { UsersService } from './users/users.service';
 import { AuthenticationService } from './authentication/authentication.service';
 import { Public } from './authentication/authentication.decorator';
+import { UpdateUserPasswordDto } from './users/dto/update-user.dto';
+import { Request as IRequest } from 'express';
 
 @Controller()
 export class AppController {
@@ -30,6 +32,12 @@ export class AppController {
   }
 
   @Public()
+  @Post('authentication/register')
+  async register(@Body() createUserDto: CreateUserDto) {
+    this.usersService.create(createUserDto);
+  }
+
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UseGuards(LocalAuthGuard)
   @Post('authentication/login')
@@ -37,9 +45,15 @@ export class AppController {
     return this.authService.login(req.user);
   }
 
-  @Public()
-  @Post('authentication/register')
-  async register(@Body() createUserDto: CreateUserDto) {
-    this.usersService.create(createUserDto);
+  @HttpCode(HttpStatus.OK)
+  @Post('authentication/reset-password')
+  async refreshAccessToken(@Request() req: IRequest) {
+    await this.authService.refreshToken(req.headers.authorization);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('authentication/reset-password')
+  async resetPassword(@Body() updateUserPasswordDto: UpdateUserPasswordDto) {
+    await this.usersService.updatePassword(updateUserPasswordDto);
   }
 }
