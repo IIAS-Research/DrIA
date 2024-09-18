@@ -1,0 +1,47 @@
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { User } from './entities/user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AuthenticationService } from 'src/authentication/authentication.service';
+
+@Injectable()
+export class UsersService {
+  constructor(
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
+    @Inject(forwardRef(() => AuthenticationService))
+    private readonly authenticationService: AuthenticationService,
+  ) {}
+  async create(createUserDto: CreateUserDto) {
+    createUserDto.password = await this.authenticationService.encryptPassword(
+      createUserDto.password,
+    );
+    console.log(createUserDto);
+    return await this.usersRepository.save(
+      this.usersRepository.create(createUserDto),
+    );
+  }
+
+  async findAll() {
+    return await this.usersRepository.find();
+  }
+
+  findOne(id: number) {
+    return `This action returns a #${id} user`;
+  }
+
+  async findOneByEmail(email: string) {
+    return await this.usersRepository.findOneByOrFail({ email });
+  }
+
+  update(id: number, updateUserDto: UpdateUserDto) {
+    return `This action updates a #${id} user`;
+  }
+
+  async remove(id: string) {
+    const userToRemove = await this.usersRepository.findOneByOrFail({ id });
+    return await this.usersRepository.remove(userToRemove);
+  }
+}

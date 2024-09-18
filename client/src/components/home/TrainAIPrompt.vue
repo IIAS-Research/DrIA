@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { QForm, QStepper } from 'quasar';
-import { ref, toRef } from 'vue';
+import { ref } from 'vue';
 import { parse } from 'papaparse';
 
 const initialProjectInfos = {
