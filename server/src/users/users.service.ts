@@ -28,8 +28,8 @@ export class UsersService {
     return await this.usersRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: string) {
+    return await this.usersRepository.findOneBy({ id });
   }
 
   async findOneByEmail(email: string) {

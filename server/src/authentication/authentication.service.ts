@@ -12,6 +12,14 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { hash, compare } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { HttpErrorByCode } from '@nestjs/common/utils/http-error-by-code.util';
+import { Request } from 'express';
+
+interface Payload {
+  email: string;
+  sub: string;
+  firstName: string;
+  lastName: string;
+}
 
 @Injectable()
 export class AuthenticationService {
@@ -62,18 +70,35 @@ export class AuthenticationService {
   }
 
   async login(user: User) {
-    const payload = { email: user.email, sub: user.id };
+    const payload = this.buildPayload(user);
     return {
       access_token: this.jwtService.sign(payload),
     };
   }
 
-  async refreshToken(accessToken?: string) {
+  async refreshToken(accessToken?: Request['headers']['authorization']) {
     if (!accessToken)
       throw new UnprocessableEntityException(
         HttpErrorByCode[422],
         'A token is required in order to refresh it with a new one',
       );
-    // decode jwt, get user in DB and create the jwt back
+    // decode the token
+    const decodedAccessToken: Payload = this.jwtService.decode(
+      accessToken.split(' ')[1],
+    );
+    const user = await this.usersService.findOne(decodedAccessToken.sub);
+    const payload = this.buildPayload(user);
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
+  }
+
+  private buildPayload(user: User): Payload {
+    return {
+      email: user.email,
+      sub: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    };
   }
 }

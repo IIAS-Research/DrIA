@@ -1,14 +1,46 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import {
+  onMounted, ref,
+} from 'vue';
 import { useUserStore } from 'stores/user-store';
+import { useQuasar } from 'quasar';
 
 const userStore = useUserStore();
+const $q = useQuasar();
 
 const leftDrawerOpen = ref(false);
+const alreadyNotifiedAccessTokenWillExpireSoon = ref(false);
+
+async function checkJwtValidity() {
+  console.log('1minutes');
+  if (!userStore.checkIfAccessTokenWillExpireSoon()) return;
+  if (alreadyNotifiedAccessTokenWillExpireSoon.value) return;
+  const timeoutBeforeAccessTokenIsExpired = (new Date(userStore.accessTokenExpirationTime * 1000).getTime()
+  - new Date().getTime());
+  $q.notify({
+    message: 'Votre session va bientôt expirer',
+    timeout: timeoutBeforeAccessTokenIsExpired,
+    closeBtn: true,
+    icon: 'info',
+    multiLine: true,
+    actions: [
+      {
+        label: 'Rester connecter',
+        color: 'primary',
+        handler: async () => {
+          await userStore.refreshToken(); alreadyNotifiedAccessTokenWillExpireSoon.value = false;
+        },
+      },
+    ],
+  });
+  alreadyNotifiedAccessTokenWillExpireSoon.value = true;
+}
 
 onMounted(async () => {
   userStore.setUserInfosFromCookies();
+  setInterval(checkJwtValidity, 2 * 60 * 1000); // Check every 2 minutes
 });
+
 </script>
 
 <template>

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { Cookies } from 'quasar';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 import { IUser } from 'src/components/models';
@@ -23,25 +23,56 @@ interface CookieOptions {
 
 const COOKIES_ACCESS_TOKEN = 'drIA-accessToken';
 const COOKIES_OPTIONS_CONFIG: CookieOptions = { sameSite: 'Strict', path: '/' }; // https://quasar.dev/quasar-plugins/cookies#cookies-api
+const REMAINING_TIME_BEFORE_ASK_REFRESH_ACCESS_TOKEN = 6 * 60 * 1000;
 
 export const useUserStore = defineStore('user', () => {
   // States
   const decodedJwtAccessToken = ref<CustomJwtPayload>();
   const accessToken = ref<string>();
   const currentUser = ref<IUser>();
+  const isUserConnected = ref(false);
+  const isAccessTokenExpired = ref(false);
+  const accessTokenExpirationTime = ref(0);
 
-  // Getters
-  const isAccessTokenExpired = computed(() => {
-    if (!decodedJwtAccessToken.value?.exp) return true;
+  // Actions
+  function checkIfAccessTokenIsExpired() {
+    if (!decodedJwtAccessToken.value?.exp) {
+      isAccessTokenExpired.value = true;
+      return true;
+    }
+    isAccessTokenExpired.value = new Date() > new Date((decodedJwtAccessToken.value.exp) * 1000);
     return new Date() > new Date((decodedJwtAccessToken.value.exp) * 1000);
-  });
-  const isUserConnected = computed(() => (!isAccessTokenExpired.value && currentUser.value !== undefined));
+  }
 
-  // Methods
+  async function logout() {
+    Cookies.remove(COOKIES_ACCESS_TOKEN, COOKIES_OPTIONS_CONFIG);
+    currentUser.value = undefined;
+    accessToken.value = undefined;
+    decodedJwtAccessToken.value = undefined;
+    isUserConnected.value = false;
+    isAccessTokenExpired.value = true;
+  }
+
+  function checkIfUserIsConnected() {
+    if (checkIfAccessTokenIsExpired() || currentUser.value == null) {
+      logout();
+      return false;
+    }
+    isUserConnected.value = true;
+    return true;
+  }
+
+  function checkIfAccessTokenWillExpireSoon() {
+    if (!checkIfUserIsConnected() || !decodedJwtAccessToken.value?.exp) return false;
+    const now = new Date().getTime();
+    const expTime = new Date(decodedJwtAccessToken.value.exp * 1000).getTime();
+    return (expTime - now) < REMAINING_TIME_BEFORE_ASK_REFRESH_ACCESS_TOKEN;
+  }
 
   function decodeJwtFromAccessToken() {
     if (!accessToken.value) return;
     decodedJwtAccessToken.value = jwtDecode<CustomJwtPayload>(accessToken.value);
+    accessTokenExpirationTime.value = decodedJwtAccessToken.value.exp ?? 0;
   }
 
   function assignCurrentUserFromDecodedAccessToken() {
@@ -53,10 +84,11 @@ export const useUserStore = defineStore('user', () => {
       firstName: decodedJwtAccessToken.value.firstName,
       lastName: decodedJwtAccessToken.value.lastName,
     };
+    isUserConnected.value = true;
   }
 
   async function login({ email, password }: { email: string, password: string}) {
-    if (isUserConnected.value) return;
+    if (checkIfUserIsConnected()) return;
     const response: { access_token: string } | undefined = (await api.post(
       'authentication/login',
       { email, password },
@@ -68,15 +100,8 @@ export const useUserStore = defineStore('user', () => {
     assignCurrentUserFromDecodedAccessToken();
   }
 
-  async function logout() {
-    Cookies.remove(COOKIES_ACCESS_TOKEN, COOKIES_OPTIONS_CONFIG);
-    currentUser.value = undefined;
-    accessToken.value = undefined;
-    decodedJwtAccessToken.value = undefined;
-  }
-
   async function refreshToken() {
-    const response: { access_token: string } | undefined = (await api.get('authentication/refresh-token'))?.data;
+    const response: { access_token: string } | undefined = (await api.get('authentication/refresh-access-token'))?.data;
     if (!response?.access_token) return;
     if (Cookies.has(COOKIES_ACCESS_TOKEN)) {
       Cookies.remove(COOKIES_ACCESS_TOKEN, COOKIES_OPTIONS_CONFIG);
@@ -91,7 +116,7 @@ export const useUserStore = defineStore('user', () => {
     if (!Cookies.has(COOKIES_ACCESS_TOKEN)) return;
     accessToken.value = Cookies.get(COOKIES_ACCESS_TOKEN);
     decodeJwtFromAccessToken();
-    if (isAccessTokenExpired.value) {
+    if (checkIfAccessTokenIsExpired()) {
       Cookies.remove(COOKIES_ACCESS_TOKEN, COOKIES_OPTIONS_CONFIG);
     } else {
       assignCurrentUserFromDecodedAccessToken();
@@ -100,8 +125,14 @@ export const useUserStore = defineStore('user', () => {
 
   return {
     currentUser,
+    accessToken,
     isUserConnected,
+    isAccessTokenExpired,
+    accessTokenExpirationTime,
     login,
+    checkIfAccessTokenWillExpireSoon,
+    checkIfUserIsConnected,
+    checkIfAccessTokenIsExpired,
     logout,
     refreshToken,
     setUserInfosFromCookies,

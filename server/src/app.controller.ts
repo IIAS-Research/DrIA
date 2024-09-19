@@ -46,9 +46,9 @@ export class AppController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('authentication/reset-password')
+  @Get('authentication/refresh-access-token')
   async refreshAccessToken(@Request() req: IRequest) {
-    await this.authService.refreshToken(req.headers.authorization);
+    return await this.authService.refreshToken(req.headers.authorization);
   }
 
   @HttpCode(HttpStatus.OK)
