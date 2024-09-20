@@ -23,6 +23,9 @@ export class User {
   @Column('varchar', { length: 60 })
   password: string;
 
+  @Column({ default: false })
+  isAdmin: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

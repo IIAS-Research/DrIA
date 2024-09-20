@@ -19,10 +19,10 @@ POST {{HOST}}/authentication/register
 Content-Type: application/json
 
 {
-    "email": "john@gmail.com",
+    "email": "doe@gmail.com",
     "password": "lePassDeTest",
-    "firstName": "john",
-    "lastName": "Doe"
+    "firstName": "un",
+    "lastName": "user"
 }
 
 ###

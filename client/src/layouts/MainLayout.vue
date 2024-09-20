@@ -4,6 +4,7 @@ import {
 } from 'vue';
 import { useUserStore } from 'stores/user-store';
 import { useQuasar } from 'quasar';
+import DrawerContent from 'components/layout/DrawerContent.vue';
 
 const userStore = useUserStore();
 const $q = useQuasar();
@@ -12,7 +13,6 @@ const leftDrawerOpen = ref(false);
 const alreadyNotifiedAccessTokenWillExpireSoon = ref(false);
 
 async function checkJwtValidity() {
-  console.log('1minutes');
   if (!userStore.checkIfAccessTokenWillExpireSoon()) return;
   if (alreadyNotifiedAccessTokenWillExpireSoon.value) return;
   const timeoutBeforeAccessTokenIsExpired = (new Date(userStore.accessTokenExpirationTime * 1000).getTime()
@@ -47,8 +47,8 @@ onMounted(async () => {
   <q-layout view="hHh Lpr fFf">
     <div
       v-if="userStore.isUserConnected"
-      class="flex q-pa-md q-gutter-x-sm cursor-pointer fixed-top-left"
-      style="z-index: 2;"
+      class="flex q-pa-md q-gutter-x-sm cursor-pointer hoverable"
+      style="z-index: 2; border-bottom-right-radius: 5px; width: fit-content"
       @click="leftDrawerOpen = !leftDrawerOpen"
     >
       <q-avatar size="lg">
@@ -62,7 +62,7 @@ onMounted(async () => {
           class="text-caption text-italic text-grey-8"
           style="line-height: 1rem;"
         >
-          Click to show menu
+          Cliquer pour ouvrir le menu
         </div>
       </div>
     </div>
@@ -73,11 +73,7 @@ onMounted(async () => {
       bordered
     >
       <!-- drawer content -->
-      <q-btn
-        label="Déconnexion"
-        color="primary"
-        @click="async() => { await userStore.logout(); leftDrawerOpen = false }"
-      />
+      <DrawerContent @click="async () => { await userStore.logout(); leftDrawerOpen = false }" />
     </q-drawer>
 
     <q-page-container>
