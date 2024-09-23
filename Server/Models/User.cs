@@ -8,23 +8,22 @@ public class User : ApplicationRecord
   public long Id { get; set; }
 
   [Required]
-  public required string Firstname { get; set; }
+  public required string FirstName { get; set; }
 
   [Required]
-  public required string Lastname { get; set; }
+  public required string LastName { get; set; }
 
   [Required]
-  [MaxLength(255)]
+  [EmailAddress]
   public required string Email { get; set; }
 
   [Required]
-  [MaxLength(60)]
   public required string HashedPassword { get; set; }
 
   [Required]
   public required bool IsAdmin { get; set; } = false;
 
   [Timestamp]
-  public required byte[] CreatedAt { get; set; }
+  public byte[]? CreatedAt { get; set; }
 
 }

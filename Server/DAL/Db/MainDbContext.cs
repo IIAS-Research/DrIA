@@ -3,9 +3,9 @@ namespace Server.DAL.Db;
 using Microsoft.EntityFrameworkCore;
 using Server.Models;
 
-public sealed class MainContext : DbContext
+public sealed class MainDbContext : DbContext
 {
-  public MainContext(DbContextOptions<MainContext> options) : base(options)
+  public MainDbContext(DbContextOptions<MainDbContext> options) : base(options)
   {
   }
 

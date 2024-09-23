@@ -1,4 +1,5 @@
 import { RouteRecordRaw } from 'vue-router';
+import { mustBeAdmin } from './routesGuards';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -10,6 +11,7 @@ const routes: RouteRecordRaw[] = [
         path: 'manage-users',
         name: 'admin-users',
         component: () => import('pages/administration/ManageUsersPage.vue'),
+        beforeEnter: mustBeAdmin,
       },
     ],
   },

@@ -9,6 +9,7 @@ interface CustomJwtPayload extends JwtPayload {
   email: string;
   firstName: string;
   lastName: string;
+  isAdmin: boolean;
 }
 
 interface CookieOptions {
@@ -72,6 +73,7 @@ export const useUserStore = defineStore('user', () => {
   function decodeJwtFromAccessToken() {
     if (!accessToken.value) return;
     decodedJwtAccessToken.value = jwtDecode<CustomJwtPayload>(accessToken.value);
+    console.log(decodedJwtAccessToken.value);
     accessTokenExpirationTime.value = decodedJwtAccessToken.value.exp ?? 0;
   }
 
@@ -83,30 +85,31 @@ export const useUserStore = defineStore('user', () => {
       email: decodedJwtAccessToken.value.email,
       firstName: decodedJwtAccessToken.value.firstName,
       lastName: decodedJwtAccessToken.value.lastName,
+      isAdmin: decodedJwtAccessToken.value.isAdmin,
     };
     isUserConnected.value = true;
   }
 
   async function login({ email, password }: { email: string, password: string}) {
     if (checkIfUserIsConnected()) return;
-    const response: { access_token: string } | undefined = (await api.post(
-      'authentication/login',
+    const response: { accessToken: string } | undefined = (await api.post(
+      'Auth/login',
       { email, password },
     ))?.data;
-    if (!response?.access_token) return;
-    accessToken.value = response.access_token;
+    if (!response?.accessToken) return;
+    accessToken.value = response.accessToken;
     Cookies.set(COOKIES_ACCESS_TOKEN, accessToken.value, COOKIES_OPTIONS_CONFIG);
     decodeJwtFromAccessToken();
     assignCurrentUserFromDecodedAccessToken();
   }
 
   async function refreshToken() {
-    const response: { access_token: string } | undefined = (await api.get('authentication/refresh-access-token'))?.data;
-    if (!response?.access_token) return;
+    const response: { accessToken: string } | undefined = (await api.get('Auth/refresh-access-token'))?.data;
+    if (!response?.accessToken) return;
     if (Cookies.has(COOKIES_ACCESS_TOKEN)) {
       Cookies.remove(COOKIES_ACCESS_TOKEN, COOKIES_OPTIONS_CONFIG);
     }
-    accessToken.value = response.access_token;
+    accessToken.value = response.accessToken;
     Cookies.set(COOKIES_ACCESS_TOKEN, accessToken.value, COOKIES_OPTIONS_CONFIG);
     decodeJwtFromAccessToken();
     assignCurrentUserFromDecodedAccessToken();

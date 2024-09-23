@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Server;
 using Server.Services;
 using Server.DAL.Db;
+using Server.Repositories;
+using System.Text.Json;
 
 public partial class Program
 {
@@ -13,57 +15,70 @@ public partial class Program
     RunBeforeStart(builder);
     RegisterServices(builder);
 
+    if (builder.Environment.IsDevelopment())
+    {
+      builder.Services.AddEndpointsApiExplorer();
+      builder.Services.AddSwaggerGen();
+    }
+
     var app = builder.Build();
 
     using (var scope = app.Services.CreateScope())
     {
       var services = scope.ServiceProvider;
-      var context = services.GetRequiredService<MainContext>();
+      var context = services.GetRequiredService<MainDbContext>();
       context.Database.Migrate();
     }
 
+    if (app.Environment.IsDevelopment())
+    {
+      app.UseSwagger();
+      app.UseSwaggerUI();
+    }
 
-    app.UseHttpsRedirection();
-    app.UseCors(Configuration.GetCorsModeByEnv(builder.Configuration));
+    // app.UseHttpsRedirection();
+    app.UseCors(app.Environment.EnvironmentName);
     app.UseAuthentication();
     app.UseAuthorization();
-    app.MapControllers();
+    app.MapControllers().RequireAuthorization();
     app.Run();
   }
 
   private static void RunBeforeStart(WebApplicationBuilder builder)
   {
     Configuration.EnsureSecretsAreOk(builder.Configuration);
-    FileStorageService.EnsureStorageDirectoryAreCreated(builder.Configuration);
+    // FileStorageService.EnsureStorageDirectoryAreCreated(builder.Configuration);
     AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
   }
 
   private static void RegisterServices(WebApplicationBuilder builder)
   {
-    builder.Services.AddControllers();
-    builder.Services.AddDbContext<MainContext>(options =>
-        options.UseNpgsql(builder.Configuration[Configuration.DbCredentials]));
-    builder.Services.AddTransient<FileStorageService>();
+    builder.Services.AddControllers().AddJsonOptions(options =>
+    {
+      options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // Ensures camelCase serialization for JSON
+    });
+    builder.Services.AddDbContext<MainDbContext>(options =>
+        options.UseNpgsql(builder.Configuration[Configuration.ConnectionString]));
+    // builder.Services.AddTransient<FileStorageService>();
+    builder.Services.AddScoped<UsersRepository>();
     builder.Services.AddTransient<AuthService>();
     builder.Services.AddTransient<MailerService>();
     builder.Services.AddAuthentication(options =>
         {
           options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
           options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(options =>
-            {
-              options.TokenValidationParameters = AuthService.GetAuthServiceTokenValidationParameters(builder.Configuration);
-            });
-
+        }).AddJwtBearer(options =>
+        {
+          options.TokenValidationParameters = AuthService.GetAuthServiceTokenValidationParameters(builder.Configuration);
+        });
     builder.Services.AddAuthorization();
     builder.Services.AddCors(options =>
         {
-          options.AddPolicy("Prod", builder =>
+          options.AddPolicy("Production", builder =>
               {
                 // TODO
               });
-          options.AddPolicy("Dev", builder =>
+          options.AddPolicy("Development", builder =>
               {
                 builder.AllowAnyOrigin()
                         .AllowAnyHeader()

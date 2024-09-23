@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Server.DTOs;
 using Server.Services;
 
 namespace Server.Controllers;
-
+[Route("api/[controller]")]
 [ApiController]
 public class AuthController : ControllerBase
 {
@@ -13,25 +15,40 @@ public class AuthController : ControllerBase
     _authService = authService;
   }
 
-  // GET: api/login
-  [HttpPost("login")]
-  public async Task<ActionResult> Login(PostLoginInDTO loginEndPointParams)
+  // POST: api/register
+  [HttpPost("register")]
+  [AllowAnonymous]
+  public async Task<IActionResult> RegisterUser(RegisterUserDTO registerUserDTO)
   {
+    var result = await _authService.RegisterUser(registerUserDTO);
 
-    var authServiceResponse = await _authService.Login(loginEndPointParams.Email, loginEndPointParams.Password);
-    if (authServiceResponse.IsLogedIn)
+    if (result)
+    {
+      return CreatedAtAction(nameof(RegisterUser), new { email = registerUserDTO.Email }, registerUserDTO);
+    }
+
+    return BadRequest("User registration failed.");
+  }
+
+  // POST: api/login
+  [HttpPost("login")]
+  [AllowAnonymous]
+  public async Task<ActionResult<LoginResponse>> Login(PostLoginInDTO loginInDTO)
+  {
+    var authServiceResponse = await _authService.Login(loginInDTO.Email, loginInDTO.Password);
+    if (authServiceResponse.IsLoggedIn)
     {
       return Ok(authServiceResponse);
     }
-    return BadRequest();
+    return Unauthorized();
   }
 
   // GET: api/refresh-token
-  [HttpPost("refresh-token")]
-  public async Task<ActionResult> RefreshToken(PostRefreshTokenInDTO refreshTokenEndPointParams)
+  [HttpPost("refresh-access-token")]
+  public async Task<ActionResult> RefreshToken(string accessToken)
   {
-    var authServiceResponse = await _authService.RefreshToken(refreshTokenEndPointParams.Jwt, refreshTokenEndPointParams.RefreshToken);
-    if (authServiceResponse.IsLogedIn)
+    var authServiceResponse = await _authService.RefreshAccessToken(accessToken);
+    if (authServiceResponse.IsLoggedIn)
     {
       return Ok(authServiceResponse);
     }
@@ -39,16 +56,4 @@ public class AuthController : ControllerBase
   }
 
 
-}
-
-// DTOS
-public record PostLoginInDTO
-{
-  public required string Email;
-  public required string Password;
-}
-public record PostRefreshTokenInDTO
-{
-  public required string Jwt;
-  public required string RefreshToken;
 }
