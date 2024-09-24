@@ -20,16 +20,13 @@ public record PostLoginInDTO
 public record JwtPayload
 {
     [Required]
-    public required string Email;
+    public required string Email { get; init; }
     [Required]
-
-    public required long Sub; // user id
+    public required long Sub { get; init; } // user id
     [Required]
-
-    public required string FirstName;
+    public required string FirstName { get; init; }
     [Required]
-
-    public required string LastName;
+    public required string LastName { get; init; }
     [Required]
-    public required bool IsAdmin;
+    public required bool IsAdmin { get; init; }
 }

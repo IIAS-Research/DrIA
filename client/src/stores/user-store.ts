@@ -41,8 +41,8 @@ export const useUserStore = defineStore('user', () => {
       isAccessTokenExpired.value = true;
       return true;
     }
-    isAccessTokenExpired.value = new Date() > new Date((decodedJwtAccessToken.value.exp) * 1000);
-    return new Date() > new Date((decodedJwtAccessToken.value.exp) * 1000);
+    isAccessTokenExpired.value = new Date() > new Date(decodedJwtAccessToken.value.exp * 1000);
+    return new Date() > new Date(decodedJwtAccessToken.value.exp * 1000);
   }
 
   async function logout() {
@@ -67,13 +67,14 @@ export const useUserStore = defineStore('user', () => {
     if (!checkIfUserIsConnected() || !decodedJwtAccessToken.value?.exp) return false;
     const now = new Date().getTime();
     const expTime = new Date(decodedJwtAccessToken.value.exp * 1000).getTime();
-    return (expTime - now) < REMAINING_TIME_BEFORE_ASK_REFRESH_ACCESS_TOKEN;
+    return expTime - now < REMAINING_TIME_BEFORE_ASK_REFRESH_ACCESS_TOKEN;
   }
 
   function decodeJwtFromAccessToken() {
     if (!accessToken.value) return;
-    decodedJwtAccessToken.value = jwtDecode<CustomJwtPayload>(accessToken.value);
-    console.log(decodedJwtAccessToken.value);
+    decodedJwtAccessToken.value = jwtDecode<CustomJwtPayload>(
+      accessToken.value,
+    );
     accessTokenExpirationTime.value = decodedJwtAccessToken.value.exp ?? 0;
   }
 
@@ -90,27 +91,42 @@ export const useUserStore = defineStore('user', () => {
     isUserConnected.value = true;
   }
 
-  async function login({ email, password }: { email: string, password: string}) {
+  async function login({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }) {
     if (checkIfUserIsConnected()) return;
-    const response: { accessToken: string } | undefined = (await api.post(
-      'Auth/login',
-      { email, password },
-    ))?.data;
+    const response: { accessToken: string } | undefined = (
+      await api.post('Auth/login', { email, password })
+    )?.data;
     if (!response?.accessToken) return;
     accessToken.value = response.accessToken;
-    Cookies.set(COOKIES_ACCESS_TOKEN, accessToken.value, COOKIES_OPTIONS_CONFIG);
+    Cookies.set(
+      COOKIES_ACCESS_TOKEN,
+      accessToken.value,
+      COOKIES_OPTIONS_CONFIG,
+    );
     decodeJwtFromAccessToken();
     assignCurrentUserFromDecodedAccessToken();
   }
 
   async function refreshToken() {
-    const response: { accessToken: string } | undefined = (await api.get('Auth/refresh-access-token'))?.data;
+    const response: { accessToken: string } | undefined = (
+      await api.get('Auth/refresh-access-token')
+    )?.data;
     if (!response?.accessToken) return;
     if (Cookies.has(COOKIES_ACCESS_TOKEN)) {
       Cookies.remove(COOKIES_ACCESS_TOKEN, COOKIES_OPTIONS_CONFIG);
     }
     accessToken.value = response.accessToken;
-    Cookies.set(COOKIES_ACCESS_TOKEN, accessToken.value, COOKIES_OPTIONS_CONFIG);
+    Cookies.set(
+      COOKIES_ACCESS_TOKEN,
+      accessToken.value,
+      COOKIES_OPTIONS_CONFIG,
+    );
     decodeJwtFromAccessToken();
     assignCurrentUserFromDecodedAccessToken();
   }

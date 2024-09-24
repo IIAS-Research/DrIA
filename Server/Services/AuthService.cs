@@ -45,7 +45,7 @@ public class AuthService : ApplicationService
         if (user == null) return new LoginResponse { IsLoggedIn = false, };
         var passwordMatch = _passwordHasher.VerifyHashedPassword(user, user.HashedPassword, password);
         // 0 means failed comparison here, https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.identity.passwordverificationresult?view=aspnetcore-8.0
-        if (passwordMatch == 0) return new LoginResponse { IsLoggedIn = false, };
+        if (passwordMatch == 0) return new LoginResponse { IsLoggedIn = false };
         var payload = BuildJwtPayload(user);
         var accessToken = GenerateTokenString(payload);
         return new LoginResponse { AccessToken = accessToken, IsLoggedIn = true };
