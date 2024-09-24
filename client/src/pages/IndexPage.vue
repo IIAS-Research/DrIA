@@ -4,6 +4,7 @@ import ParticlesBackground from 'components/home/ParticlesBackground.vue';
 import AppPresentation from 'components/home/AppPresentation.vue';
 import TrainAIPrompt from 'components/home/TrainAIPrompt.vue';
 import Login from 'components/auth/LogIn.vue';
+import PipelineProject from 'components/pipeline/PipelineProject.vue';
 
 const userStore = useUserStore();
 
@@ -11,6 +12,8 @@ const userStore = useUserStore();
 
 <template>
   <q-page class="column flex-center">
+    <PipelineProject />
+
     <img
       class="fixed-bottom-right"
       src="/images/iias_miniature.png"
