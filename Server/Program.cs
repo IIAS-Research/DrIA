@@ -5,6 +5,8 @@ using Server.Services;
 using Server.DAL.Db;
 using Server.Repositories;
 using System.Text.Json;
+using Server.Models;
+using Microsoft.AspNetCore.Identity;
 
 public partial class Program
 {
@@ -63,6 +65,11 @@ public partial class Program
     builder.Services.AddTransient<FileStorageService>();
     builder.Services.AddTransient<AuthService>();
     builder.Services.AddTransient<MailerService>();
+
+    builder.Services.AddIdentityCore<User>()
+                .AddEntityFrameworkStores<MainDbContext>()
+                .AddDefaultTokenProviders();
+
     builder.Services.AddAuthentication(options =>
         {
           options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

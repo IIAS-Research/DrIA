@@ -1,0 +1,18 @@
+using Microsoft.EntityFrameworkCore;
+using Server.DAL.Db;
+using Server.Models;
+
+namespace Server.Repositories;
+public class ProjectsRepository(MainDbContext dbContext)
+{
+    private readonly MainDbContext _dbContext = dbContext;
+
+    public async Task<List<Project>> GetProjectByUser(User user)
+    {
+        var projects = await _dbContext.Projects
+            .Where(p => p.UserId == user.Id)
+            .ToListAsync();
+        return projects;
+    }
+
+}

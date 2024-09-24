@@ -1,22 +1,16 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
 
 namespace Server.Models;
 
-public class User : ApplicationRecord
+public class User : IdentityUser<long>
 {
-  [Key]
-  public long Id { get; set; }
-
   [Required]
   public required string FirstName { get; set; }
 
   [Required]
   public required string LastName { get; set; }
-
-  [Required]
-  [EmailAddress]
-  public required string Email { get; set; }
 
   [Required]
   public required string HashedPassword { get; set; }

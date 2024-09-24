@@ -5,6 +5,7 @@ import {
 import { useUserStore } from 'stores/user-store';
 import { useQuasar } from 'quasar';
 import DrawerContent from 'components/layout/DrawerContent.vue';
+import ParticlesBackground from 'components/home/ParticlesBackground.vue';
 
 const userStore = useUserStore();
 const $q = useQuasar();
@@ -16,7 +17,7 @@ async function checkJwtValidity() {
   if (!userStore.checkIfAccessTokenWillExpireSoon()) return;
   if (alreadyNotifiedAccessTokenWillExpireSoon.value) return;
   const timeoutBeforeAccessTokenIsExpired = (new Date(userStore.accessTokenExpirationTime * 1000).getTime()
-  - new Date().getTime());
+    - new Date().getTime());
   $q.notify({
     message: 'Votre session va bientôt expirer',
     timeout: timeoutBeforeAccessTokenIsExpired,
@@ -77,6 +78,7 @@ onMounted(async () => {
     </q-drawer>
 
     <q-page-container>
+      <ParticlesBackground />
       <router-view />
     </q-page-container>
   </q-layout>

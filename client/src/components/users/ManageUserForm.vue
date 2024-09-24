@@ -54,7 +54,6 @@ const userLocalComponent = ref<IUser & { password?: string }>({ ...props.user })
         label="Nouveau mot de passe (facultatif)"
         type="password"
         filled
-        :rules="[(val) => (val?.length === 1 || val.length >= 6) || `Mot de passe trop court`]"
         lazy-rules
       />
 

@@ -1,15 +1,21 @@
 import { RouteRecordRaw } from 'vue-router';
-import { mustBeAdmin } from './routesGuards';
+import { mustBeAdmin, mustBeAuth, mustNotBeAuth } from './routesGuards';
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/login',
+    name: 'login',
+    component: () => import('pages/LoginPage.vue'),
+    beforeEnter: mustNotBeAuth,
+  },
+  {
     path: '/',
-    component: () => import('layouts/MainLayout.vue'),
+    beforeEnter: mustBeAuth,
     children: [
       {
         path: '',
         name: 'home',
-        component: () => import('pages/IndexPage.vue'),
+        component: () => import('pages/ProjectbuildPage.vue'),
       },
       {
         path: 'manage-users',

@@ -9,8 +9,19 @@ export function mustBeAuth(
 ): void {
   const store = useUserStore();
   if (!store.isUserConnected) {
-    notify('negative', 'Vous devez être authentifié pour accéder à cette ressource 😡');
-    next(from);
+    // notify('negative', 'Vous devez être authentifié pour accéder à cette ressource 😡');
+    next({ name: 'login' });
+  } else next();
+}
+
+export function mustNotBeAuth(
+  to: RouteLocationNormalized,
+  from: RouteLocationNormalized,
+  next: NavigationGuardNext,
+): void {
+  const store = useUserStore();
+  if (store.isUserConnected) {
+    next({ name: 'home' });
   } else next();
 }
 

@@ -1,7 +1,16 @@
 export interface IUser {
-    id: string;
-    email: string
-    firstName: string
-    lastName: string
-    isAdmin: boolean;
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isAdmin: boolean;
+}
+export interface IProjectForm {
+  title: string;
+  description: string;
+  csvColumnToPredict: string;
+  rowDepedencies: boolean;
+  rowDepedenciesLinked: string[];
+  datasetHasIdColumn: boolean;
+  datasetHasIdColumnList: string[];
 }

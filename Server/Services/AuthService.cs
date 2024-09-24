@@ -1,26 +1,19 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Text;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Server.Models;
 using Server.DTOs;
 using JwtPayload = Server.DTOs.JwtPayload;
-using Server.Repositories;
+using System.Text;
 
 namespace Server.Services;
 
-public class AuthService : ApplicationService
+public class AuthService(IConfiguration config) : ApplicationService
 {
-    private readonly UsersRepository _UsersRepository;
-    private readonly IConfiguration _config;
-    private readonly PasswordHasher<User> _passwordHasher;
-
-    public AuthService(UsersRepository UsersRepository, IConfiguration config)
-    {
-        _UsersRepository = UsersRepository;
-        _config = config;
-        _passwordHasher = new PasswordHasher<User>();
-    }
+    public static readonly string ClaimTypeToIdentifyUserOn = ClaimTypes.NameIdentifier;
+    private readonly IConfiguration _config = config;
+    private readonly UserManager<User> _userManager;
 
     public async Task<bool> RegisterUser(RegisterUserDTO registerUserDTO)
     {
@@ -32,44 +25,53 @@ public class AuthService : ApplicationService
             HashedPassword = "",
             IsAdmin = registerUserDTO.IsAdmin,
         };
-        var HashedPassword = _passwordHasher.HashPassword(userToRegister, registerUserDTO.Password);
-        userToRegister.HashedPassword = HashedPassword;
-        var isSuccess = await _UsersRepository.AddUserAsync(userToRegister);
-        return isSuccess;
+        var registeredUserResult = await _userManager.CreateAsync(userToRegister, registerUserDTO.Password);
+        return registeredUserResult.Succeeded;
     }
 
 
     public async Task<LoginResponse> Login(string email, string password)
     {
-        var user = await _UsersRepository.FindUserByEmailAsync(email);
-        if (user == null) return new LoginResponse { IsLoggedIn = false, };
-        var passwordMatch = _passwordHasher.VerifyHashedPassword(user, user.HashedPassword, password);
-        // 0 means failed comparison here, https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.identity.passwordverificationresult?view=aspnetcore-8.0
-        if (passwordMatch == 0) return new LoginResponse { IsLoggedIn = false };
-        var payload = BuildJwtPayload(user);
-        var accessToken = GenerateTokenString(payload);
-        return new LoginResponse { AccessToken = accessToken, IsLoggedIn = true };
+        var identityUser = await _userManager.FindByEmailAsync(email);
+        if (identityUser == null)
+        {
+            return new LoginResponse { IsLoggedIn = false };
+        }
+        var passwordMatch = await _userManager.CheckPasswordAsync(identityUser, password);
+        if (passwordMatch == false)
+        {
+            return new LoginResponse { IsLoggedIn = false };
+        }
+        var encodedJwtToken = GenerateTokenString(identityUser);
+        await _userManager.UpdateAsync(identityUser);
+        return new LoginResponse { IsLoggedIn = true, AccessToken = encodedJwtToken };
     }
 
     public async Task<LoginResponse> RefreshAccessToken(string accessToken)
     {
         var decodedAccessToken = DecodeJwt(accessToken);
-        var userEmailClaim = decodedAccessToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Email) ?? throw new InvalidOperationException("User ID claim is missing from the token.");
-        var userToRefresh = await _UsersRepository.FindUserByEmailAsync(userEmailClaim.Value) ?? throw new InvalidOperationException("User for this ID does not exist");
-        var payload = BuildJwtPayload(userToRefresh);
-        var refreshedAccessToken = GenerateTokenString(payload);
+        var userEmailClaim = decodedAccessToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Email) ?? throw new InvalidOperationException("User EMAIL claim is missing from the token.");
+        var identityUser = await _userManager.FindByEmailAsync(userEmailClaim.Value);
+        var refreshedAccessToken = GenerateTokenString(identityUser);
         return new LoginResponse { AccessToken = refreshedAccessToken, IsLoggedIn = true };
     }
 
-    private string GenerateTokenString(JwtPayload jwtPayload)
+    private string GenerateTokenString(User user)
     {
         var securityKey = GetSymmetricJwtSecurityKey(_config);
         var signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256Signature);
+        var claims = new List<Claim>
+        {
+            new(ClaimTypeToIdentifyUserOn, user.Id.ToString())
+        };
 
         var securityToken = new JwtSecurityToken(
             expires: GetJwtExpiration(),
-            signingCredentials: signingCredentials
+            signingCredentials: signingCredentials,
+            claims: claims
         );
+
+        var jwtPayload = BuildJwtPayload(user);
 
         // Custom data
         foreach (var property in jwtPayload.GetType().GetProperties())
@@ -102,7 +104,7 @@ public class AuthService : ApplicationService
             RequireExpirationTime = true,
             ValidateIssuerSigningKey = true,
             ClockSkew = TimeSpan.Zero,
-            NameClaimType = "default"
+            NameClaimType = ClaimTypeToIdentifyUserOn
         };
     }
 

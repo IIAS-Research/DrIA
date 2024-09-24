@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Server.Controllers;
 using Server.DAL.Db;
 using Server.Models;
 
@@ -8,7 +8,7 @@ namespace server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UsersController : ControllerBase
+    public class UsersController : ApplicationController
     {
         private readonly MainDbContext _context;
 
