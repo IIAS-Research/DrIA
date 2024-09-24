@@ -1,4 +1,4 @@
-using server;
+using MimeTypes;
 
 namespace Server.Services;
 
@@ -18,7 +18,7 @@ public class FileStorageService : ApplicationService
         var randomFilename = Path.GetRandomFileName();
         var filePath = Path.Combine(storageFolderName ?? DefaultStorageFolder, randomFilename);
         var filePathInStorage = Path.Combine(GetMainPathStorage(_config), filePath);
-        var mimeType = MimeTypes.GetMimeType(formfile.FileName);
+        var mimeType = MimeTypeMap.GetMimeType(formfile.FileName);
         using (var stream = File.Create(filePathInStorage))
         {
             await formfile.CopyToAsync(stream);
@@ -29,7 +29,7 @@ public class FileStorageService : ApplicationService
         return writeResponse;
     }
 
-    public async Task<FileStorageResponseWrite> WriteModelFileToStorageAsync(IFormFile formfile)
+    public async Task<FileStorageResponseWrite> WriteModelBinaryToStorageAsync(IFormFile formfile)
     {
         var writeResponse = new FileStorageResponseWrite();
         var responseFileOk = ModelBinaryFileOptions.EnsureFileIsOk(formfile);

@@ -2,7 +2,7 @@ namespace Server;
 
 public static class Configuration
 {
-  public static readonly string AppName = "Dr.IA";
+  public static readonly string AppName = "Dr_IA";
   public static readonly string ConnectionString = $"{AppName}:ConnectionString";
   public static readonly string JwtPrivateKey = $"{AppName}:JwtPrivateKey";
   public static readonly string PathMainStorage = $"{AppName}:PathMainStorage";
@@ -13,7 +13,7 @@ public static class Configuration
     {
             ConnectionString,
             JwtPrivateKey,
-            // PathMainStorage,
+            PathMainStorage,
     };
     foreach (string secret in secretsToCheck)
     {
