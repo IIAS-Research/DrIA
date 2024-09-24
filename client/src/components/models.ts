@@ -1,10 +1,17 @@
 export interface IUser {
-  id: string;
+  id: number;
   email: string;
   firstName: string;
   lastName: string;
   isAdmin: boolean;
 }
+
+export interface ICreateUserDTO {
+    email: string;
+    firstName: string;
+    lastName: string;
+    isAdmin: boolean;
+  }
 
 // Pipeline
 export interface IStep {
@@ -13,10 +20,10 @@ export interface IStep {
   description: string;
   configuration: {
     [key: string]: {
-        default: any;
-        value: any;
-        description: string;
-    }
+      default: any;
+      value: any;
+      description: string;
+    };
   };
   children: [];
 }
@@ -27,10 +34,10 @@ export interface IMetaStep {
   description: string;
   configuration: {
     [key: string]: {
-        default: any;
-        value: any;
-        description: string;
-    }
+      default: any;
+      value: any;
+      description: string;
+    };
   };
   children: IStep[];
 }
@@ -41,10 +48,10 @@ export interface IMetaOrderedStep {
   description: string;
   configuration: {
     [key: string]: {
-        default: any;
-        value: any;
-        description: string;
-    }
+      default: any;
+      value: any;
+      description: string;
+    };
   };
   children: IMetaStep[];
 }

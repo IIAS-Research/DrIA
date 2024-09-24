@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Server.DTOs;
+using Server.Models;
 using Server.Services;
 
 namespace Server.Controllers;
@@ -18,13 +19,13 @@ public class AuthController : ControllerBase
   // POST: api/register
   [HttpPost("register")]
   [AllowAnonymous]
-  public async Task<IActionResult> RegisterUser(RegisterUserDTO registerUserDTO)
+  public async Task<ActionResult<User>> RegisterUser(RegisterUserDTO registerUserDTO)
   {
-    var result = await _authService.RegisterUser(registerUserDTO);
+    var user = await _authService.RegisterUser(registerUserDTO);
 
-    if (result)
+    if (user !=  null)
     {
-      return CreatedAtAction(nameof(RegisterUser), new { email = registerUserDTO.Email }, registerUserDTO);
+      return CreatedAtAction(nameof(RegisterUser), new { email = registerUserDTO.Email }, user);
     }
 
     return BadRequest("User registration failed.");

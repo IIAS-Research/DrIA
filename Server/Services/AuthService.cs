@@ -22,7 +22,7 @@ public class AuthService : ApplicationService
         _passwordHasher = new PasswordHasher<User>();
     }
 
-    public async Task<bool> RegisterUser(RegisterUserDTO registerUserDTO)
+    public async Task<User> RegisterUser(RegisterUserDTO registerUserDTO)
     {
         var userToRegister = new User
         {
@@ -34,8 +34,8 @@ public class AuthService : ApplicationService
         };
         var HashedPassword = _passwordHasher.HashPassword(userToRegister, registerUserDTO.Password);
         userToRegister.HashedPassword = HashedPassword;
-        var isSuccess = await _UsersRepository.AddUserAsync(userToRegister);
-        return isSuccess;
+        var user = await _UsersRepository.AddUserAsync(userToRegister);
+        return user;
     }
 
 

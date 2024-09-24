@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { IUser } from 'components/models';
+import { ICreateUserDTO, IUser } from 'components/models';
 
 const props = defineProps<{
-    user: IUser
+    user: IUser | ICreateUserDTO
 }>();
 
 const emits = defineEmits<{
-    submit: [updatedUser: IUser]
+    submit: [updatedUser: IUser | ICreateUserDTO]
 }>();
 
-const userLocalComponent = ref<IUser & { password?: string }>({ ...props.user });
+const userLocalComponent = ref<(IUser | ICreateUserDTO) & { password?: string }>({ ...props.user });
 
 </script>
 
