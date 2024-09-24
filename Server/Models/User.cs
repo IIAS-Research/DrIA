@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace Server.Models;
@@ -26,4 +27,5 @@ public class User : ApplicationRecord
   [Timestamp]
   public byte[]? CreatedAt { get; set; }
 
+  public Collection<Project>? Projects { get; set; }
 }

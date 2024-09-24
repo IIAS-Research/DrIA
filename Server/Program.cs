@@ -47,7 +47,7 @@ public partial class Program
   private static void RunBeforeStart(WebApplicationBuilder builder)
   {
     Configuration.EnsureSecretsAreOk(builder.Configuration);
-    // FileStorageService.EnsureStorageDirectoryAreCreated(builder.Configuration);
+    FileStorageService.EnsureStorageDirectoryAreCreated(builder.Configuration);
     AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
   }
 
@@ -59,8 +59,8 @@ public partial class Program
     });
     builder.Services.AddDbContext<MainDbContext>(options =>
         options.UseNpgsql(builder.Configuration[Configuration.ConnectionString]));
-    // builder.Services.AddTransient<FileStorageService>();
     builder.Services.AddScoped<UsersRepository>();
+    builder.Services.AddTransient<FileStorageService>();
     builder.Services.AddTransient<AuthService>();
     builder.Services.AddTransient<MailerService>();
     builder.Services.AddAuthentication(options =>
