@@ -7,10 +7,11 @@ public class UsersRepository(MainDbContext dbContext)
 {
     private readonly MainDbContext _dbContext = dbContext;
 
-    public async Task<bool> AddUserAsync(User user)
+    public async Task<User> AddUserAsync(User user)
     {
-        await _dbContext.Users.AddAsync(user);
-        return await _dbContext.SaveChangesAsync() > 0;
+        var entry = await _dbContext.Users.AddAsync(user);
+        await _dbContext.SaveChangesAsync();
+        return entry.Entity;
     }
 
     public async Task<User?> FindUserByIdAsync(long id)

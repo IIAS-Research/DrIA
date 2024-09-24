@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { QTableColumn } from 'quasar';
-import { deleteOneUser, findAllUsers, updateOneUser } from 'src/api/users.api';
-import { IUser } from 'components/models';
+import {
+  createOneUser, deleteOneUser, findAllUsers, updateOneUser,
+} from 'src/api/users.api';
+import { ICreateUserDTO, IUser } from 'components/models';
 import ManageUserForm from 'components/users/ManageUserForm.vue';
 import { onMounted, ref } from 'vue';
 
@@ -44,19 +46,34 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
 ];
+const defaultAddUser: ICreateUserDTO = {
+  email: '',
+  firstName: '',
+  lastName: '',
+  isAdmin: false,
+};
 
 const users = ref<IUser[]>();
 const dialogUpdateUser = ref(false);
-const userToManage = ref<IUser>();
+const userToManage = ref<IUser | ICreateUserDTO>();
 
-async function submit(updatedUser: IUser) {
+async function submit(user: IUser | ICreateUserDTO) {
   if (!userToManage.value || !users.value) return;
-  const updatedUserResponse = await updateOneUser(userToManage.value?.id, updatedUser);
-  users.value = [...users.value.map((user) => {
-    if (user.id === updatedUserResponse?.id) {
-      return updatedUserResponse;
-    } return user;
-  })];
+
+  if ('id' in user) {
+    const userResponse = await updateOneUser((userToManage.value as IUser).id, user);
+    if (!userResponse) return;
+    users.value = [...users.value.map((u) => {
+      if (u.id === userResponse?.id) {
+        return userResponse;
+      } return u;
+    })];
+  } else {
+    const userResponse = await createOneUser(user);
+    if (!userResponse) return;
+    users.value = [...users.value, userResponse].sort((a, b) => b.id - a.id);
+  }
+
   userToManage.value = undefined;
   dialogUpdateUser.value = false;
 }
@@ -83,6 +100,19 @@ onMounted(async () => {
       flat
       bordered
     >
+      <template #top-right>
+        <q-btn
+          icon="add"
+          color="primary"
+          size="md"
+          rounded
+          dense
+          @click="userToManage = defaultAddUser; dialogUpdateUser = true"
+        >
+          <q-tooltip>Créer un utilisateur</q-tooltip>
+        </q-btn>
+      </template>
+
       <template #body-cell-actions="{ row }">
         <q-td>
           <div class="q-gutter-x-sm">
