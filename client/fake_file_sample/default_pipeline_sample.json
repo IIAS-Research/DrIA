@@ -1,0 +1,1452 @@
+{
+  "step": "MetaOrderedStep",
+  "name": "MetaStep",
+  "description": "Step description...",
+  "configuration": {},
+  "children": [
+    {
+      "step": "MetaStep",
+      "name": "MetaStep",
+      "description": "Step description...",
+      "configuration": {},
+      "children": [
+        {
+          "step": "ActDateConverter",
+          "name": "Convert Short text to date if possible",
+          "description": "Step description...",
+          "configuration": {
+            "authorized_error_ratios": {
+              "default": 0.05,
+              "description": "Over this ratios, the column will not be converted into date",
+              "value": 0.05
+            },
+            "sample_size": {
+              "default": 200,
+              "description": "Convert date is time consuming.                     To save time, date detection will be done on a random sample.                     Set to -1 to detect on the whole dataset",
+              "value": 200
+            }
+          },
+          "children": []
+        }
+      ]
+    },
+    {
+      "step": "MetaStep",
+      "name": "MetaStep",
+      "description": "Step description...",
+      "configuration": {},
+      "children": [
+        {
+          "step": "ActTfIdf",
+          "name": "TF-IDF",
+          "description": "Step description...",
+          "configuration": {},
+          "children": []
+        },
+        {
+          "step": "ActDropDateColumn",
+          "name": "Drop date columns",
+          "description": "Drop date columns.",
+          "configuration": {},
+          "children": []
+        },
+        {
+          "step": "ActSplitDate",
+          "name": "Transform string column to date",
+          "description": "Step description...",
+          "configuration": {},
+          "children": []
+        },
+        {
+          "step": "ActWord2Vec",
+          "name": "Word2Vec",
+          "description": "Step description...",
+          "configuration": {},
+          "children": []
+        },
+        {
+          "step": "ActMeanColumn",
+          "name": "Fill missing values with mean",
+          "description": "Fills missing values with the mean of non-missing values\n        when the proportion of empty rows is lower than {empty_threshold}.",
+          "configuration": {
+            "empty_threshold": {
+              "description": "Column with less or equal proportion of empty row will                     be fill with mean value. 1 will always fill void values",
+              "default": 1,
+              "value": 1
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActDropTextualColumn",
+          "name": "Drop textual columns",
+          "description": "Drop textual columns.",
+          "configuration": {},
+          "children": []
+        },
+        {
+          "step": "ActOnehot",
+          "name": "One hot encoding categorical features",
+          "description": "Step description...",
+          "configuration": {},
+          "children": []
+        },
+        {
+          "step": "ActDropNumericalColumn",
+          "name": "Drop numerical columns",
+          "description": "Drop numerical columns where the proportion of empty rows\n        in the dataset is higher than {empty_threshold}.",
+          "configuration": {
+            "empty_threshold": {
+              "description": "Column with more or equal proportion of empty row                     will dropped. 1 will drop all columns",
+              "default": 0.5,
+              "value": 0.5
+            }
+          },
+          "children": []
+        }
+      ]
+    },
+    {
+      "step": "MetaStep",
+      "name": "MetaStep",
+      "description": "Step description...",
+      "configuration": {},
+      "children": [
+        {
+          "step": "ActRemoveHighCorrelatedColumn",
+          "name": "Remove High Correlated Column",
+          "description": "Remove columns which correlation with other columns is higher than {threshold}.",
+          "configuration": {
+            "threshold": {
+              "description": "If two columns is correlated over this value, only one                     will be kept",
+              "default": 0.9,
+              "value": 0.9
+            }
+          },
+          "children": []
+        }
+      ]
+    },
+    {
+      "step": "MetaStep",
+      "name": "MetaStep",
+      "description": "Step description...",
+      "configuration": {},
+      "children": [
+        {
+          "step": "ActMinMaxScaler",
+          "name": "Min Max Scaler",
+          "description": "Step description...",
+          "configuration": {},
+          "children": []
+        },
+        {
+          "step": "ActRandomOverSampling",
+          "name": "Random Over Sampling",
+          "description": "Step description...",
+          "configuration": {},
+          "children": []
+        }
+      ]
+    },
+    {
+      "step": "MetaPartialExplorerStep",
+      "name": "MetaPartialExplorerStep",
+      "description": "Step description...",
+      "configuration": {},
+      "children": [
+        {
+          "step": "VoidStep",
+          "name": "VoidStep",
+          "description": "Step description...",
+          "configuration": {},
+          "children": []
+        }
+      ]
+    },
+    {
+      "step": "MetaExplorerStep",
+      "name": "MetaExplorerStep",
+      "description": "Step description...",
+      "configuration": {},
+      "children": [
+        {
+          "step": "ActAdaBoostRegressor",
+          "name": "Learn : AdaBoost Regressor",
+          "description": "Step description...",
+          "configuration": {
+            "learning_rate": {
+              "description": "Weight applied to each regressor at each boosting iteration",
+              "default": 0.1,
+              "range": [
+                0.01,
+                2.0
+              ],
+              "value": 0.1
+            },
+            "loss": {
+              "description": "The loss function to use when updating the weights                     after each boosting iteration.",
+              "default": "linear",
+              "categorical": [
+                "linear",
+                "square",
+                "exponential"
+              ],
+              "value": "linear"
+            },
+            "n_estimators": {
+              "description": "Number of threes",
+              "default": 50,
+              "range": [
+                1,
+                500
+              ],
+              "value": 50
+            },
+            "random_state": {
+              "description": "random_state",
+              "default": 42,
+              "value": 42
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActCatBoostRegressor",
+          "name": "Learn : CatBoost Regressor",
+          "description": "Step description...",
+          "configuration": {
+            "iterations": {
+              "description": "The maximum number of trees that can be built.",
+              "default": 1000,
+              "range": [
+                100,
+                10000
+              ],
+              "value": 1000
+            },
+            "learning_rate": {
+              "description": "The learning rate.",
+              "default": 0.03,
+              "range": [
+                0.001,
+                1
+              ],
+              "value": 0.03
+            },
+            "depth": {
+              "description": "Depth of the tree.",
+              "default": 6,
+              "range": [
+                1,
+                16
+              ],
+              "value": 6
+            },
+            "l2_leaf_reg": {
+              "description": "Coefficient at the L2 regularization term of the cost function.",
+              "default": 3,
+              "range": [
+                0,
+                10
+              ],
+              "value": 3
+            },
+            "border_count": {
+              "description": "The number of splits for numerical features.",
+              "default": 254,
+              "range": [
+                1,
+                255
+              ],
+              "value": 254
+            },
+            "loss_function": {
+              "description": "The metric to use in training.",
+              "default": "RMSE",
+              "categorical": [
+                "RMSE",
+                "MAE",
+                "Quantile",
+                "LogLinQuantile",
+                "Poisson",
+                "MAPE"
+              ],
+              "value": "RMSE"
+            },
+            "eval_metric": {
+              "description": "The metric to be used for validation data.",
+              "default": "RMSE",
+              "categorical": [
+                "RMSE",
+                "MAE",
+                "R2",
+                "Quantile",
+                "LogLinQuantile",
+                "Poisson",
+                "MAPE"
+              ],
+              "value": "RMSE"
+            },
+            "bootstrap_type": {
+              "description": "The method for sampling the weights of objects.",
+              "default": "Bayesian",
+              "categorical": [
+                "Bayesian",
+                "Bernoulli",
+                "MVS"
+              ],
+              "value": "Bayesian"
+            },
+            "leaf_estimation_iterations": {
+              "description": "The number of iterations for leaf estimation.",
+              "default": 10,
+              "range": [
+                1,
+                50
+              ],
+              "value": 10
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActMLPRegressor",
+          "name": "Learn : MLP Regressor",
+          "description": "Step description...",
+          "configuration": {
+            "activation": {
+              "description": "Activation function for the hidden layer.",
+              "default": "relu",
+              "categorical": [
+                "tanh",
+                "relu"
+              ],
+              "value": "relu"
+            },
+            "alpha": {
+              "description": "Strength of the L2 regularization term. The L2 regularization                     term is divided by the sample size when added to the loss.",
+              "default": 0.0001,
+              "range": [
+                1e-07,
+                0.1
+              ],
+              "value": 0.0001
+            },
+            "hidden_layer_count": {
+              "description": "NUmber of hidden layer",
+              "default": 1,
+              "range": [
+                1,
+                4
+              ],
+              "passthrough": false,
+              "value": 1
+            },
+            "node_per_layer": {
+              "description": "Number of node per layer",
+              "default": 32,
+              "range": [
+                16,
+                256
+              ],
+              "passthrough": false,
+              "value": 32
+            },
+            "learning_rate_init": {
+              "description": "Learning rate schedule for weight updates",
+              "default": 0.001,
+              "range": [
+                0.0001,
+                0.5
+              ],
+              "value": 0.001
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActGaussianNb",
+          "name": "Learn : Gaussian NB",
+          "description": "Step description...",
+          "configuration": {
+            "var_smoothing": {
+              "description": "Portion of the largest variance of all                     features that is added to variances for calculation stability.",
+              "default": 1e-09,
+              "range": [
+                1e-11,
+                0.0001
+              ],
+              "value": 1e-09
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActSGDRegressor",
+          "name": "Learn : SGD Regressor",
+          "description": "Step description...",
+          "configuration": {
+            "alpha": {
+              "description": "Constant that multiplies the regularization term.",
+              "default": 0.0001,
+              "range": [
+                1e-07,
+                0.1
+              ],
+              "value": 0.0001
+            },
+            "tol": {
+              "description": "The stopping criterion.",
+              "default": 0.0001,
+              "range": [
+                1e-05,
+                0.1
+              ],
+              "value": 0.0001
+            },
+            "epsilon": {
+              "description": "Epsilon in the epsilon-insensitive loss functions",
+              "default": 0.1,
+              "range": [
+                1e-05,
+                0.1
+              ],
+              "value": 0.1
+            },
+            "eta0": {
+              "description": "The initial learning rate for the ‘constant’, ‘invscaling’                     or ‘adaptive’ schedules.",
+              "default": 0.01,
+              "range": [
+                1e-07,
+                0.1
+              ],
+              "value": 0.01
+            },
+            "l1_ratio": {
+              "description": "The Elastic Net mixing parameter",
+              "default": 0.15,
+              "range": [
+                1e-09,
+                1.0
+              ],
+              "value": 0.15
+            },
+            "power_t": {
+              "description": "The exponent for inverse scaling learning rate.",
+              "default": 0.25,
+              "range": [
+                1e-05,
+                1.0
+              ],
+              "value": 0.25
+            },
+            "average": {
+              "description": "When set to True, computes the averaged SGD                     weights across all updates and stores the result in the coef_ attribute. ",
+              "default": false,
+              "value": false
+            },
+            "loss": {
+              "description": "The loss function to be used.",
+              "default": "squared_error",
+              "categorical": [
+                "squared_error",
+                "huber",
+                "epsilon_insensitive",
+                "squared_epsilon_insensitive"
+              ],
+              "value": "squared_error"
+            },
+            "penalty": {
+              "description": "The penalty (aka regularization term) to be used.",
+              "default": "l2",
+              "categorical": [
+                "l1",
+                "l2",
+                "elasticnet"
+              ],
+              "value": "l2"
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActLinearDiscriminantAnalysis",
+          "name": "Learn : Linear Discriminant Analysis",
+          "description": "Step description...",
+          "configuration": {
+            "tol": {
+              "description": "Absolute threshold for a singular value of X to be considered                     significant, used to estimate the rank of X. ",
+              "default": 0.0001,
+              "range": [
+                1e-05,
+                0.1
+              ],
+              "value": 0.0001
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActExtraTreesRegressor",
+          "name": "Learn : Extra Trees Regressor",
+          "description": "Step description...",
+          "configuration": {
+            "max_depth": {
+              "description": "Max depth of each tree",
+              "default": 15,
+              "range": [
+                1,
+                100
+              ],
+              "value": 15
+            },
+            "min_samples_leaf": {
+              "description": "The minimum number of samples required to be at a leaf node.",
+              "default": 1,
+              "range": [
+                1,
+                15
+              ],
+              "value": 1
+            },
+            "max_features": {
+              "description": "The number of features to consider when looking for the best split",
+              "default": 1,
+              "range": [
+                0.1,
+                1
+              ],
+              "value": 1
+            },
+            "min_samples_split": {
+              "description": "The minimum number of samples required to split an internal node",
+              "default": 2,
+              "range": [
+                2,
+                20
+              ],
+              "value": 2
+            },
+            "bootstrap": {
+              "description": "Whether bootstrap samples are used when building trees.                     If False, the whole dataset is used to build each tree.",
+              "default": false,
+              "value": false
+            },
+            "criterion": {
+              "description": "The function to measure the quality of a split.",
+              "default": "squared_error",
+              "categorical": [
+                "poisson",
+                "friedman_mse",
+                "absolute_error",
+                "squared_error"
+              ],
+              "value": "squared_error"
+            },
+            "n_estimators": {
+              "description": "Number of threes",
+              "default": 100,
+              "range": [
+                1,
+                500
+              ],
+              "value": 100
+            },
+            "random_state": {
+              "description": "random_state",
+              "default": 42,
+              "value": 42
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActCatBoost",
+          "name": "Learn : CatBoost",
+          "description": "Step description...",
+          "configuration": {
+            "iterations": {
+              "description": "The maximum number of trees that can be built.",
+              "default": 1000,
+              "range": [
+                100,
+                10000
+              ],
+              "value": 1000
+            },
+            "learning_rate": {
+              "description": "The learning rate.",
+              "default": 0.03,
+              "range": [
+                0.001,
+                1
+              ],
+              "value": 0.03
+            },
+            "depth": {
+              "description": "Depth of the tree.",
+              "default": 6,
+              "range": [
+                1,
+                16
+              ],
+              "value": 6
+            },
+            "l2_leaf_reg": {
+              "description": "Coefficient at the L2 regularization term of the cost function.",
+              "default": 3,
+              "range": [
+                0,
+                10
+              ],
+              "value": 3
+            },
+            "border_count": {
+              "description": "The number of splits for numerical features.",
+              "default": 254,
+              "range": [
+                1,
+                255
+              ],
+              "value": 254
+            },
+            "loss_function": {
+              "description": "The metric to use in training.",
+              "default": "Logloss",
+              "categorical": [
+                "Logloss",
+                "CrossEntropy",
+                "MultiClass",
+                "MultiClassOneVsAll"
+              ],
+              "value": "Logloss"
+            },
+            "eval_metric": {
+              "description": "The metric to be used for validation data.",
+              "default": "AUC",
+              "categorical": [
+                "AUC",
+                "Accuracy",
+                "Logloss"
+              ],
+              "value": "AUC"
+            },
+            "bootstrap_type": {
+              "description": "The method for sampling the weights of objects.",
+              "default": "Bayesian",
+              "categorical": [
+                "Bayesian",
+                "Bernoulli",
+                "MVS"
+              ],
+              "value": "Bayesian"
+            },
+            "leaf_estimation_iterations": {
+              "description": "The number of iterations for leaf estimation.",
+              "default": 10,
+              "range": [
+                1,
+                50
+              ],
+              "value": 10
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActXGBoost",
+          "name": "Learn : XGBoost",
+          "description": "Step description...",
+          "configuration": {
+            "max_depth": {
+              "description": "Max depth of each tree",
+              "default": 15,
+              "range": [
+                1,
+                100
+              ],
+              "value": 15
+            },
+            "random_state": {
+              "description": "random_state",
+              "default": 42,
+              "value": 42
+            },
+            "learning_rate": {
+              "description": "Learning rate",
+              "default": 0.1,
+              "range": [
+                1e-07,
+                5
+              ],
+              "value": 0.1
+            },
+            "subsample": {
+              "description": "he fraction of samples to be used for fitting                     the individual base learners.",
+              "default": 1.0,
+              "range": [
+                0.1,
+                1.0
+              ],
+              "value": 1.0
+            },
+            "n_estimators": {
+              "description": "Number of estimators",
+              "default": 100,
+              "range": [
+                1,
+                500
+              ],
+              "value": 100
+            },
+            "loss": {
+              "description": "The loss function to use in the boosting process.",
+              "default": "log_loss",
+              "categorical": [
+                "log_loss",
+                "exponential"
+              ],
+              "value": "log_loss"
+            },
+            "criterion": {
+              "description": "The function to measure the quality of a split",
+              "default": "friedman_mse",
+              "categorical": [
+                "friedman_mse",
+                "squared_error"
+              ],
+              "value": "friedman_mse"
+            },
+            "min_samples_leaf": {
+              "description": "The minimum number of samples required to be at a leaf node.",
+              "default": 1,
+              "range": [
+                1,
+                15
+              ],
+              "value": 1
+            },
+            "max_features": {
+              "description": "The number of features to consider when looking for the best split",
+              "default": 1,
+              "range": [
+                0.1,
+                1
+              ],
+              "value": 1
+            },
+            "min_samples_split": {
+              "description": "The minimum number of samples required to split an internal node",
+              "default": 2,
+              "range": [
+                2,
+                20
+              ],
+              "value": 2
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActGaussianProcessRegressor",
+          "name": "Learn : Gaussian Process Regressor",
+          "description": "Step description...",
+          "configuration": {
+            "alpha": {
+              "description": "Value added to the diagonal of the kernel matrix during fitting.",
+              "default": 1e-14,
+              "range": [
+                1e-08,
+                1.0
+              ],
+              "value": 1e-14
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActXGBoostRegressor",
+          "name": "Learn : XGBoost Regressor",
+          "description": "Step description...",
+          "configuration": {
+            "max_depth": {
+              "description": "Max depth of each tree",
+              "default": 15,
+              "range": [
+                1,
+                100
+              ],
+              "value": 15
+            },
+            "random_state": {
+              "description": "random_state",
+              "default": 42,
+              "value": 42
+            },
+            "learning_rate": {
+              "description": "Learning rate",
+              "default": 0.1,
+              "range": [
+                1e-09,
+                5
+              ],
+              "value": 0.1
+            },
+            "n_estimators": {
+              "description": "Number of estimators",
+              "default": 100,
+              "range": [
+                1,
+                500
+              ],
+              "value": 100
+            },
+            "loss": {
+              "description": "The loss function to use in the boosting process.",
+              "default": "squared_error",
+              "categorical": [
+                "squared_error",
+                "absolute_error",
+                "huber",
+                "quantile"
+              ],
+              "value": "squared_error"
+            },
+            "criterion": {
+              "description": "The function to measure the quality of a split",
+              "default": "friedman_mse",
+              "categorical": [
+                "friedman_mse",
+                "squared_error"
+              ],
+              "value": "friedman_mse"
+            },
+            "min_samples_leaf": {
+              "description": "The minimum number of samples required to be at a leaf node.",
+              "default": 1,
+              "range": [
+                1,
+                15
+              ],
+              "value": 1
+            },
+            "max_features": {
+              "description": "The number of features to consider when looking for the best split",
+              "default": 1,
+              "range": [
+                0.1,
+                1
+              ],
+              "value": 1
+            },
+            "min_samples_split": {
+              "description": "The minimum number of samples required to split an internal node",
+              "default": 2,
+              "range": [
+                2,
+                20
+              ],
+              "value": 2
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActKNN",
+          "name": "Learn : KNN",
+          "description": "Step description...",
+          "configuration": {
+            "metric": {
+              "description": "Can be minkowski or manhattan",
+              "default": "minkowski",
+              "categorical": [
+                "minkowski",
+                "manhattan"
+              ],
+              "value": "minkowski"
+            },
+            "n_neighbors": {
+              "description": "Number of neighbors",
+              "default": 5,
+              "range": [
+                1,
+                200
+              ],
+              "passthrough": false,
+              "value": 5
+            },
+            "weights": {
+              "description": "Weight function used in prediction.",
+              "default": "uniform",
+              "categorical": [
+                "uniform",
+                "distance"
+              ],
+              "value": "uniform"
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActMultinomialNB",
+          "name": "Learn : Multinomial NB",
+          "description": "Step description...",
+          "configuration": {
+            "alpha": {
+              "description": "Additive (Laplace/Lidstone)                     smoothing parameter (set alpha=0 and force_alpha=True, for no smoothing).",
+              "default": 1.0,
+              "range": [
+                0.01,
+                100.0
+              ],
+              "value": 1.0
+            },
+            "fit_prior": {
+              "description": "Whether to learn class prior probabilities                     or not. If false, a uniform prior will be used.",
+              "default": true,
+              "categorical": [
+                true,
+                false
+              ],
+              "value": true
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActSVMSVC",
+          "name": "Learn : SVM Classification",
+          "description": "Step description...",
+          "configuration": {
+            "kernel": {
+              "description": "Kernel to use in the SVM",
+              "default": "rbf",
+              "categorical": [
+                "linear",
+                "poly",
+                "rbf",
+                "sigmoid"
+              ],
+              "value": "rbf"
+            },
+            "random_state": {
+              "description": "random_state",
+              "default": 42,
+              "value": 42
+            },
+            "class_weight": {
+              "description": "Can be set on \"balenced\" to improve results on unbalenced data",
+              "default": null,
+              "categorical": [
+                null,
+                "balanced"
+              ],
+              "value": null
+            },
+            "tol": {
+              "description": "The stopping criterion.",
+              "default": 0.001,
+              "range": [
+                1e-05,
+                0.1
+              ],
+              "value": 0.001
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActQuadraticDiscriminantAnalysis",
+          "name": "Learn : Quadratic Discriminant Analysis",
+          "description": "Step description...",
+          "configuration": {
+            "reg_param": {
+              "description": "Regularizes the per-class covariance estimates by transforming S2",
+              "default": 0.0001,
+              "range": [
+                0.0001,
+                1.0
+              ],
+              "value": 0.0001
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActRandomForest",
+          "name": "Learn : Random Forest",
+          "description": "Step description...",
+          "configuration": {
+            "max_depth": {
+              "description": "Max depth of each tree",
+              "default": 15,
+              "range": [
+                1,
+                100
+              ],
+              "value": 15
+            },
+            "n_estimators": {
+              "description": "Number of threes",
+              "default": 100,
+              "range": [
+                1,
+                500
+              ],
+              "value": 100
+            },
+            "random_state": {
+              "description": "random_state",
+              "default": 42,
+              "value": 42
+            },
+            "min_samples_leaf": {
+              "description": "The minimum number of samples required to be at a leaf node.",
+              "default": 1,
+              "range": [
+                1,
+                15
+              ],
+              "value": 1
+            },
+            "max_features": {
+              "description": "The number of features to consider when looking for the best split",
+              "default": 1,
+              "range": [
+                0.1,
+                1
+              ],
+              "value": 1
+            },
+            "min_samples_split": {
+              "description": "The minimum number of samples required to split an internal node",
+              "default": 2,
+              "range": [
+                2,
+                20
+              ],
+              "value": 2
+            },
+            "bootstrap": {
+              "description": "Whether bootstrap samples are used when building trees.                     If False, the whole dataset is used to build each tree.",
+              "default": false,
+              "value": false
+            },
+            "criterion": {
+              "description": "The function to measure the quality of a split.",
+              "default": "gini",
+              "categorical": [
+                "gini",
+                "entropy",
+                "log_loss"
+              ],
+              "value": "gini"
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActARDRegression",
+          "name": "Learn : ARD Regression",
+          "description": "Step description...",
+          "configuration": {
+            "alpha_1": {
+              "description": "Hyper-parameter : shape parameter for the Gamma                     distribution prior over the alpha parameter.",
+              "default": 1e-06,
+              "range": [
+                1e-10,
+                0.001
+              ],
+              "value": 1e-06
+            },
+            "alpha_2": {
+              "description": "Hyper-parameter : inverse scale parameter                     (rate parameter) for the Gamma distribution prior over                         the alpha parameter.",
+              "default": 1e-06,
+              "range": [
+                1e-10,
+                0.001
+              ],
+              "value": 1e-06
+            },
+            "lambda_1": {
+              "description": "Hyper-parameter : shape parameter for the Gamma                     distribution prior over the lambda parameter.",
+              "default": 1e-10,
+              "range": [
+                0.001,
+                1e-06
+              ],
+              "value": 1e-10
+            },
+            "lambda_2": {
+              "description": "Hyper-parameter : inverse scale parameter (rate parameter)                     for the Gamma distribution prior over the lambda parameter.",
+              "default": 1e-10,
+              "range": [
+                0.001,
+                1e-06
+              ],
+              "value": 1e-10
+            },
+            "threshold_lambda": {
+              "description": "Threshold for removing (pruning) weights with high                     precision from the computation.",
+              "default": 10000.0,
+              "range": [
+                1000.0,
+                100000.0
+              ],
+              "value": 10000.0
+            },
+            "tol": {
+              "description": "Stop the algorithm if w has converged.",
+              "default": 0.001,
+              "range": [
+                1e-05,
+                0.1
+              ],
+              "value": 0.001
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActRandomForestRegressor",
+          "name": "Learn : Random Forest Regressor",
+          "description": "Step description...",
+          "configuration": {
+            "n_estimators": {
+              "description": "Number of threes",
+              "default": 100,
+              "range": [
+                1,
+                500
+              ],
+              "value": 100
+            },
+            "random_state": {
+              "description": "random_state",
+              "default": 42,
+              "value": 42
+            },
+            "min_samples_leaf": {
+              "description": "The minimum number of samples required to be at a leaf node.",
+              "default": 1,
+              "range": [
+                1,
+                15
+              ],
+              "value": 1
+            },
+            "max_features": {
+              "description": "The number of features to consider when looking for the best split",
+              "default": 1,
+              "range": [
+                0.1,
+                1
+              ],
+              "value": 1
+            },
+            "min_samples_split": {
+              "description": "The minimum number of samples required to split an internal node",
+              "default": 2,
+              "range": [
+                2,
+                20
+              ],
+              "value": 2
+            },
+            "bootstrap": {
+              "description": "Whether bootstrap samples are used when building trees.                     If False, the whole dataset is used to build each tree.",
+              "default": false,
+              "value": false
+            },
+            "criterion": {
+              "description": "The function to measure the quality of a split.",
+              "default": "squared_error",
+              "categorical": [
+                "poisson",
+                "friedman_mse",
+                "absolute_error",
+                "squared_error"
+              ],
+              "value": "squared_error"
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActKNNRegressor",
+          "name": "Learn : KNN",
+          "description": "Step description...",
+          "configuration": {
+            "metric": {
+              "description": "Can be minkowski or manhattan",
+              "default": "minkowski",
+              "categorical": [
+                "minkowski",
+                "manhattan"
+              ],
+              "value": "minkowski"
+            },
+            "n_neighbors": {
+              "description": "Number of neighbors",
+              "default": 5,
+              "range": [
+                1,
+                200
+              ],
+              "passthrough": false,
+              "value": 5
+            },
+            "weights": {
+              "description": "Weight function used in prediction.",
+              "default": "uniform",
+              "categorical": [
+                "uniform",
+                "distance"
+              ],
+              "value": "uniform"
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActLogisticRegression",
+          "name": "Learn : Logistic Regression Classifier",
+          "description": "Step description...",
+          "configuration": {
+            "random_state": {
+              "description": "random_state",
+              "default": 42,
+              "value": 42
+            },
+            "penalty": {
+              "description": "Specify the norm of the penalty",
+              "default": "l2",
+              "categorical": [
+                "l2",
+                null
+              ],
+              "value": "l2"
+            },
+            "tol": {
+              "description": "The stopping criterion.",
+              "default": 0.0001,
+              "range": [
+                1e-05,
+                0.1
+              ],
+              "value": 0.0001
+            },
+            "class_weight": {
+              "description": "The “balanced” mode uses the values of y to                     automatically adjust weights inversely proportional to class frequencies ",
+              "default": null,
+              "categorical": [
+                null,
+                "balanced"
+              ],
+              "value": null
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActSVMSVR",
+          "name": "Learn : SVM Regression",
+          "description": "Step description...",
+          "configuration": {
+            "kernel": {
+              "description": "Kernel to use in the SVM",
+              "default": "rbf",
+              "categorical": [
+                "linear",
+                "poly",
+                "rbf",
+                "sigmoid"
+              ],
+              "value": "rbf"
+            },
+            "epsilon": {
+              "description": "Epsilon in the epsilon-SVR model.",
+              "default": 0.1,
+              "range": [
+                1e-05,
+                0.1
+              ],
+              "value": 0.1
+            },
+            "tol": {
+              "description": "The stopping criterion.",
+              "default": 0.001,
+              "range": [
+                1e-05,
+                0.1
+              ],
+              "value": 0.001
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActLinearRegression",
+          "name": "Learn : Linear Regression",
+          "description": "Step description...",
+          "configuration": {},
+          "children": []
+        },
+        {
+          "step": "ActMLPClassifier",
+          "name": "Learn : MLP Classifier",
+          "description": "Step description...",
+          "configuration": {
+            "activation": {
+              "description": "Activation function for the hidden layer.",
+              "default": "relu",
+              "categorical": [
+                "tanh",
+                "relu"
+              ],
+              "value": "relu"
+            },
+            "alpha": {
+              "description": "Strength of the L2 regularization term. The L2 regularization                     term is divided by the sample size when added to the loss.",
+              "default": 0.0001,
+              "range": [
+                1e-07,
+                0.1
+              ],
+              "value": 0.0001
+            },
+            "hidden_layer_count": {
+              "description": "NUmber of hidden layer",
+              "default": 1,
+              "range": [
+                1,
+                4
+              ],
+              "passthrough": false,
+              "value": 1
+            },
+            "node_per_layer": {
+              "description": "Number of node per layer",
+              "default": 32,
+              "range": [
+                16,
+                256
+              ],
+              "passthrough": false,
+              "value": 32
+            },
+            "learning_rate_init": {
+              "description": "Learning rate schedule for weight updates",
+              "default": 0.001,
+              "range": [
+                0.0001,
+                0.5
+              ],
+              "value": 0.001
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActBernoulliNb",
+          "name": "Learn : Bernoulli NB",
+          "description": "Step description...",
+          "configuration": {
+            "alpha": {
+              "description": "Additive (Laplace/Lidstone)                     smoothing parameter (set alpha=0 and force_alpha=True, for no smoothing).",
+              "default": 1.0,
+              "range": [
+                0.01,
+                100.0
+              ],
+              "value": 1.0
+            },
+            "fit_prior": {
+              "description": "Whether to learn class prior probabilities                     or not. If false, a uniform prior will be used.",
+              "default": true,
+              "categorical": [
+                true,
+                false
+              ],
+              "value": true
+            }
+          },
+          "children": []
+        },
+        {
+          "step": "ActExtraTreesClassifier",
+          "name": "Learn : Extra Trees Classifier",
+          "description": "Step description...",
+          "configuration": {
+            "max_depth": {
+              "description": "Max depth of each tree",
+              "default": 15,
+              "range": [
+                1,
+                100
+              ],
+              "value": 15
+            },
+            "min_samples_leaf": {
+              "description": "The minimum number of samples required to be at a leaf node.",
+              "default": 1,
+              "range": [
+                1,
+                15
+              ],
+              "value": 1
+            },
+            "min_samples_split": {
+              "description": "The minimum number of samples required to split an internal node",
+              "default": 2,
+              "range": [
+                2,
+                20
+              ],
+              "value": 2
+            },
+            "bootstrap": {
+              "description": "Whether bootstrap samples are used when building trees.                     If False, the whole dataset is used to build each tree.",
+              "default": false,
+              "value": false
+            },
+            "max_features": {
+              "description": "The number of features to consider when looking for the best split",
+              "default": "sqrt",
+              "categorical": [
+                "sqrt",
+                "log2"
+              ],
+              "value": "sqrt"
+            },
+            "criterion": {
+              "description": "The function to measure the quality of a split.",
+              "default": "gini",
+              "categorical": [
+                "gini",
+                "entropy"
+              ],
+              "value": "gini"
+            },
+            "n_estimators": {
+              "description": "Number of threes",
+              "default": 100,
+              "range": [
+                1,
+                500
+              ],
+              "value": 100
+            },
+            "random_state": {
+              "description": "random_state",
+              "default": 42,
+              "value": 42
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+  ]
+}

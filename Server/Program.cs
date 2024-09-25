@@ -62,9 +62,11 @@ public partial class Program
     builder.Services.AddDbContext<MainDbContext>(options =>
         options.UseNpgsql(builder.Configuration[Configuration.ConnectionString]));
     builder.Services.AddScoped<UsersRepository>();
+    builder.Services.AddScoped<ProjectRepository>();
     builder.Services.AddTransient<FileStorageService>();
     builder.Services.AddTransient<AuthService>();
     builder.Services.AddTransient<MailerService>();
+    builder.Services.AddTransient<ProjectService>();
 
     builder.Services.AddIdentityCore<User>()
                 .AddEntityFrameworkStores<MainDbContext>()

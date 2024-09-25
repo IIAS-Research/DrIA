@@ -31,11 +31,13 @@ public class ProjectsController : ApplicationController
     }
 
     [HttpPost]
-    public async Task<IActionResult> RegisterProject(StartProjectInDTO registerProject)
+    public async Task<IActionResult> RegisterProject([FromForm]StartProjectInDTO registerProject)
     {
         await _projectService.CreateProject(registerProject);
         // _remoteAiService. ??
+        // https://github.com/dotnet/aspnetcore/issues/4868
         return Ok();
     }
 
 }
+

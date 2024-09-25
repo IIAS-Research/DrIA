@@ -13,12 +13,18 @@ const isLoading = ref(false);
 async function submitProject(projectForm: IProjectForm, file: File) {
   isLoading.value = true;
   const formData = new FormData();
-  Object.values(projectForm).forEach((values) => {
-    formData.append(values[0], String(values[1]));
+  Object.entries(projectForm).forEach(([key, value]) => {
+    let formatedValue : string | Blob = String(value);
+    if (Array.isArray(value)) {
+      formatedValue = JSON.stringify(value);
+    } else if (typeof value === 'object') {
+      formatedValue = new Blob([JSON.stringify(value)], { type: 'application/json' });
+    }
+    formData.append(key, formatedValue);
   });
   formData.append('file', file);
   try {
-    const responsePostProject = await api.post('projects', formData, {
+    const responsePostProject = await api.post('Projects', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

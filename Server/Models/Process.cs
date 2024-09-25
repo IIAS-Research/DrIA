@@ -41,7 +41,7 @@ public class Process : ApplicationRecord
         public required string Step { get; set; }
         public required string Name { get; set; }
         public required string Description { get; set; }
-        public required ProcessPipelineConfiguration Configuration { get; set; }
+        public ProcessPipelineConfiguration? Configuration { get; set; }
         public required ProcessPipeline[] Children { get; set; }
 
         public record ProcessPipelineConfiguration

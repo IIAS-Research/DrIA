@@ -3,6 +3,7 @@ import { QForm, QStepper } from 'quasar';
 import { ref } from 'vue';
 import { parse } from 'papaparse';
 import { IProjectForm } from '../models';
+import PipelineProject from '../pipeline/PipelineProject.vue';
 
 const emitsComponent = defineEmits<{(e: 'submitProject', projectForm: IProjectForm, file: File): Promise<void>
 }>();
@@ -24,6 +25,7 @@ const step = ref(1);
 const stepper = ref<QStepper>();
 const project = ref({ ...initialProjectInfos });
 const formSteppers = ref<QForm[]>([]);
+const pipelineComponentRef = ref<InstanceType<typeof PipelineProject>>();
 
 function getCsvFileHeaderColumns() {
   if (!uploadedFile.value) return;
@@ -52,9 +54,10 @@ function beginStepper() {
   getCsvFileHeaderColumns();
 }
 async function submitForAITrain() {
-  if (uploadedFile.value === null) {
+  if (uploadedFile.value === null || pipelineComponentRef.value === undefined) {
     return;
   }
+  project.value.pipeline = pipelineComponentRef.value.pipeline;
   emitsComponent('submitProject', project.value, uploadedFile.value);
 }
 
@@ -83,7 +86,7 @@ async function handleNextStepValidation() {
       contracted
       animated
       color="primary"
-      style="width: 350px;"
+      style="min-width: 350px;"
       header-class="header-stepper"
     >
       <q-step
@@ -252,6 +255,13 @@ async function handleNextStepValidation() {
               :rules="[(v) => v.length > 0 || 'Une séléction est requise']"
             />
           </template>
+
+          <q-expansion-item
+            label="Options avancées"
+            class="full-width"
+          >
+            <PipelineProject ref="pipelineComponentRef" />
+          </q-expansion-item>
         </q-form>
       </q-step>
 
