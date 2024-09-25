@@ -1,9 +1,8 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Server.DAL.Db;
+using Server.Models;
 using Server.Repositories;
-using Server.Services;
 
 namespace Server.Controllers;
 
@@ -13,7 +12,7 @@ public class ProjectsController : ApplicationController
 {
     private readonly ProjectsRepository _projectRepository;
 
-    public ProjectsController(ProjectsRepository projectRepository)
+    public ProjectsController(UserManager<User> userManager, ProjectsRepository projectRepository) : base(userManager)
     {
         _projectRepository = projectRepository;
     }
@@ -22,8 +21,12 @@ public class ProjectsController : ApplicationController
     [AllowAnonymous]
     public async Task<IActionResult> GetUserProjects()
     {
-        if (User.Identity.)
-        return Ok(_projectRepository.GetProjectByUser(User.FindFirstValue(Claim)));
+        if (!IsCurrentUserAuth())
+        {
+            return BadRequest();
+        }
+        User currentUser = GetCurrentUser();
+        return Ok(_projectRepository.GetProjectByUser());
     }
 
     // POST: api/projects

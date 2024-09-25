@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Server.DTOs;
+using Server.Models;
 using Server.Services;
 
 namespace Server.Controllers;
@@ -10,7 +12,7 @@ public class AuthController : ApplicationController
 {
   private readonly AuthService _authService;
 
-  public AuthController(AuthService authService)
+  public AuthController(UserManager<User> userManager, AuthService authService) : base(userManager)
   {
     _authService = authService;
   }

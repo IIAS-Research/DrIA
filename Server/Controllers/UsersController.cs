@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Server.Controllers;
@@ -12,7 +13,7 @@ namespace server.Controllers
     {
         private readonly MainDbContext _context;
 
-        public UsersController(MainDbContext context)
+        public UsersController(UserManager<User> userManager, MainDbContext context) : base(userManager)
         {
             _context = context;
         }
