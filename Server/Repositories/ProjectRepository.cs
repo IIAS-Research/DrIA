@@ -3,7 +3,7 @@ using Server.DAL.Db;
 using Server.Models;
 
 namespace Server.Repositories;
-public class ProjectsRepository(MainDbContext dbContext)
+public class ProjectRepository(MainDbContext dbContext)
 {
     private readonly MainDbContext _dbContext = dbContext;
 

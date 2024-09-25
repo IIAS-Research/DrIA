@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Server.Models;
 
-public class UserFile : ApplicationRecord
+public class ProjectFile : ApplicationRecord
 {
     [Key]
     public long Id { get; set; }
@@ -20,6 +20,6 @@ public class UserFile : ApplicationRecord
     public required byte[] CreatedAt { get; set; }
 
     [Required]
-    public required long UserId { get; set; }
-    public User? User { get; set; }
+    public required long ProjectId { get; set; }
+    public Project? Project { get; set; }
 }

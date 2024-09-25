@@ -19,5 +19,5 @@ public class MainDbContext : IdentityDbContext<User, Role, long>
   public DbSet<Process> Processes { get; set; }
   public DbSet<Model> Models { get; set; }
   public DbSet<ModelFile> ModelFiles { get; set; }
-  public DbSet<UserFile> UserFiles { get; set; }
+  public DbSet<ProjectFile> ProjectFiles { get; set; }
 }

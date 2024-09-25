@@ -12,7 +12,7 @@ public class AuthController : ApplicationController
 {
   private readonly AuthService _authService;
 
-  public AuthController(UserManager<User> userManager, AuthService authService) : base(userManager)
+  public AuthController(UserManager<User> userManager, AuthService authService, IAuthorizationService authorizationService) : base(userManager, authorizationService)
   {
     _authService = authService;
   }

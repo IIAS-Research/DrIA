@@ -55,16 +55,16 @@ public class FileStorageService : ApplicationService
         return await WriteFileToStorageAsync(formfile, relativePath);
     }
 
-    public async Task<FileStorageResponseWrite> WriteUserFileToStorageAsync(IFormFile formfile)
+    public async Task<FileStorageResponseWrite> WriteProjectFileToStorageAsync(IFormFile formfile)
     {
         var writeResponse = new FileStorageResponseWrite();
-        var responseFileOk = UserFileOptions.EnsureFileIsOk(formfile);
+        var responseFileOk = ProjectFileOptions.EnsureFileIsOk(formfile);
         if (responseFileOk.IsSuccess == false)
         {
             writeResponse.Errors = responseFileOk.Errors;
             return writeResponse;
         }
-        var relativePath = UserFileOptions.GetRelativePath();
+        var relativePath = ProjectFileOptions.GetRelativePath();
         return await WriteFileToStorageAsync(formfile, relativePath);
     }
 
@@ -114,7 +114,7 @@ public class FileStorageService : ApplicationService
         var storageFolders = new List<string>() {
             ModelBinaryFileOptions.GetRelativePath(),
             ModelImageFileOptions.GetRelativePath(),
-            UserFileOptions.GetRelativePath(),
+            ProjectFileOptions.GetRelativePath(),
             DefaultStorageFolder
         };
         foreach (var folder in storageFolders)
@@ -134,7 +134,7 @@ public class FileStorageService : ApplicationService
         {
             return !string.IsNullOrEmpty(FilePath);
         }
-        public bool MiumeTypeIsSet()
+        public bool MimeTypeIsSet()
         {
             return !string.IsNullOrEmpty(MimeType);
         }
@@ -153,7 +153,7 @@ public class FileStorageService : ApplicationService
 
 
     // Options
-    private static class UserFileOptions
+    private static class ProjectFileOptions
     {
         private readonly static string Folder = "UserFile";
         private readonly static string[] PermittedExtensions = [".csv", ".xlsx"];
@@ -243,4 +243,5 @@ public class FileStorageService : ApplicationService
             return responseService;
         }
     }
+
 }

@@ -2,7 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Server.Models;
-using Server.Repositories;
+using Server.Services;
+using Server.DTOs;
 
 namespace Server.Controllers;
 
@@ -10,35 +11,31 @@ namespace Server.Controllers;
 [ApiController]
 public class ProjectsController : ApplicationController
 {
-    private readonly ProjectsRepository _projectRepository;
+    private readonly ProjectService _projectService;
 
-    public ProjectsController(UserManager<User> userManager, ProjectsRepository projectRepository) : base(userManager)
+    public ProjectsController(UserManager<User> userManager, IAuthorizationService authorizationService, ProjectService projectRepository) : base(userManager, authorizationService)
     {
-        _projectRepository = projectRepository;
+        _projectService = projectRepository;
     }
 
     [HttpGet]
-    [AllowAnonymous]
     public async Task<IActionResult> GetUserProjects()
     {
-        if (!IsCurrentUserAuth())
+        User? currentUser = await GetCurrentUser();
+        if (currentUser is null)
         {
             return BadRequest();
         }
-        User currentUser = GetCurrentUser();
-        return Ok(_projectRepository.GetProjectByUser());
+        var response = await _projectService.GetUserProjects(currentUser);
+        return Ok(response);
     }
 
-    // POST: api/projects
     [HttpPost]
-    [AllowAnonymous]
-    public async Task<IActionResult> RegisterProject(RegisterProjectInDTO registerProject)
+    public async Task<IActionResult> RegisterProject(StartProjectInDTO registerProject)
     {
-
+        await _projectService.CreateProject(registerProject);
+        // _remoteAiService. ??
+        return Ok();
     }
 
-    private record RegisterProjectInDTO
-    {
-
-    }
 }

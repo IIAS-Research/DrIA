@@ -9,11 +9,11 @@ using System.Text;
 
 namespace Server.Services;
 
-public class AuthService(IConfiguration config) : ApplicationService
+public class AuthService(IConfiguration config, UserManager<User> userManager) : ApplicationService
 {
     public static readonly string ClaimTypeToIdentifyUserOn = ClaimTypes.NameIdentifier;
     private readonly IConfiguration _config = config;
-    private readonly UserManager<User> _userManager;
+    private readonly UserManager<User> _userManager = userManager;
 
     public async Task<User> RegisterUser(RegisterUserDTO registerUserDTO)
     {
@@ -22,8 +22,8 @@ public class AuthService(IConfiguration config) : ApplicationService
             Email = registerUserDTO.Email,
             FirstName = registerUserDTO.FirstName,
             LastName = registerUserDTO.LastName,
-            HashedPassword = "",
             IsAdmin = registerUserDTO.IsAdmin,
+            UserName = registerUserDTO.Email
         };
         var registeredUserResult = await _userManager.CreateAsync(userToRegister, registerUserDTO.Password);
         return await _userManager.FindByEmailAsync(registerUserDTO.Email);

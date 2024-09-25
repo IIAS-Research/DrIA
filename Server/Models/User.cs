@@ -13,9 +13,6 @@ public class User : IdentityUser<long>
   public required string LastName { get; set; }
 
   [Required]
-  public required string HashedPassword { get; set; }
-
-  [Required]
   public required bool IsAdmin { get; set; } = false;
 
   [Timestamp]

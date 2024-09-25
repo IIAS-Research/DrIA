@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Server.Models;
@@ -8,8 +9,10 @@ namespace Server.Controllers;
 public abstract class ApplicationController : ControllerBase
 {
     protected UserManager<User> _userManager;
-    public ApplicationController(UserManager<User> userManager)
+    protected IAuthorizationService _authorizationService;
+    public ApplicationController(UserManager<User> userManager, IAuthorizationService authorizationService)
     {
+        _authorizationService = authorizationService;
         _userManager = userManager;
     }
 
@@ -28,13 +31,14 @@ public abstract class ApplicationController : ControllerBase
         return currentUserId;
     }
 
-    protected Task<User?>? GetCurrentUser()
+    async protected Task<User?> GetCurrentUser()
     {
         long? userId = GetCurrentUserId();
         if (userId is not long userIdLong)
         {
             return null;
         }
-        return _userManager.FindByIdAsync(userIdLong.ToString());
+        return await _userManager.FindByIdAsync(userIdLong.ToString());
     }
+
 }

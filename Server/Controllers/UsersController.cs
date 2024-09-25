@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,7 @@ namespace server.Controllers
     {
         private readonly MainDbContext _context;
 
-        public UsersController(UserManager<User> userManager, MainDbContext context) : base(userManager)
+        public UsersController(UserManager<User> userManager, MainDbContext context, IAuthorizationService authorizationService) : base(userManager, authorizationService)
         {
             _context = context;
         }
