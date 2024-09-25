@@ -15,7 +15,7 @@ public class AuthService(IConfiguration config) : ApplicationService
     private readonly IConfiguration _config = config;
     private readonly UserManager<User> _userManager;
 
-    public async Task<bool> RegisterUser(RegisterUserDTO registerUserDTO)
+    public async Task<User> RegisterUser(RegisterUserDTO registerUserDTO)
     {
         var userToRegister = new User
         {
@@ -26,7 +26,7 @@ public class AuthService(IConfiguration config) : ApplicationService
             IsAdmin = registerUserDTO.IsAdmin,
         };
         var registeredUserResult = await _userManager.CreateAsync(userToRegister, registerUserDTO.Password);
-        return registeredUserResult.Succeeded;
+        return await _userManager.FindByEmailAsync(registerUserDTO.Email);
     }
 
 

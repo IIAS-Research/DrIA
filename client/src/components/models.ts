@@ -14,3 +14,9 @@ export interface IProjectForm {
   datasetHasIdColumn: boolean;
   datasetHasIdColumnList: string[];
 }
+export interface ICreateUserDTO {
+  email: string;
+  firstName: string;
+  lastName: string;
+  isAdmin: boolean;
+}
