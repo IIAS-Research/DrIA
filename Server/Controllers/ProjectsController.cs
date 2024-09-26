@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Server.Models;
 using Server.Services;
 using Server.DTOs;
+using Server.Authorization;
 
 namespace Server.Controllers;
 
@@ -16,28 +17,39 @@ public class ProjectsController : ApplicationController
     public ProjectsController(UserManager<User> userManager, IAuthorizationService authorizationService, ProjectService projectRepository) : base(userManager, authorizationService)
     {
         _projectService = projectRepository;
+        _authorizationService = authorizationService;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetUserProjects()
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> GetProjects()
     {
         User? currentUser = await GetCurrentUser();
-        if (currentUser is null)
-        {
-            return BadRequest();
-        }
-        var response = await _projectService.GetUserProjects(currentUser);
-        return Ok(response);
+        if (currentUser is null) return Unauthorized();
+        ProjectService.ProjectResponseGetAll projectResponseGetAll = await _projectService.GetProjects();
+        return Ok(projectResponseGetAll.Projects);
     }
 
-    [HttpPost]
-    public async Task<IActionResult> RegisterProject([FromForm]StartProjectInDTO registerProject)
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetProjectById(long id)
     {
-        await _projectService.CreateProject(registerProject);
-        // _remoteAiService. ??
-        // https://github.com/dotnet/aspnetcore/issues/4868
-        return Ok();
+        User? currentUser = await GetCurrentUser();
+        if (currentUser is null) return Unauthorized();
+        ProjectService.ProjectResponseGetOne projectResponseGetOne = await _projectService.GetProjectById(id);
+        if (projectResponseGetOne.IsSuccess == false) return NotFound(projectResponseGetOne.Errors);
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, projectResponseGetOne.Project, Operations.ReadOnlyOwn);
+        if (authorizationResult.Succeeded == false) return Unauthorized();
+        return Ok(projectResponseGetOne.Project);
     }
+
+    // [HttpPost]
+    // public async Task<IActionResult> RegisterProject([FromForm] StartProjectInDTO registerProject)
+    // {
+    //     await _projectService.CreateProject(registerProject);
+    //     // _remoteAiService. ??
+    //     // https://github.com/dotnet/aspnetcore/issues/4868
+    //     return Ok();
+    // }
 
 }
 

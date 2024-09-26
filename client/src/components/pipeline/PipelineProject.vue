@@ -100,3 +100,5 @@ defineExpose({
     </q-splitter>
   </q-card>
 </template>
+
+<!-- TODO: Categorial -> Q-Select, Range -> input avec lazy rules -->

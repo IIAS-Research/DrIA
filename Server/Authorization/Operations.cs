@@ -12,4 +12,6 @@ public static class Operations
         new OperationAuthorizationRequirement { Name = nameof(Update) };
     public readonly static OperationAuthorizationRequirement Delete =
         new OperationAuthorizationRequirement { Name = nameof(Delete) };
+    public readonly static OperationAuthorizationRequirement ReadOnlyOwn =
+        new OperationAuthorizationRequirement { Name = nameof(ReadOnlyOwn) };
 }

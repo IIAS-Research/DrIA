@@ -22,11 +22,51 @@ public class ProjectService : ApplicationService
 
     async public Task<FileStorageService.FileStorageResponseWrite> WriteProjectFile(IFormFile file)
     {
-        return await _fileStorageService.WriteProjectFileToStorageAsync(file); 
+        return await _fileStorageService.WriteProjectFileToStorageAsync(file);
     }
 
-    async public Task CreateProject(StartProjectInDTO projectData)
+    // async public Task CreateProject(StartProjectInDTO projectData)
+    // {
+    //     return;
+    // }
+
+    async public Task<ProjectResponseGetAll> GetProjects()
     {
-        return;
+        ProjectResponseGetAll projectResponseGetAll = new();
+        List<Project> projects = await _projectRepository.GetProjects();
+        if (projects.Count == 0)
+        {
+            projectResponseGetAll.AddError("No projects found");
+            return projectResponseGetAll;
+        }
+        projectResponseGetAll.IsSuccess = true;
+        projectResponseGetAll.Projects = projects;
+        return projectResponseGetAll;
     }
+
+    async public Task<ProjectResponseGetOne> GetProjectById(long id)
+    {
+        ProjectResponseGetOne projectResponseGetOne = new();
+        Project? project = await _projectRepository.GetProjectById(id);
+        if (project == null)
+        {
+            projectResponseGetOne.AddError("Project not found for this id");
+            return projectResponseGetOne;
+        }
+        projectResponseGetOne.IsSuccess = true;
+        projectResponseGetOne.Project = project;
+        return projectResponseGetOne;
+    }
+
+    // Service responses
+    public class ProjectResponseGetOne : ResponseService
+    {
+        public Project? Project { get; set; }
+    }
+
+    public class ProjectResponseGetAll : ResponseService
+    {
+        public List<Project> Projects { get; set; } = [];
+    }
+
 }

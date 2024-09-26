@@ -15,4 +15,14 @@ public class ProjectRepository(MainDbContext dbContext)
         return projects;
     }
 
+    public async Task<List<Project>> GetProjects()
+    {
+        return await _dbContext.Projects.ToListAsync();
+    }
+
+    public async Task<Project?> GetProjectById(long id)
+    {
+        return await _dbContext.Projects.FindAsync(id);
+    }
+
 }

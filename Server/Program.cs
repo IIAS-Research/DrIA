@@ -7,6 +7,9 @@ using Server.Repositories;
 using System.Text.Json;
 using Server.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using Server.Authorization.Handlers;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 
 public partial class Program
 {
@@ -67,6 +70,15 @@ public partial class Program
     builder.Services.AddTransient<AuthService>();
     builder.Services.AddTransient<MailerService>();
     builder.Services.AddTransient<ProjectService>();
+    builder.Services.AddTransient<UserService>();
+
+    builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("AdminOnly", policy =>
+        policy.RequireAssertion(context =>
+            context.User.HasClaim(c => c.Type == "isAdmin" && c.Value == "true")
+        ));
+
+    builder.Services.AddSingleton<IAuthorizationHandler, ProjectAuthorizationCrudHandler>();
 
     builder.Services.AddIdentityCore<User>()
                 .AddEntityFrameworkStores<MainDbContext>()

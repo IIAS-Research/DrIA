@@ -24,7 +24,7 @@ public class AuthController : ApplicationController
   {
     var user = await _authService.RegisterUser(registerUserDTO);
 
-    if (user !=  null)
+    if (user != null)
     {
       return CreatedAtAction(nameof(RegisterUser), new { email = registerUserDTO.Email }, user);
     }

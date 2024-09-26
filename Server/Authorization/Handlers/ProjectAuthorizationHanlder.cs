@@ -7,15 +7,19 @@ namespace Server.Authorization.Handlers;
 public class ProjectAuthorizationCrudHandler :
     AuthorizationHandler<OperationAuthorizationRequirement, Project>
 {
-    protected async override Task HandleRequirementAsync(AuthorizationHandlerContext context,
+    protected override Task HandleRequirementAsync(AuthorizationHandlerContext context,
                                                    OperationAuthorizationRequirement requirement,
                                                    Project resource)
     {
-        if (requirement.Name == Operations.Create.Name)
+        if (Operations.Read.Name == requirement.Name)
         {
-            
+            context.Succeed(requirement);
         }
-        return;
+        if (Operations.ReadOnlyOwn.Name == requirement.Name && context.User.Identity?.Name == resource.User?.Id.ToString())
+        {
+            context.Succeed(requirement);
+        }
+        return Task.CompletedTask;
     }
 
 }
