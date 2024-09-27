@@ -25,8 +25,14 @@ public class ProjectService : ApplicationService
         return await _fileStorageService.WriteProjectFileToStorageAsync(file); 
     }
 
-    async public Task CreateProject(StartProjectInDTO projectData)
+    async public Task<ResponseService<Project>> CreateProject(StartProjectInDTO projectData, User user)
     {
-        return;
+        var response = new ResponseService<Project>();
+        Project project = await _projectRepository.CreateProject(projectData, user);
+        var responseWriteFile = await WriteProjectFile(projectData.File);
+        if (response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
+        await _projectRepository.CreateProjectFile(project, projectData.File.FileName, responseWriteFile.FilePath, responseWriteFile.MimeType);
+        response.SetSuccessful(project);
+        return response;
     }
 }

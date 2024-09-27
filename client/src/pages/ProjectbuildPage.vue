@@ -15,10 +15,8 @@ async function submitProject(projectForm: IProjectForm, file: File) {
   const formData = new FormData();
   Object.entries(projectForm).forEach(([key, value]) => {
     let formatedValue : string | Blob = String(value);
-    if (Array.isArray(value)) {
+    if (Array.isArray(value) || typeof value === 'object') {
       formatedValue = JSON.stringify(value);
-    } else if (typeof value === 'object') {
-      formatedValue = new Blob([JSON.stringify(value)], { type: 'application/json' });
     }
     formData.append(key, formatedValue);
   });

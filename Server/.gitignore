@@ -19,3 +19,5 @@ packages/
 
 # Temporary files
 *.tmp
+
+Storage/

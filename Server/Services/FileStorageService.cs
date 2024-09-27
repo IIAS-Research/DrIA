@@ -23,7 +23,7 @@ public class FileStorageService : ApplicationService
         {
             await formfile.CopyToAsync(stream);
         }
-        writeResponse.SetSuccessTrue();
+        writeResponse.SetSuccessful();
         writeResponse.FilePath = filePath;
         writeResponse.MimeType = mimeType;
         return writeResponse;
@@ -128,8 +128,8 @@ public class FileStorageService : ApplicationService
     // Service responses
     public class FileStorageResponseWrite : ResponseService
     {
-        public string? FilePath;
-        public string? MimeType;
+        public string FilePath = string.Empty;
+        public string MimeType = string.Empty;
         public bool FilePathIsSet()
         {
             return !string.IsNullOrEmpty(FilePath);
