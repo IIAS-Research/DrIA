@@ -2,28 +2,37 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Server.Controllers;
+using Server.Authorization;
 using Server.DAL.Db;
 using Server.Models;
+using Server.Services;
 
-namespace server.Controllers
+namespace Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ApplicationController
     {
         private readonly MainDbContext _context;
+        private readonly UserService _userService;
+        private new readonly IAuthorizationService _authorizationService;
 
-        public UsersController(UserManager<User> userManager, MainDbContext context, IAuthorizationService authorizationService) : base(userManager, authorizationService)
+        public UsersController(UserManager<User> userManager, MainDbContext context, IAuthorizationService authorizationService, UserService userService) : base(userManager, authorizationService)
         {
             _context = context;
+            _userService = userService;
+            _authorizationService = authorizationService;
         }
 
-        // GET: api/User
+        // GET: api/Users
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> GetUsers()
         {
-            return await _context.Users.ToListAsync();
+            User? currentUser = await GetCurrentUser();
+            if (currentUser is null) return Unauthorized();
+            UserService.UserResponseGetAll userResponseGetAll = await _userService.GetUsers();
+            return Ok(userResponseGetAll.Users);
         }
 
         // GET: api/User/5
