@@ -25,11 +25,6 @@ public class ProjectService : ApplicationService
         return await _fileStorageService.WriteProjectFileToStorageAsync(file);
     }
 
-    // async public Task CreateProject(StartProjectInDTO projectData)
-    // {
-    //     return;
-    // }
-
     async public Task<ProjectResponseGetAll> GetProjects()
     {
         ProjectResponseGetAll projectResponseGetAll = new();
@@ -42,6 +37,17 @@ public class ProjectService : ApplicationService
         projectResponseGetAll.IsSuccess = true;
         projectResponseGetAll.Projects = projects;
         return projectResponseGetAll;
+    }
+    
+    async public Task<ResponseService<Project>> CreateProject(StartProjectInDTO projectData, User user)
+    {
+        var response = new ResponseService<Project>();
+        Project project = await _projectRepository.CreateProject(projectData, user);
+        var responseWriteFile = await WriteProjectFile(projectData.File);
+        if (response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
+        await _projectRepository.CreateProjectFile(project, projectData.File.FileName, responseWriteFile.FilePath, responseWriteFile.MimeType);
+        response.SetSuccessful(project);
+        return response;
     }
 
     async public Task<ProjectResponseGetOne> GetProjectById(long id)

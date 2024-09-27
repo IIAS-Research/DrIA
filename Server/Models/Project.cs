@@ -14,11 +14,26 @@ public class Project : ApplicationRecord
   [Required]
   public required string Description { get; set; }
 
-  [Timestamp]
-  public required byte[] CreatedAt { get; set; }
+  [Required]
+  public required string CsvColumnToPredict { get; set; }
+
+  [Required]
+  public required bool RowDepedencies { get; set; }
+
+  [Required]
+  public required string[] RowDepedenciesLinked { get; set; } = [];
+
+  [Required]
+  public required bool DatasetHasIdColumn { get; set; }
+
+  [Required]
+  public required string[] DatasetHasIdColumnList { get; set; } = [];
 
   [Timestamp]
-  public required byte[] UpdatedAt { get; set; }
+  public byte[] CreatedAt { get; set; } = [];
+
+  [Timestamp]
+  public byte[] UpdatedAt { get; set; } = [];
 
 
   [Required]

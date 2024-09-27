@@ -14,12 +14,22 @@ public class ProjectFile : ApplicationRecord
     public required string StorageFilename { get; set; }
 
     [Required]
-    public string MimeType { get; set; } = "application/octet-stream";
+    public required string MimeType { get; set; } = "application/octet-stream";
+
+    [Required]
+    public required EProjectFileType FileType { get; set;} = EProjectFileType.DEFAULT;
 
     [Timestamp]
-    public required byte[] CreatedAt { get; set; }
+    public byte[] CreatedAt { get; set; } = [];
 
     [Required]
     public required long ProjectId { get; set; }
     public Project? Project { get; set; }
+
+    public enum EProjectFileType
+    {
+      DEFAULT,
+      TEST,
+      TRAIN
+    }
 }

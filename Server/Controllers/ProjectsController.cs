@@ -5,6 +5,7 @@ using Server.Models;
 using Server.Services;
 using Server.DTOs;
 using Server.Authorization;
+using System.Text.Json;
 
 namespace Server.Controllers;
 
@@ -13,11 +14,14 @@ namespace Server.Controllers;
 public class ProjectsController : ApplicationController
 {
     private readonly ProjectService _projectService;
+    private readonly ProcessService _processService;
+    private readonly IaWebService _iaWebService;
 
-    public ProjectsController(UserManager<User> userManager, IAuthorizationService authorizationService, ProjectService projectRepository) : base(userManager, authorizationService)
+    public ProjectsController(UserManager<User> userManager, IaWebService iaWebService, IAuthorizationService authorizationService, ProjectService projectRepository, ProcessService processService) : base(userManager, authorizationService)
     {
         _projectService = projectRepository;
-        _authorizationService = authorizationService;
+        _processService = processService;
+        _iaWebService = iaWebService;
     }
 
     [HttpGet]
@@ -42,14 +46,21 @@ public class ProjectsController : ApplicationController
         return Ok(projectResponseGetOne.Project);
     }
 
-    // [HttpPost]
-    // public async Task<IActionResult> RegisterProject([FromForm] StartProjectInDTO registerProject)
-    // {
-    //     await _projectService.CreateProject(registerProject);
-    //     // _remoteAiService. ??
-    //     // https://github.com/dotnet/aspnetcore/issues/4868
-    //     return Ok();
-    // }
+    [HttpPost]
+    public async Task<IActionResult> RegisterProject([FromBody]StartProjectInDTO projectData)
+    {
+        User? currentUser = await GetCurrentUser();
+        if (currentUser is null) return BadRequest();
 
+        var responseProject = await _projectService.CreateProject(projectData, currentUser);
+        if (!responseProject.IsSuccess) return BadRequest(responseProject.Errors);
+        
+        var responseIaWeb = await _iaWebService.RunPipeline(projectData.File, responseProject.Data!, JsonSerializer.Serialize(projectData.Pipeline));
+        if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
+
+        // connexion ws
+        //await _processService.CreateProcess();
+
+        return Ok();
+    }
 }
-

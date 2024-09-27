@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Server.DAL.Db;
+using Server.DTOs;
 using Server.Models;
 
 namespace Server.Repositories;
@@ -23,6 +24,38 @@ public class ProjectRepository(MainDbContext dbContext)
     public async Task<Project?> GetProjectById(long id)
     {
         return await _dbContext.Projects.FindAsync(id);
+    }
+    
+    public async Task<Project> CreateProject(StartProjectInDTO projectData, User user)
+    {
+      Project project = new Project{
+          Title = projectData.Title,
+          Description = projectData.Description,
+          CsvColumnToPredict = projectData.CsvColumnToPredict,
+          RowDepedencies = projectData.RowDepedencies,
+          RowDepedenciesLinked = projectData.RowDepedenciesLinked,
+          DatasetHasIdColumn = projectData.DatasetHasIdColumn,
+          DatasetHasIdColumnList = projectData.DatasetHasIdColumnList,
+          UserId = user.Id
+        };
+        await _dbContext.Projects.AddRangeAsync(project);
+        await _dbContext.SaveChangesAsync();
+        return project;
+    }
+
+    public async Task<ProjectFile> CreateProjectFile(Project project, string filename, string filePath, string mimeType)
+    {
+      ProjectFile projectFile = new ProjectFile
+      {
+        Filename = filename,
+        StorageFilename = filePath,
+        ProjectId = project.Id,
+        MimeType = mimeType,
+        FileType = ProjectFile.EProjectFileType.DEFAULT
+      };
+      await _dbContext.ProjectFiles.AddRangeAsync(projectFile);
+      await _dbContext.SaveChangesAsync();
+      return projectFile;
     }
 
 }

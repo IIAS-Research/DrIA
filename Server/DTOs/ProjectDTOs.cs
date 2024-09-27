@@ -28,7 +28,7 @@ public record StartProjectInDTO
     public required string[] DatasetHasIdColumnList { get; set; } = [];
 
     [Required]
-    public required string Pipeline { get; set; }
+    public required string Pipeline { get; set; } // Deserialize in the service
 
     [Required]
     public required IFormFile File { get; set; }
