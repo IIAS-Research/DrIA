@@ -9,6 +9,7 @@ using Server.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Server.Authorization.Handlers;
+using SignalRChat.Hubs;
 
 public partial class Program
 {
@@ -45,6 +46,8 @@ public partial class Program
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers().RequireAuthorization();
+    app.MapHub<IaStatusHub>("/api/ws/status");
+    //app.MapHub<IaMetricHub>("/api/ws/metrics");
     app.Run();
   }
 
@@ -72,6 +75,8 @@ public partial class Program
     builder.Services.AddTransient<UserService>();
     builder.Services.AddTransient<IaWebService>();
     builder.Services.AddSingleton<IAWebSocketService>();
+
+    builder.Services.AddSignalR();
 
     builder.Services.AddAuthorizationBuilder()
     .AddPolicy("AdminOnly", policy =>

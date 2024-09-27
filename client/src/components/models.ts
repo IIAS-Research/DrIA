@@ -5,6 +5,9 @@ export interface IUser {
   lastName: string;
   isAdmin: boolean;
 }
+export interface IProcess {
+  id: number;
+}
 export interface ICreateUserDTO {
   email: string;
   firstName: string;
