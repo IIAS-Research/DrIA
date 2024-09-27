@@ -7,18 +7,18 @@ public record RunPipelineInDTO
   public required byte[] train_dataset = [];
   public byte[]? test_dataset;
   public required string dataset_target = string.Empty;
-  public required object pipeline;
+  public required Process.ProcessPipeline pipeline;
 }
 public record RunPipelineOutDTO
 {
   public required string id;
   public required string socket;
-  public required string status;
+  public required Process.EProcessStatut status;
 }
 
 public record GeneratePipelineOutDTO
 {
-  public required object pipeline;
+  public required Process.ProcessPipeline pipeline;
 }
 
 public record JobStatusOutDTO
@@ -33,7 +33,7 @@ public record JobStatusOutDTO
 public record CancelJobOutDTO
 {
   public required string id;
-  public required string status;
+  public required Process.EProcessStatut status;
 }
 
 public record GetJobMetricsOutDTO
@@ -50,7 +50,7 @@ public record ExplainModelOutDTO
 {
   public required string id;
   public required string socket;
-  public required string status;
+  public required Process.EProcessStatut status;
 }
 
 public record GetModelTextExplanationOutDTO

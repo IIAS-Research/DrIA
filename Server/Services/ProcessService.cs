@@ -13,8 +13,8 @@ public class ProcessService : ApplicationService
         _processRepository = processRepository;
     }
 
-   async public Task CreateProcess(StartProjectInDTO projectData, Project project)
+   async public Task<Process> CreateProcess(RunPipelineOutDTO pipelineResponse, Process.ProcessPipeline pipelineData, Project project)
     {
-        //await _processRepository.CreateProcess(StartProjectInDTO projectData, Project project);
+        return await _processRepository.CreateProcess(pipelineResponse, pipelineData, project);
     }
 }

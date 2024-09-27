@@ -20,10 +20,10 @@ public class Process : ApplicationRecord
   [Required]
   public required EProcessStatut Statut { get; set; }
   [Timestamp]
-  public required byte[] CreatedAt { get; set; }
+  public byte[] CreatedAt { get; set; } = [];
 
   [Timestamp]
-  public required byte[] UpdatedAt { get; set; }
+  public byte[] UpdatedAt { get; set; } = [];
 
   [Required]
   public required long ProjectId { get; set; }

@@ -12,7 +12,7 @@ namespace Server.Services;
 public class IaWebService : ApplicationService
 {
   private readonly string _ia_url = "http://rss00992:32845";
-  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(IFormFile file, Project project, string stringifiedPipeline)
+  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(IFormFile file, Project project, Process.ProcessPipeline pipeline)
   {
     var response = new ResponseService<RunPipelineOutDTO>();
     byte[] formatedFile = await FormatFileForPipeline(file, project);
@@ -25,7 +25,7 @@ public class IaWebService : ApplicationService
           {
             train_dataset = formatedFile,
             dataset_target = project.CsvColumnToPredict,
-            pipeline = JsonSerializer.Serialize(stringifiedPipeline)
+            pipeline = pipeline
           }),
           Encoding.UTF8,
           "application/json");
@@ -216,7 +216,7 @@ public class IaWebService : ApplicationService
   }
 
 
-  // TODO websocket
+  
 
 
   async private static Task<byte[]> FormatFileForPipeline(IFormFile file, Project project)

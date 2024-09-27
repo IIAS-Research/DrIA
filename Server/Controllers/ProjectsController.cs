@@ -54,13 +54,16 @@ public class ProjectsController : ApplicationController
 
         var responseProject = await _projectService.CreateProject(projectData, currentUser);
         if (!responseProject.IsSuccess) return BadRequest(responseProject.Errors);
+
+        var pipelineSerialized = JsonSerializer.Deserialize<Process.ProcessPipeline>(projectData.Pipeline)!;
         
-        var responseIaWeb = await _iaWebService.RunPipeline(projectData.File, responseProject.Data!, JsonSerializer.Serialize(projectData.Pipeline));
+        var responseIaWeb = await _iaWebService.RunPipeline(projectData.File, responseProject.Data, pipelineSerialized);
         if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
 
         // connexion ws
-        //await _processService.CreateProcess();
+        var process = await _processService.CreateProcess(responseIaWeb.Data, pipelineSerialized, responseProject.Data);
 
-        return Ok();
+        return Ok(process);
+        // ensuite le front se connecte au ws ici avec la rponse du process
     }
 }
