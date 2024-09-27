@@ -1,42 +1,40 @@
-import { IActionCableData } from 'src/components/models'
-import { createConsumer } from '@rails/actioncable'
-import { ref } from 'vue'
+import { IProcess } from 'src/components/models';
+import { ref } from "vue";
+import { HubConnection, HubConnectionBuilder } from "@microsoft/signalr";
 
-export function useCable(channel = '', params = {}, onReceived: (data: any) => void, onConnected: () => void, onDisconnected: () => void) {
+export function useSignalR(hubName: "status" | "metrics", processId: IProcess['id']) {
   // refs
-  const cable = ref();
-  const subscription = ref();
+  const connection = ref<HubConnection>();
 
   // functions
   function connect() {
-    const url = process.env.api?.replace('http', 'ws').replace('/api', '') + '/cable'
-    cable.value = createConsumer(url)
-    const channelEnvironment = (process.env.channelPrefixWS ?? '') + channel
-    const aboParams = { channel: channelEnvironment, ...params }
-    subscription.value = cable.value.subscriptions.create(aboParams, {
-      connected() {
-        onConnected()
-      },
-      disconnected() {
-        onDisconnected()
-      },
-      received(data: IActionCableData) {
-        onReceived(data)
-      }
-    })
+    const url =
+      process.env.api?.replace("http", "ws").replace("/api", "") + "/cable";
+    connection.value = new HubConnectionBuilder().withUrl(url).build();
+
+    connection.value
+      .start()
+      .then(() => console.log("Connected to SignalR"))
+      .catch((error) => console.error(error));
+
+    connection.value.on("ReceiveMessage", (message, user) => {
+      console.log("zob");
+    });
+
+    connection.value.invoke("JoinGroup", processId);
   }
-  function disconnect()
-  {
-    if (!cable.value) {
+  function disconnect() {
+    if (!connection.value) {
       return;
     }
-    subscription.value.disconnected();
-    cable.value.subscriptions.remove(subscription.value);
-    cable.value.disconnect();
+    connection.value
+      .stop()
+      .then(() => console.log("Disconnected from SignalR"))
+      .catch((error) => console.error(error));
   }
-  
+
   return {
     connect,
-    disconnect
-  }
+    disconnect,
+  };
 }
