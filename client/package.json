@@ -12,6 +12,7 @@
     "build": "quasar build"
   },
   "dependencies": {
+    "@microsoft/signalr": "^8.0.7",
     "@quasar/extras": "^1.0.0",
     "axios": "^1.2.1",
     "jwt-decode": "^4.0.0",

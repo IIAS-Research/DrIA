@@ -9,7 +9,6 @@ using Server.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Server.Authorization.Handlers;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
 
 public partial class Program
 {
@@ -71,6 +70,7 @@ public partial class Program
     builder.Services.AddTransient<MailerService>();
     builder.Services.AddTransient<ProjectService>();
     builder.Services.AddTransient<UserService>();
+    builder.Services.AddSingleton<IAWebSocketService>();
 
     builder.Services.AddAuthorizationBuilder()
     .AddPolicy("AdminOnly", policy =>
@@ -107,5 +107,4 @@ public partial class Program
               });
         });
   }
-
 }

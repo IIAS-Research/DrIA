@@ -215,10 +215,6 @@ public class IaWebService : ApplicationService
     }
   }
 
-
-  
-
-
   async private static Task<byte[]> FormatFileForPipeline(IFormFile file, Project project)
   {
     var config = new CsvConfiguration(CultureInfo.InvariantCulture)
