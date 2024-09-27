@@ -70,6 +70,7 @@ public partial class Program
     builder.Services.AddTransient<MailerService>();
     builder.Services.AddTransient<ProjectService>();
     builder.Services.AddTransient<UserService>();
+    builder.Services.AddTransient<IaWebService>();
     builder.Services.AddSingleton<IAWebSocketService>();
 
     builder.Services.AddAuthorizationBuilder()

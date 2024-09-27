@@ -11,10 +11,20 @@ public class ProjectAuthorizationCrudHandler :
                                                    OperationAuthorizationRequirement requirement,
                                                    Project resource)
     {
+        if (Operations.Admin.Name == requirement.Name)
+        {
+            var isAdminClaim = context.User.FindFirst(c => c.Type == "isAdmin");
+            if (isAdminClaim != null && bool.TryParse(isAdminClaim.Value, out bool isAdmin))
+            {
+                context.Succeed(requirement);
+            }
+        }
+
         if (Operations.Read.Name == requirement.Name)
         {
             context.Succeed(requirement);
         }
+
         if (Operations.ReadOnlyOwn.Name == requirement.Name && context.User.Identity?.Name == resource.User?.Id.ToString())
         {
             context.Succeed(requirement);

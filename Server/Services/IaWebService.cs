@@ -43,17 +43,19 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async public Task<ResponseService<GeneratePipelineOutDTO>> GeneratePipeline()
+  async public Task<ResponseService<GeneratePipelineWebServiceJsonDTO>> GeneratePipeline()
   {
-    var response = new ResponseService<GeneratePipelineOutDTO>();
+    var response = new ResponseService<GeneratePipelineWebServiceJsonDTO>();
     try
     {
       using (var http = new HttpClient())
       {
-        var httpResponse = await http.GetAsync($"{_ia_url}/pipeline/generate");
+        var jsonContent = new StringContent("", Encoding.UTF8, "application/json");
+        var httpResponse = await http.PostAsync($"{_ia_url}/pipeline/generate", jsonContent);
+
         httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<GeneratePipelineOutDTO>(httpResponseBody)!);
+        var responseBody = await httpResponse.Content.ReadFromJsonAsync<object>();
+        response.SetSuccessful(new GeneratePipelineWebServiceJsonDTO { Pipeline = responseBody! });
       }
       return response;
     }

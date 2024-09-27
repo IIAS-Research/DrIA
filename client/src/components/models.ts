@@ -12,17 +12,23 @@ export interface ICreateUserDTO {
   isAdmin: boolean;
 }
 
+export interface IConfigurationKey {
+  default: any;
+  value: any;
+  description: string;
+  range?: number[];
+  categorical?: string[];
+}
+
 // Pipeline
 export interface IStep {
   step: string;
   name: string;
   description: string;
+  enable: boolean;
+  can_be_disable: boolean;
   configuration: {
-    [key: string]: {
-      default: any;
-      value: any;
-      description: string;
-    };
+    [key: string]: IConfigurationKey;
   };
   children: [];
 }
@@ -31,12 +37,9 @@ export interface IMetaStep {
   step: string;
   name: string;
   description: string;
+  enable: boolean;
   configuration: {
-    [key: string]: {
-      default: any;
-      value: any;
-      description: string;
-    };
+    [key: string]: IConfigurationKey;
   };
   children: IStep[];
 }
@@ -45,12 +48,9 @@ export interface IMetaOrderedStep {
   step: string;
   name: string;
   description: string;
+  can_be_disable: boolean;
   configuration: {
-    [key: string]: {
-      default: any;
-      value: any;
-      description: string;
-    };
+    [key: string]: IConfigurationKey;
   };
   children: IMetaStep[];
 }

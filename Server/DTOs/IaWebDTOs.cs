@@ -21,6 +21,11 @@ public record GeneratePipelineOutDTO
   public required Process.ProcessPipeline pipeline;
 }
 
+public record GeneratePipelineWebServiceJsonDTO
+{
+  public required object Pipeline;
+}
+
 public record JobStatusOutDTO
 {
   public required string id;

@@ -4,6 +4,8 @@ namespace Server.Authorization;
 
 public static class Operations
 {
+    public readonly static OperationAuthorizationRequirement Admin =
+    new OperationAuthorizationRequirement { Name = nameof(Admin) };
     public readonly static OperationAuthorizationRequirement Create =
         new OperationAuthorizationRequirement { Name = nameof(Create) };
     public readonly static OperationAuthorizationRequirement Read =
