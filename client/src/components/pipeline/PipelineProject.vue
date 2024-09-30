@@ -6,8 +6,10 @@ import { getDefaultPipeline } from 'src/api/ia-web-service.api';
 import { IMetaOrderedStep, IStep } from '../models';
 
 const pipeline = ref<IMetaOrderedStep>();
-const tab = ref<QTabPanel['name']>();
-const splitterModel = ref<QSplitter['modelValue']>(25);
+const tab = ref<QTabPanel['name']>('');
+const innerTab = ref<QTabPanel['name']>('');
+const splitterModel = ref<QSplitter['modelValue']>(50);
+const tabsSplitterModel = ref<QSplitter['modelValue']>(50);
 
 defineExpose({
   pipeline,
@@ -18,7 +20,6 @@ function chooseRightInputType(valueToProceed: IStep['configuration'][0]) {
   const qInputTypes = ['string', 'number', 'bigint'];
   const qToggleType = ['boolean'];
   if (valueToProceed.categorical?.length) return 'QSelect';
-  // if (valueToProceed.range?.length) return 'QSelect';
   if (qInputTypes.includes(valueType)) return 'QInput';
   if (qToggleType.includes(valueType)) return 'QToggle';
   return 'QInput';
@@ -34,111 +35,138 @@ function resetValueWithDefault(stepConf: IStep['configuration'][0]) {
   stepConf.value = stepConf.default;
 }
 
+function autoSelectFirstChildOnChange(val: QTabPanel['name'] = `${pipeline.value?.children[0].step}-0`) {
+  innerTab.value = `${pipeline.value?.children.find((s, i) => `${s.step}-${i}` === val)?.children[0].step}-0`;
+}
+
 onMounted(async () => {
   await initPipeline();
+  autoSelectFirstChildOnChange();
 });
+
 </script>
 
 <template>
-  <q-card v-if="pipeline">
+  <q-card
+    v-if="pipeline"
+  >
     <q-splitter
       v-model="splitterModel"
-      style="width: 1000px; height: 500px"
     >
       <template #before>
-        <q-tabs
-          v-model="tab"
-          vertical
-          class="text-teal"
-          active-bg-color="teal-2"
+        <q-splitter
+          v-model="tabsSplitterModel"
+          style="height: 500px;"
         >
-          <q-tab
-            v-for="(metaStep, metaIndex) in pipeline.children"
-            :key="metaIndex"
-            :name="`${metaStep.name}-${metaIndex}`"
-            :label="`${metaStep.name}-${metaIndex}`"
-            :style="{height: `${(500 / pipeline.children.length)}px`}"
-          />
-        </q-tabs>
+          <template #before>
+            <q-tabs
+              v-model="tab"
+              vertical
+              class="text-teal full-width"
+              active-bg-color="teal-2"
+              @update:model-value="autoSelectFirstChildOnChange"
+            >
+              <q-tab
+                v-for="(metaStep, metaIndex) in pipeline.children"
+                :key="metaIndex"
+                :name="`${metaStep.step}-${metaIndex}`"
+                :label="`${metaStep.name}-${metaIndex}`"
+                :style="{height: `${(500 / pipeline.children.length)}px`}"
+              />
+            </q-tabs>
+          </template>
+          <template #after>
+            <q-tabs
+              v-if="tab"
+              v-model="innerTab"
+              vertical
+              class="text-teal full-width"
+              active-bg-color="teal-3"
+            >
+              <q-tab
+                v-for="(step, stepIndex) in pipeline.children.filter((s, i) => `${s.step}-${i}` === tab)[0].children"
+                :key="stepIndex"
+                :name="`${step.step}-${stepIndex}`"
+                :label="`${step.name}-${stepIndex}`"
+                :style="{height: `${(500 / pipeline.children.length)}px`}"
+              />
+            </q-tabs>
+          </template>
+        </q-splitter>
       </template>
 
       <template #after>
         <q-tab-panels
-          v-model="tab"
+          v-model="innerTab"
           animated
           swipeable
           vertical
           transition-prev="jump-up"
           transition-next="jump-up"
+          class="q-mr-md"
         >
           <q-tab-panel
-            v-for="(panelMetaStep, panelMetaStepIndex) in pipeline.children"
-            :key="panelMetaStepIndex"
-            :name="`${panelMetaStep.name}-${panelMetaStepIndex}`"
+            v-for="(step, stepIndex) in pipeline.children
+              .filter((s, i) => `${s.step}-${i}` === tab)[0].children"
+            :key="stepIndex"
+            :name="`${step.step}-${stepIndex}`"
             class="q-gutter-y-md"
+            style="max-height: 500px;"
           >
             <div
-              v-for="(step, stepIndex) in panelMetaStep.children"
-              :key="stepIndex"
-              class="q-pa-md relative-position"
-              style="border: 1px solid rgb(0, 0, 0, 0.2);"
-              :class="{'bg-grey-4' : stepIndex % 2 === 0}"
+              v-if="Object.keys(step.configuration)?.length"
+              class="q-pb-sm"
             >
               <q-toggle
-                v-model="pipeline.children[panelMetaStepIndex].children[stepIndex].enable"
-                :disable="!pipeline.children[panelMetaStepIndex].children[stepIndex].can_be_disable"
-                :label="pipeline.children[panelMetaStepIndex].children[stepIndex].enable ? 'Activé' : 'Desactivé'"
-                class="absolute-top-right q-pr-md"
+                v-model="step.enable"
+                :disable="!step.can_be_disable"
+                :label="step.enable ? 'Activé' : 'Desactivé'"
+                class="q-pr-md"
               />
-              <div class="text-subtitle2 q-mb-xs">
-                {{ step.name }}
-              </div>
-              <p>{{ step.description }}</p>
-
-              <div v-if="Object.keys(step.configuration)?.length">
-                <div
-                  v-for="([key, confObj], confIndex) in Object.entries(step.configuration)"
-                  :key="confIndex"
-                >
-                  <q-input
-                    v-if="chooseRightInputType(confObj) === 'QInput'"
-                    v-model="pipeline.children[panelMetaStepIndex].children[stepIndex]
-                      .configuration[key].value"
-                    :label="`${key} (Default value: ${confObj.default})
+              <div
+                v-for="([key, confObj], confIndex) in Object.entries(step.configuration)"
+                :key="confIndex"
+              >
+                <q-input
+                  v-if="chooseRightInputType(confObj) === 'QInput'"
+                  v-model="confObj.value"
+                  :label="`${key} (Default value: ${confObj.default})
                     ${confObj.range?.length ? 'Min val: ' + confObj.range[0] + ', Max val: ' + confObj.range[1]: ''}`"
-                    :disable="!pipeline.children[panelMetaStepIndex].children[stepIndex].enable"
-                    :rules="[
-                      (val) => confObj.range?.length ?
-                        ((parseFloat(val) >= confObj.range[0] && parseFloat(val) <= confObj.range[1])
-                          || `La valeur n'est pas comprise dans les bornes attendues`) : true]"
-                    clearable
-                    @clear="resetValueWithDefault(confObj)"
-                  />
+                  :disable="!step.enable"
+                  :rules="[
+                    (val) => confObj.range?.length ?
+                      ((parseFloat(val) >= confObj.range[0] && parseFloat(val) <= confObj.range[1])
+                        || `La valeur n'est pas comprise dans les bornes attendues`) : true]"
+                  clearable
+                  @clear="resetValueWithDefault(confObj)"
+                />
 
-                  <q-toggle
-                    v-if="chooseRightInputType(confObj) === 'QToggle'"
-                    v-model="pipeline.children[panelMetaStepIndex].children[stepIndex]
-                      .configuration[key].value"
-                    :label="`${key} (Default value: ${confObj.default})`"
-                    :disable="!pipeline.children[panelMetaStepIndex].children[stepIndex].enable"
-                    class="q-mt-sm"
-                  />
+                <q-toggle
+                  v-if="chooseRightInputType(confObj) === 'QToggle'"
+                  v-model="confObj.value"
+                  :label="`${key} (Default value: ${confObj.default})`"
+                  :disable="!step.enable"
+                  class="q-mt-sm"
+                />
 
-                  <q-select
-                    v-if="chooseRightInputType(confObj) === 'QSelect'"
-                    v-model="pipeline.children[panelMetaStepIndex].children[stepIndex]
-                      .configuration[key].value"
-                    :options="pipeline.children[panelMetaStepIndex].children[stepIndex]
-                      .configuration[key].categorical"
-                    :disable="!pipeline.children[panelMetaStepIndex].children[stepIndex].enable"
-                    :label="`${key} (Default value: ${confObj.default})`"
-                    filled
-                    class="q-my-md"
-                    clearable
-                    @clear="resetValueWithDefault(confObj)"
-                  />
-                </div>
+                <q-select
+                  v-if="chooseRightInputType(confObj) === 'QSelect'"
+                  v-model="confObj.value"
+                  :options="confObj.categorical"
+                  :disable="!step.enable"
+                  :label="`${key} (Default value: ${confObj.default})`"
+                  filled
+                  class="q-my-md"
+                  clearable
+                  @clear="resetValueWithDefault(confObj)"
+                />
               </div>
+            </div>
+            <div
+              v-else
+              class="text-italic text-caption"
+            >
+              Aucune configuration disponible pour cette option
             </div>
           </q-tab-panel>
         </q-tab-panels>

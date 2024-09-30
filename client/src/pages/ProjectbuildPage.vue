@@ -43,7 +43,10 @@ async function submitProject(projectForm: IProjectForm, file: File) {
 </script>
 
 <template>
-  <q-page class="column q-pt-xl q-mt-xl">
+  <q-page
+    padding
+    class="column q-pt-xl q-mt-xl"
+  >
     <div class="flex column flex-center">
       <img
         class="fixed-bottom-right"

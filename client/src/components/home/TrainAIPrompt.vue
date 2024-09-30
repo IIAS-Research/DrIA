@@ -78,7 +78,9 @@ async function handleNextStepValidation() {
 </script>
 
 <template>
-  <div class="flex flex-center q-pt-md">
+  <div
+    class="q-pt-md"
+  >
     <q-stepper
       v-model="step"
       ref="stepper"
@@ -258,9 +260,12 @@ async function handleNextStepValidation() {
 
           <q-expansion-item
             label="Options avancées"
-            class="full-width"
+            class="full-width bg-grey-3"
           >
-            <PipelineProject ref="pipelineComponentRef" />
+            <PipelineProject
+              ref="pipelineComponentRef"
+              class="bg-grey-3"
+            />
           </q-expansion-item>
         </q-form>
       </q-step>
