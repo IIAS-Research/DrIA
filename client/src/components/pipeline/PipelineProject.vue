@@ -18,6 +18,7 @@ function chooseRightInputType(valueToProceed: IStep['configuration'][0]) {
   const qInputTypes = ['string', 'number', 'bigint'];
   const qToggleType = ['boolean'];
   if (valueToProceed.categorical?.length) return 'QSelect';
+  // if (valueToProceed.range?.length) return 'QSelect';
   if (qInputTypes.includes(valueType)) return 'QInput';
   if (qToggleType.includes(valueType)) return 'QToggle';
   return 'QInput';
@@ -103,8 +104,13 @@ onMounted(async () => {
                     v-if="chooseRightInputType(confObj) === 'QInput'"
                     v-model="pipeline.children[panelMetaStepIndex].children[stepIndex]
                       .configuration[key].value"
-                    :label="`${key} (Default value: ${confObj.default})`"
+                    :label="`${key} (Default value: ${confObj.default})
+                    ${confObj.range?.length ? 'Min val: ' + confObj.range[0] + ', Max val: ' + confObj.range[1]: ''}`"
                     :disable="!pipeline.children[panelMetaStepIndex].children[stepIndex].enable"
+                    :rules="[
+                      (val) => confObj.range?.length ?
+                        ((parseFloat(val) >= confObj.range[0] && parseFloat(val) <= confObj.range[1])
+                          || `La valeur n'est pas comprise dans les bornes attendues`) : true]"
                     clearable
                     @clear="resetValueWithDefault(confObj)"
                   />
