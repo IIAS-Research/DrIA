@@ -20,7 +20,7 @@ public class ProjectFile : ApplicationRecord
     public required EProjectFileType FileType { get; set;} = EProjectFileType.DEFAULT;
 
     [Timestamp]
-    public byte[] CreatedAt { get; set; } = [];
+    public byte[]? CreatedAt { get; set; } = [];
 
     [Required]
     public required long ProjectId { get; set; }

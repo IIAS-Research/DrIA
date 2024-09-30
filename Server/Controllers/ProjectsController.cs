@@ -25,7 +25,8 @@ public class ProjectsController : ApplicationController
     }
 
     [HttpGet]
-    [Authorize(Policy = "AdminOnly")]
+    // [Authorize(Policy = "AdminOnly")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetProjects()
     {
         ProjectService.ProjectResponseGetAll projectResponseGetAll = await _projectService.GetProjects();
@@ -43,7 +44,7 @@ public class ProjectsController : ApplicationController
     }
 
     [HttpPost]
-    public async Task<IActionResult> RegisterProject([FromBody] StartProjectInDTO projectData)
+    public async Task<IActionResult> RegisterProject([FromForm] StartProjectInDTO projectData)
     {
         User? currentUser = await GetCurrentUser();
         if (currentUser is null) return BadRequest();
@@ -51,11 +52,18 @@ public class ProjectsController : ApplicationController
         var responseProject = await _projectService.CreateProject(projectData, currentUser);
         if (!responseProject.IsSuccess) return BadRequest(responseProject.Errors);
 
-        var pipelineSerialized = JsonSerializer.Deserialize<Process.ProcessPipeline>(projectData.Pipeline)!;
-        
-        var responseIaWeb = await _iaWebService.RunPipeline(projectData.File, responseProject.Data, pipelineSerialized);
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        };
+
+        var pipelineSerialized = JsonSerializer.Deserialize<Process.ProcessPipeline>(projectData.Pipeline, options)!;
+
+        var responseIaWeb = await _iaWebService.RunPipeline(projectData.File, responseProject.Data, projectData.Pipeline);
         if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
 
+        // TODO: WORKS until here, 
         var process = await _processService.CreateProcess(responseIaWeb.Data, pipelineSerialized, responseProject.Data);
 
         return Ok(process);

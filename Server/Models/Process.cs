@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 
 namespace Server.Models;
 
@@ -18,12 +19,12 @@ public class Process : ApplicationRecord
   public required ProcessPipeline Pipeline { get; set; }
 
   [Required]
-  public required EProcessStatut Statut { get; set; }
+  public required EProcessStatut Status { get; set; }
   [Timestamp]
-  public byte[] CreatedAt { get; set; } = [];
+  public byte[]? CreatedAt { get; set; } = [];
 
   [Timestamp]
-  public byte[] UpdatedAt { get; set; } = [];
+  public byte[]? UpdatedAt { get; set; } = [];
 
   [Required]
   public required long ProjectId { get; set; }
@@ -44,22 +45,21 @@ public class Process : ApplicationRecord
     public required string Step { get; set; }
     public required string Name { get; set; }
     public required string Description { get; set; }
-    public ProcessPipelineConfiguration? Configuration { get; set; }
+    public bool? Enable { get; set; }
+    public bool? CanBeDisable { get; set; }
+
+    public required object? Configuration { get; set; }
     public required ProcessPipeline[] Children { get; set; }
+
 
     public record ProcessPipelineConfiguration
     {
-      public ProcessPipelineConfigurationChild? AuthorizedErrorRatios { get; set; }
-      public ProcessPipelineConfigurationChild? SampleSize { get; set; }
-
-      public record ProcessPipelineConfigurationChild
-      {
-        public float Default { get; set; }
-        public required string Description { get; set; }
-        public float Value { get; set; }
-      }
+      public object? Default { get; set; }
+      public object? Value { get; set; }
+      public string? Description { get; set; }
+      public List<object>? Range { get; set; }
+      public List<object>? Categorical { get; set; }
     }
-
   }
 
 }

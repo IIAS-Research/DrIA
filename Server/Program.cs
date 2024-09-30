@@ -68,12 +68,14 @@ public partial class Program
         options.UseNpgsql(builder.Configuration[Configuration.ConnectionString]));
     builder.Services.AddScoped<UsersRepository>();
     builder.Services.AddScoped<ProjectRepository>();
+    builder.Services.AddScoped<ProcessRepository>();
     builder.Services.AddTransient<FileStorageService>();
     builder.Services.AddTransient<AuthService>();
     builder.Services.AddTransient<MailerService>();
     builder.Services.AddTransient<ProjectService>();
     builder.Services.AddTransient<UserService>();
     builder.Services.AddTransient<IaWebService>();
+    builder.Services.AddTransient<ProcessService>();
     builder.Services.AddSingleton<IAWebSocketService>();
 
     builder.Services.AddSignalR();

@@ -30,10 +30,10 @@ public class Project : ApplicationRecord
   public required string[] DatasetHasIdColumnList { get; set; } = [];
 
   [Timestamp]
-  public byte[] CreatedAt { get; set; } = [];
+  public byte[]? CreatedAt { get; set; } = [];
 
   [Timestamp]
-  public byte[] UpdatedAt { get; set; } = [];
+  public byte[]? UpdatedAt { get; set; } = [];
 
 
   [Required]

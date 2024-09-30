@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Server.DTOs;
@@ -12,7 +13,7 @@ namespace Server.Services;
 public class IaWebService : ApplicationService
 {
   private readonly string _ia_url = "http://rss00992:32845";
-  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(IFormFile file, Project project, Process.ProcessPipeline pipeline)
+  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(IFormFile file, Project project, string pipeline)
   {
     var response = new ResponseService<RunPipelineOutDTO>();
     byte[] formatedFile = await FormatFileForPipeline(file, project);
@@ -20,19 +21,24 @@ public class IaWebService : ApplicationService
     {
       using (var http = new HttpClient())
       {
-        using StringContent jsonContent = new(
-          JsonSerializer.Serialize(new RunPipelineInDTO
-          {
-            train_dataset = formatedFile,
-            dataset_target = project.CsvColumnToPredict,
-            pipeline = pipeline
-          }),
-          Encoding.UTF8,
-          "application/json");
-        var httpResponse = await http.PostAsync($"{_ia_url}/pipeline/run", jsonContent);
+        var options = new JsonSerializerOptions
+        {
+          PropertyNameCaseInsensitive = true,
+          PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+          Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
+        };
+        // var pipelineJson = JsonSerializer.Serialize(pipeline, options);
+        var stringPipeline = new StringContent(pipeline, Encoding.UTF8, "application/json");
+        var requestContent = new MultipartFormDataContent
+        {
+            { new ByteArrayContent(formatedFile), "train_dataset", file.FileName },
+            { new StringContent(project.CsvColumnToPredict), "dataset_target" },
+            { stringPipeline, "pipeline" }
+        };
+        var httpResponse = await http.PostAsync($"{_ia_url}/pipeline/run", requestContent);
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<RunPipelineOutDTO>(httpResponseBody)!);
+        response.SetSuccessful(JsonSerializer.Deserialize<RunPipelineOutDTO>(httpResponseBody, options)!);
       }
       return response;
     }
@@ -50,8 +56,7 @@ public class IaWebService : ApplicationService
     {
       using (var http = new HttpClient())
       {
-        var jsonContent = new StringContent("", Encoding.UTF8, "application/json");
-        var httpResponse = await http.PostAsync($"{_ia_url}/pipeline/generate", jsonContent);
+        var httpResponse = await http.GetAsync($"{_ia_url}/pipeline/generate");
 
         httpResponse.EnsureSuccessStatusCode();
         var responseBody = await httpResponse.Content.ReadFromJsonAsync<object>();

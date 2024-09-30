@@ -12,7 +12,7 @@ public class ProcessRepository(MainDbContext dbContext)
       Process process = new Process{
           Date = DateTime.Now,
           Duration = 0L,
-          Statut = pipelineResponse.status,
+          Status = pipelineResponse.status,
           Pipeline = pipelineData, // serais mieux de l'avoir du webservice
           ProjectId = project.Id
         };

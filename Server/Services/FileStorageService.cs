@@ -179,6 +179,7 @@ public class FileStorageService : ApplicationService
             {
                 responseService.AddError($"File is too big ( size > {MaxFileLength})");
             }
+            responseService.SetSuccessful();
             return responseService;
         }
     }
@@ -240,6 +241,7 @@ public class FileStorageService : ApplicationService
             {
                 responseService.AddError($"File is too big ( size > {MaxFileLength})");
             }
+            responseService.SetSuccessful();
             return responseService;
         }
     }

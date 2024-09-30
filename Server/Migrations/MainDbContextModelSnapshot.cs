@@ -204,15 +204,14 @@ namespace server.Migrations
 
                     b.Property<byte[]>("CreatedAt")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int>("Duration")
-                        .HasColumnType("integer");
+                    b.Property<long>("Duration")
+                        .HasColumnType("bigint");
 
                     b.Property<Process.ProcessPipeline>("Pipeline")
                         .IsRequired()
@@ -226,7 +225,6 @@ namespace server.Migrations
 
                     b.Property<byte[]>("UpdatedAt")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea");
 
@@ -247,13 +245,30 @@ namespace server.Migrations
 
                     b.Property<byte[]>("CreatedAt")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea");
+
+                    b.Property<string>("CsvColumnToPredict")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("DatasetHasIdColumn")
+                        .HasColumnType("boolean");
+
+                    b.Property<string[]>("DatasetHasIdColumnList")
+                        .IsRequired()
+                        .HasColumnType("text[]");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("RowDepedencies")
+                        .HasColumnType("boolean");
+
+                    b.Property<string[]>("RowDepedenciesLinked")
+                        .IsRequired()
+                        .HasColumnType("text[]");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -261,7 +276,6 @@ namespace server.Migrations
 
                     b.Property<byte[]>("UpdatedAt")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea");
 
@@ -285,9 +299,11 @@ namespace server.Migrations
 
                     b.Property<byte[]>("CreatedAt")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea");
+
+                    b.Property<int>("FileType")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Filename")
                         .IsRequired()

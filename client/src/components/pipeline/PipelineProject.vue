@@ -180,5 +180,3 @@ onMounted(async () => {
     Aucune pipeline disponible
   </div>
 </template>
-
-<!-- TODO: Categorial -> Q-Select, Range -> input avec lazy rules -->

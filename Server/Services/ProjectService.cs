@@ -44,7 +44,7 @@ public class ProjectService : ApplicationService
         var response = new ResponseService<Project>();
         Project project = await _projectRepository.CreateProject(projectData, user);
         var responseWriteFile = await WriteProjectFile(projectData.File);
-        if (response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
+        if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
         await _projectRepository.CreateProjectFile(project, projectData.File.FileName, responseWriteFile.FilePath, responseWriteFile.MimeType);
         response.SetSuccessful(project);
         return response;
