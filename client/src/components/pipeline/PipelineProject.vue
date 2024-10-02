@@ -47,12 +47,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <q-card
-    v-if="pipeline"
-  >
-    <q-splitter
-      v-model="splitterModel"
-    >
+  <q-card v-if="pipeline">
+    <q-splitter v-model="splitterModel">
       <template #before>
         <q-splitter
           v-model="tabsSplitterModel"
@@ -71,7 +67,7 @@ onMounted(async () => {
                 :key="metaIndex"
                 :name="`${metaStep.step}-${metaIndex}`"
                 :label="`${metaStep.name}-${metaIndex}`"
-                :style="{height: `${(500 / pipeline.children.length)}px`}"
+                :style="{ height: `${(500 / pipeline.children.length)}px` }"
               />
             </q-tabs>
           </template>
@@ -84,11 +80,12 @@ onMounted(async () => {
               active-bg-color="teal-3"
             >
               <q-tab
-                v-for="(step, stepIndex) in pipeline.children.filter((s, i) => `${s.step}-${i}` === tab)[0].children"
+                v-for="(step, stepIndex) in pipeline?.children
+                  ?.filter((s, i) => `${s.step}-${i}` === tab)?.[0]?.children || []"
                 :key="stepIndex"
                 :name="`${step.step}-${stepIndex}`"
                 :label="`${step.name}-${stepIndex}`"
-                :style="{height: `${(500 / pipeline.children.length)}px`}"
+                :style="{ height: `${(500 / pipeline.children.length)}px` }"
               />
             </q-tabs>
           </template>
@@ -106,8 +103,8 @@ onMounted(async () => {
           class="q-mr-md"
         >
           <q-tab-panel
-            v-for="(step, stepIndex) in pipeline.children
-              .filter((s, i) => `${s.step}-${i}` === tab)[0].children"
+            v-for="(step, stepIndex) in pipeline?.children
+              ?.filter((s, i) => `${s.step}-${i}` === tab)?.[0]?.children || []"
             :key="stepIndex"
             :name="`${step.step}-${stepIndex}`"
             class="q-gutter-y-md"
@@ -131,12 +128,14 @@ onMounted(async () => {
                   v-if="chooseRightInputType(confObj) === 'QInput'"
                   v-model="confObj.value"
                   :label="`${key} (Default value: ${confObj.default})
-                    ${confObj.range?.length ? 'Min val: ' + confObj.range[0] + ', Max val: ' + confObj.range[1]: ''}`"
+                    ${confObj.range?.length ? 'Min val: ' + confObj.range[0] + ', Max val: ' + confObj.range[1] : ''}`"
                   :disable="!step.enable"
                   :rules="[
-                    (val) => confObj.range?.length ?
-                      ((parseFloat(val) >= confObj.range[0] && parseFloat(val) <= confObj.range[1])
-                        || `La valeur n'est pas comprise dans les bornes attendues`) : true]"
+                    (val) => confObj.range?.length
+                      ? (parseFloat(val) >= confObj.range[0] && parseFloat(val) <= confObj.range[1])
+                        || `La valeur n'est pas comprise dans les bornes attendues`
+                      : true
+                  ]"
                   clearable
                   @clear="resetValueWithDefault(confObj)"
                 />

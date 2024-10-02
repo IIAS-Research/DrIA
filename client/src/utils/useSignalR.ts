@@ -1,14 +1,14 @@
-import { IProcess } from 'src/components/models';
 import { ref } from 'vue';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 
 export function useSignalR(
   hubName: 'status' | 'metrics',
-  processId: IProcess['iaWebServiceJobId'],
+  processId: string,
 ) {
   // refs
   const connection = ref<HubConnection | null>(null);
   const isConnected = ref(false);
+  const receivedMessageRef = ref<any>();
 
   // functions
   async function connect() {
@@ -32,6 +32,7 @@ export function useSignalR(
 
     connection.value.on('ReceiveMessage', (message) => {
       console.log('Received message:', message);
+      receivedMessageRef.value = message;
     });
 
     try {
@@ -63,5 +64,6 @@ export function useSignalR(
     connect,
     disconnect,
     isConnected,
+    receivedMessageRef,
   };
 }

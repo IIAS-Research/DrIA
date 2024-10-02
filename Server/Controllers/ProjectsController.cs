@@ -56,7 +56,6 @@ public class ProjectsController : ApplicationController
         if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
 
         await _processService.CreateProcess(responseIaWeb.Data, projectData.Pipeline, responseProject.Data);
-
-        return Ok(responseIaWeb.Data);
+        return Ok(new { responseIaWeb.Data.id, responseIaWeb.Data.socket, responseIaWeb.Data.status, projectId = responseProject.Data.Id });
     }
 }

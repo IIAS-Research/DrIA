@@ -23,6 +23,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/administration/ManageUsersPage.vue'),
         beforeEnter: mustBeAdmin,
       },
+      {
+        // This route accept an optional query parameter: ?jobId=<jobId>
+        path: 'projets/:id',
+        name: 'project-show',
+        component: () => import('pages/projects/ProjectPage.vue'),
+        beforeEnter: mustBeAuth,
+      },
     ],
   },
 

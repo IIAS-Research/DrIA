@@ -5,9 +5,10 @@ import { useQuasar } from 'quasar';
 import { api } from 'src/boot/axios';
 import { ICreateProjectResponseDTO, IProjectForm } from 'src/components/models';
 import { ref } from 'vue';
-import { useSignalR } from 'src/utils/useSignalR';
+import { useRouter } from 'vue-router';
 
 const $q = useQuasar();
+const router = useRouter();
 
 const isLoading = ref(false);
 
@@ -28,11 +29,13 @@ async function submitProject(projectForm: IProjectForm, file: File) {
         'Content-Type': 'multipart/form-data',
       },
     }))?.data;
-    // response give the id for the WS
     if (responsePostProject) {
       console.log(responsePostProject);
-      const signalR = useSignalR('status', responsePostProject.id);
-      signalR.connect();
+      router.push({
+        name: 'project-show',
+        params: { id: responsePostProject.projectId },
+        query: { jobId: responsePostProject.id },
+      });
     }
   } catch (error) {
     console.error(error);
@@ -43,8 +46,6 @@ async function submitProject(projectForm: IProjectForm, file: File) {
   } finally {
     isLoading.value = false;
   }
-
-  // ws connect
 }
 </script>
 
