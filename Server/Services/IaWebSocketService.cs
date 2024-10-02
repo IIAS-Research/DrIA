@@ -71,12 +71,15 @@ namespace Server.Services
           Query =
             [
                 new("job", JobWebServiceId)
-            ]
+            ],
         });
 
         _socketIOClient.On("status", async response => await HandleMessageAsync(response));
         _socketIOClient.OnDisconnected += async (_, __) => await HandleDisconnectionAsync();
         _socketIOClient.OnConnected += (_, __) => IsConnected = true;
+
+        _socketIOClient.OnPong += (_, __) => Console.WriteLine("On the pong");
+        _socketIOClient.OnReconnectAttempt += (_, __) => Console.WriteLine("OnReconnectAttempt");
 
         await _socketIOClient.ConnectAsync();
         Console.WriteLine($"IsConnected : {IsConnected}");
@@ -93,13 +96,15 @@ namespace Server.Services
     {
       Console.WriteLine($"Inside HandleMessageAsync: {response}");
       await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", response.GetValue<string>());
-      // TODO mettre à jour la db
-      Console.WriteLine($"Message sent to SignalR: {response}");
 
+      // TODO: Save informations in DB when JobStatus is different from what we already have in DB
+
+      Console.WriteLine($"Message sent to SignalR: {response}");
     }
 
     public async Task HandleDisconnectionAsync()
     {
+      if (!IsConnected) return;
       foreach (var connectionId in _connectionIds)
       {
         await Hub.Groups.RemoveFromGroupAsync(connectionId, JobWebServiceId);
