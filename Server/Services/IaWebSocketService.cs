@@ -42,7 +42,7 @@ namespace Server.Services
       var connection = GetIaConnection(uuid);
       if (connection != null)
       {
-        await connection.CloseIaWebServiceAndSignalRWebSocketsAsync();
+        await connection.HandleDisconnectionAsync();
         _connections.Remove(connection);
       }
     }
@@ -55,7 +55,6 @@ namespace Server.Services
 
   public class IaConnection(string jobWebServiceId, IHubContext<ApplicationHub> hub)
   {
-    private readonly ClientWebSocket _clientWebSocket = new();
     private SocketIO? _socketIOClient;
     public IHubContext<ApplicationHub> Hub { get; } = hub;
     public string JobWebServiceId { get; } = jobWebServiceId;
@@ -93,17 +92,13 @@ namespace Server.Services
     private async Task HandleMessageAsync(SocketIOResponse response)
     {
       Console.WriteLine($"Inside HandleMessageAsync: {response}");
-      // if (!IsConnected)
-      // {
-      //   Console.WriteLine("Socket.IO client is not connected. Cannot send message.");
-      //   return;
-      // }
       await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", response.GetValue<string>());
+      // TODO mettre à jour la db
       Console.WriteLine($"Message sent to SignalR: {response}");
 
     }
 
-    private async Task HandleDisconnectionAsync()
+    public async Task HandleDisconnectionAsync()
     {
       foreach (var connectionId in _connectionIds)
       {
@@ -112,15 +107,11 @@ namespace Server.Services
       }
 
       IsConnected = false;
-    }
-
-    public async Task CloseIaWebServiceAndSignalRWebSocketsAsync()
-    {
-      if (_clientWebSocket.State == WebSocketState.Open)
+      if (_socketIOClient != null)
       {
-        await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+        await _socketIOClient.DisconnectAsync();
       }
-      IsConnected = false;
+      _socketIOClient = null;
     }
 
     public void AddConnectionId(string connectionId) => _connectionIds.Add(connectionId);
