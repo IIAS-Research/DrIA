@@ -213,14 +213,14 @@ namespace server.Migrations
                     b.Property<long>("Duration")
                         .HasColumnType("bigint");
 
-                    b.Property<Process.ProcessPipeline>("Pipeline")
+                    b.Property<string>("PipelineJson")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("Statut")
+                    b.Property<int>("Status")
                         .HasColumnType("integer");
 
                     b.Property<byte[]>("UpdatedAt")

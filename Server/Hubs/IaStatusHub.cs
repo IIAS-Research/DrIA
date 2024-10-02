@@ -1,9 +1,8 @@
 using Server.Services;
 
-namespace SignalRChat.Hubs
+namespace Server.Hubs;
+
+public class IaStatusHub : ApplicationHub
 {
-  public class IaStatusHub : ApplicationHub
-  {
-    public IaStatusHub(IAWebSocketService iAWebSocketService) : base (iAWebSocketService) {}
-  }
+  public IaStatusHub(IAWebSocketService iAWebSocketService) : base(iAWebSocketService) { }
 }

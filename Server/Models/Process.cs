@@ -6,6 +6,8 @@ namespace Server.Models;
 
 public class Process : ApplicationRecord
 {
+  private string _pipelineJson = "";
+
   [Key]
   public long Id { get; set; }
 
@@ -14,12 +16,33 @@ public class Process : ApplicationRecord
   [Required]
   public required long Duration { get; set; }
 
+  [NotMapped] // This ensures Entity Framework doesn't treat this as a mapped column
+  public ProcessPipeline? Pipeline
+  {
+    get
+    {
+      return string.IsNullOrWhiteSpace(_pipelineJson)
+          ? null
+          : JsonSerializer.Deserialize<ProcessPipeline>(_pipelineJson);
+    }
+    set
+    {
+      // Serialize the ProcessPipeline object to JSON
+      _pipelineJson = JsonSerializer.Serialize(value);
+    }
+  }
+
   [Required]
   [Column(TypeName = "jsonb")]
-  public required ProcessPipeline Pipeline { get; set; }
+  public string PipelineJson
+  {
+    get => _pipelineJson;
+    set => _pipelineJson = value;
+  }
 
   [Required]
   public required EProcessStatut Status { get; set; }
+
   [Timestamp]
   public byte[]? CreatedAt { get; set; } = [];
 
@@ -42,15 +65,13 @@ public class Process : ApplicationRecord
 
   public record ProcessPipeline
   {
-    public required string Step { get; set; }
-    public required string Name { get; set; }
-    public required string Description { get; set; }
+    public string? Step { get; set; }
+    public string? Name { get; set; }
+    public string? Description { get; set; }
     public bool? Enable { get; set; }
     public bool? CanBeDisable { get; set; }
-
-    public required object? Configuration { get; set; }
-    public required ProcessPipeline[] Children { get; set; }
-
+    public Dictionary<string, ProcessPipelineConfiguration>? Configuration { get; set; }
+    public ProcessPipeline[]? Children { get; set; }
 
     public record ProcessPipelineConfiguration
     {

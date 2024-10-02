@@ -3,8 +3,9 @@ import AppPresentation from 'components/home/AppPresentation.vue';
 import TrainAIPrompt from 'components/home/TrainAIPrompt.vue';
 import { useQuasar } from 'quasar';
 import { api } from 'src/boot/axios';
-import { IProjectForm } from 'src/components/models';
+import { ICreateProjectResponseDTO, IProjectForm } from 'src/components/models';
 import { ref } from 'vue';
+import { useSignalR } from 'src/utils/useSignalR';
 
 const $q = useQuasar();
 
@@ -22,12 +23,17 @@ async function submitProject(projectForm: IProjectForm, file: File) {
   });
   formData.append('file', file);
   try {
-    const responsePostProject = await api.post('Projects', formData, {
+    const responsePostProject: ICreateProjectResponseDTO = (await api.post('Projects', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    });
+    }))?.data;
     // response give the id for the WS
+    if (responsePostProject) {
+      console.log(responsePostProject);
+      const signalR = useSignalR('status', responsePostProject.id);
+      signalR.connect();
+    }
   } catch (error) {
     console.error(error);
     $q.notify({

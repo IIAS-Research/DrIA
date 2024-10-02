@@ -1,3 +1,4 @@
+using Server.Hubs;
 using Server.Services;
 
 namespace SignalRChat.Hubs

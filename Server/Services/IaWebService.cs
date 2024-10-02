@@ -27,7 +27,6 @@ public class IaWebService : ApplicationService
           PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
           Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
         };
-        // var pipelineJson = JsonSerializer.Serialize(pipeline, options);
         var stringPipeline = new StringContent(pipeline, Encoding.UTF8, "application/json");
         var requestContent = new MultipartFormDataContent
         {

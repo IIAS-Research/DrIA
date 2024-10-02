@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
-using Server.Models;
 
 namespace Server.DTOs;
 

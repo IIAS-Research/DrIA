@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Server.Authorization.Handlers;
 using SignalRChat.Hubs;
+using System.Text.Json.Serialization;
+using Server.Hubs;
 
 public partial class Program
 {
@@ -63,6 +65,7 @@ public partial class Program
     builder.Services.AddControllers().AddJsonOptions(options =>
     {
       options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // Ensures camelCase serialization for JSON
+      options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve; // Circle dependencies
     });
     builder.Services.AddDbContext<MainDbContext>(options =>
         options.UseNpgsql(builder.Configuration[Configuration.ConnectionString]));
@@ -109,9 +112,10 @@ public partial class Program
               });
           options.AddPolicy("Development", builder =>
               {
-                builder.AllowAnyOrigin()
+                builder.WithOrigins("http://localhost:9000") // Must be set explicitly for cors to work with Web Sockets
                         .AllowAnyHeader()
-                        .AllowAnyMethod();
+                        .AllowAnyMethod()
+                        .AllowCredentials();
               });
         });
   }

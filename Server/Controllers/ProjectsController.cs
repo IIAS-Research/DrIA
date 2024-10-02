@@ -44,7 +44,7 @@ public class ProjectsController : ApplicationController
     }
 
     [HttpPost]
-    public async Task<IActionResult> RegisterProject([FromForm] StartProjectInDTO projectData)
+    public async Task<ActionResult<RunPipelineOutDTO>> RegisterProject([FromForm] StartProjectInDTO projectData)
     {
         User? currentUser = await GetCurrentUser();
         if (currentUser is null) return BadRequest();
@@ -52,20 +52,11 @@ public class ProjectsController : ApplicationController
         var responseProject = await _projectService.CreateProject(projectData, currentUser);
         if (!responseProject.IsSuccess) return BadRequest(responseProject.Errors);
 
-        var options = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        };
-
-        var pipelineSerialized = JsonSerializer.Deserialize<Process.ProcessPipeline>(projectData.Pipeline, options)!;
-
         var responseIaWeb = await _iaWebService.RunPipeline(projectData.File, responseProject.Data, projectData.Pipeline);
         if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
 
-        // TODO: WORKS until here, 
-        var process = await _processService.CreateProcess(responseIaWeb.Data, pipelineSerialized, responseProject.Data);
+        await _processService.CreateProcess(responseIaWeb.Data, projectData.Pipeline, responseProject.Data);
 
-        return Ok(process);
+        return Ok(responseIaWeb.Data);
     }
 }

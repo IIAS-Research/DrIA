@@ -1,133 +1,134 @@
 using System.Net.WebSockets;
-using System.Text;
 using Microsoft.AspNetCore.SignalR;
+using Server.Hubs;
 using SignalRChat.Hubs;
+using SocketIOClient;
 
-namespace Server.Services;
-
-public class IAWebSocketService : ApplicationService
+namespace Server.Services
 {
-  public static readonly Uri _url = new Uri("ws://rss00992:32845");
-  private readonly List<IaConnection> Connections = [];
-  private readonly IHubContext<IaStatusHub> _iaStatusHub;
-  private readonly IHubContext<IaMetricHub> _iaMetricHub;
-  public IAWebSocketService(IHubContext<IaStatusHub> iaStatusHub, IHubContext<IaMetricHub> iaMetricHub)
+  public class IAWebSocketService(IHubContext<IaStatusHub> iaStatusHub, IHubContext<IaMetricHub> iaMetricHub) : ApplicationService
   {
-    _iaStatusHub = iaStatusHub;
-    _iaMetricHub = iaMetricHub;
-  }
+    public static readonly string _url = "http://rss00992:32845";
+    private readonly List<IaConnection> _connections = [];
+    private readonly IHubContext<IaStatusHub> _iaStatusHub = iaStatusHub;
+    private readonly IHubContext<IaMetricHub> _iaMetricHub = iaMetricHub;
 
-  public IaConnection? GetIaConnection(string uuid)
-  {
-    return Connections.FirstOrDefault(c => c.Uuid == uuid);
-  }
+    public IaConnection? GetIaConnection(string jobWebServiceId) =>
+        _connections.FirstOrDefault(c => c.JobWebServiceId == jobWebServiceId);
 
-  public IaConnection CreateIaConnection(string uuid, Type type)
-  {
-    IHubContext<ApplicationHub> hub = _iaStatusHub;
-    if (type == typeof(IaStatusHub))
+    public IaConnection CreateIaConnection(string jobWebServiceId, Type hubType)
     {
-      hub = _iaStatusHub;
+      IHubContext<ApplicationHub> hub;
+
+      if (hubType == typeof(IaMetricHub))
+      {
+        hub = _iaMetricHub;
+      }
+      else
+      {
+        hub = _iaStatusHub;
+      }
+
+      var newConnection = new IaConnection(jobWebServiceId, hub);
+      _connections.Add(newConnection);
+      return newConnection;
     }
-    if (type == typeof(IaMetricHub))
+
+    public List<IaConnection> SearchConnectionsByConnectionId(string connectionId) =>
+        _connections.FindAll(c => c.HasConnectionId(connectionId));
+
+    public async Task DeleteIaConnection(string uuid)
     {
-      hub = _iaMetricHub;
+      var connection = GetIaConnection(uuid);
+      if (connection != null)
+      {
+        await connection.CloseIaWebServiceAndSignalRWebSocketsAsync();
+        _connections.Remove(connection);
+      }
     }
-    var newConnection = new IaConnection { Uuid = uuid, Hub = hub };
-    Connections.Add(newConnection);
-    return newConnection;
-  }
 
-  public List<IaConnection> SearchForConnectionIdInConnection(string connectionId)
-  {
-    return Connections.FindAll(c => c.ConnectionIdExist(connectionId));
-  }
-
-  async public Task DeleteIaConnection(string uuid)
-  {
-    var connection = GetIaConnection(uuid);
-    if (connection == null)
+    public List<IaConnection> SearchForConnectionIdInConnection(string connectionId)
     {
-      return;
+      return _connections.FindAll(c => c.HasConnectionId(connectionId));
     }
-    await connection.CloseAsync();
-    Connections.RemoveAll(c => c.Uuid == uuid);
   }
 
-  public class IaConnection
+  public class IaConnection(string jobWebServiceId, IHubContext<ApplicationHub> hub)
   {
-    private ClientWebSocket _clientWebSocket = new ClientWebSocket();
-    public required IHubContext<ApplicationHub> Hub;
-    public required string Uuid;
-    public bool IsConnected = false;
-    private List<string> ConnectionIds = [];
+    private readonly ClientWebSocket _clientWebSocket = new();
+    private SocketIO? _socketIOClient;
+    public IHubContext<ApplicationHub> Hub { get; } = hub;
+    public string JobWebServiceId { get; } = jobWebServiceId;
+    public bool IsConnected { get; private set; }
+    private readonly List<string> _connectionIds = [];
 
-    public async Task ConnectAsync()
+    public async Task ConnectIaWebServiceAndSignalRWebSocketsAsync()
     {
+      Console.WriteLine("Inside ConnectIaWebServiceAndSignalRWebSocketsAsync");
       try
       {
-        await _clientWebSocket.ConnectAsync(_url, CancellationToken.None);
-        await ReceiveMessages();
-        IsConnected = true;
+        _socketIOClient = new SocketIO(IAWebSocketService._url, new SocketIOOptions
+        {
+          Query =
+            [
+                new("job", JobWebServiceId)
+            ]
+        });
+
+        _socketIOClient.On("status", async response => await HandleMessageAsync(response));
+        _socketIOClient.OnDisconnected += async (_, __) => await HandleDisconnectionAsync();
+        _socketIOClient.OnConnected += (_, __) => IsConnected = true;
+
+        await _socketIOClient.ConnectAsync();
+        Console.WriteLine($"IsConnected : {IsConnected}");
+        Console.WriteLine($"Connected to: {IAWebSocketService._url}?job={JobWebServiceId}");
       }
-      catch (Exception exception)
+      catch (Exception ex)
       {
-        Console.WriteLine(exception.Message);
+        Console.WriteLine($"Connection failed: {ex.Message}");
         IsConnected = false;
       }
     }
 
-    private async Task ReceiveMessages()
+    private async Task HandleMessageAsync(SocketIOResponse response)
     {
-      var buffer = new byte[1024];
+      Console.WriteLine($"Inside HandleMessageAsync: {response}");
+      // if (!IsConnected)
+      // {
+      //   Console.WriteLine("Socket.IO client is not connected. Cannot send message.");
+      //   return;
+      // }
+      await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", response.GetValue<string>());
+      Console.WriteLine($"Message sent to SignalR: {response}");
 
-      while (_clientWebSocket.State == WebSocketState.Open)
-      {
-        var result = await _clientWebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-        if (result.MessageType == WebSocketMessageType.Text)
-        {
-          var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-          await Hub.Clients.Group(Uuid).SendAsync(message);
-
-          Console.WriteLine($"Message reçu : {message}");
-        }
-      }
     }
 
-    public async Task SendMessage(string message)
+    private async Task HandleDisconnectionAsync()
     {
-      if (_clientWebSocket.State == WebSocketState.Open)
+      foreach (var connectionId in _connectionIds)
       {
-        var buffer = Encoding.UTF8.GetBytes(message);
-        await _clientWebSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+        await Hub.Groups.RemoveFromGroupAsync(connectionId, JobWebServiceId);
+        Console.WriteLine($"Disconnected from {JobWebServiceId}, SignalR connections removed.");
       }
-    }
 
-    public async Task CloseAsync()
-    {
-      await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Standard close", CancellationToken.None);
       IsConnected = false;
     }
 
-    public bool ConnectionIdExist(string connectionId)
+    public async Task CloseIaWebServiceAndSignalRWebSocketsAsync()
     {
-      return ConnectionIds.FindIndex(c => c == connectionId) > -1;
+      if (_clientWebSocket.State == WebSocketState.Open)
+      {
+        await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+      }
+      IsConnected = false;
     }
 
-    public void AddConnectionId(string connectionId)
-    {
-      ConnectionIds.Add(connectionId);
-    }
+    public void AddConnectionId(string connectionId) => _connectionIds.Add(connectionId);
 
-    public void RemoveConnectionId(string connectionId)
-    {
-      ConnectionIds.RemoveAll(c => c == connectionId);
-    }
+    public void RemoveConnectionId(string connectionId) => _connectionIds.RemoveAll(id => id == connectionId);
 
-    public int GetConnectionIdsCount()
-    {
-      return ConnectionIds.Count;
-    }
+    public bool HasConnectionId(string connectionId) => _connectionIds.Contains(connectionId);
+
+    public int GetConnectionIdsCount() => _connectionIds.Count;
   }
-
 }

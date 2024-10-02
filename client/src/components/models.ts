@@ -7,12 +7,19 @@ export interface IUser {
 }
 export interface IProcess {
   id: number;
+  iaWebServiceJobId?: string;
 }
 export interface ICreateUserDTO {
   email: string;
   firstName: string;
   lastName: string;
   isAdmin: boolean;
+}
+
+export interface ICreateProjectResponseDTO {
+  id: string;
+  status: 'QUEUED' | 'RUNNING' | 'FINISHED' | 'CANCELED' | 'CRASHED' | 'TIMEOUT';
+  socket: string;
 }
 
 export interface IConfigurationKey {
