@@ -15,13 +15,14 @@ const isLoading = ref(false);
 async function submitProject(projectForm: IProjectForm, file: File) {
   isLoading.value = true;
   const formData = new FormData();
-  Object.entries(projectForm).forEach(([key, value]) => {
-    let formatedValue : string | Blob = String(value);
-    if (Array.isArray(value) || typeof value === 'object') {
-      formatedValue = JSON.stringify(value);
-    }
-    formData.append(key, formatedValue);
-  });
+  formData.append('title', projectForm.title);
+  formData.append('description', projectForm.description);
+  formData.append('csvColumnToPredict', projectForm.csvColumnToPredict);
+  formData.append('rowDepedencies', String(projectForm.rowDepedencies));
+  formData.append('rowDepedenciesLinkedString', projectForm.rowDepedenciesLinked.toString());
+  formData.append('datasetHasIdColumn', String(projectForm.datasetHasIdColumn));
+  formData.append('datasetHasIdColumnListString', projectForm.datasetHasIdColumnList.toString());
+  formData.append('pipeline', JSON.stringify(projectForm.pipeline));
   formData.append('file', file);
   try {
     const responsePostProject: ICreateProjectResponseDTO = (await api.post('Projects', formData, {

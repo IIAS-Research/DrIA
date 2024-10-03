@@ -21,6 +21,7 @@ public class FileStorageService : ApplicationService
     var filePathInStorage = Path.Combine(GetMainPathStorage(_config), filePath);
     var mimeType = MimeTypeMap.GetMimeType(formfile.FileName);
     using (var stream = File.Create(filePathInStorage))
+
     {
       await formfile.CopyToAsync(stream);
     }

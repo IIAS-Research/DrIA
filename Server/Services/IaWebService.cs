@@ -224,7 +224,15 @@ public class IaWebService : ApplicationService
   async public Task<ResponseService<SplitOutDTO>> Split(IFormFile file, Project project)
   {
     var response = new ResponseService<SplitOutDTO>();
-    byte[] formatedFile = await FormatFileForPipeline(file, project);
+    byte[] formatedFile;
+    if (project.RowDepedenciesLinked.Length == 0)
+    {
+      formatedFile = await IFormFileToByteArray(file);
+    }
+    else
+    {
+      formatedFile = await FormatFileForPipeline(file, project);
+    }
     try
     {
       using (var http = new HttpClient())
@@ -321,7 +329,7 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async private static Task<byte[]> FormatFileForPipeline(IFormFile file, Project project)
+  async private Task<byte[]> FormatFileForPipeline(IFormFile file, Project project)
   {
     var config = new CsvConfiguration(CultureInfo.InvariantCulture)
     {
@@ -330,12 +338,12 @@ public class IaWebService : ApplicationService
     };
 
     using var reader = new StreamReader(file.OpenReadStream());
-    using var csvReader = new CsvReader(reader, config);
+    using var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture);
     var records = csvReader.GetRecords<dynamic>().ToList();
 
     using var memoryStream = new MemoryStream();
     using var writer = new StreamWriter(memoryStream);
-    using var csvWriter = new CsvWriter(writer, config);
+    using var csvWriter = new CsvWriter(writer, CultureInfo.InvariantCulture);
 
     var headerRow = ((IDictionary<string, object>)records.First()).Keys;
     var filteredHeaders = headerRow
@@ -348,12 +356,14 @@ public class IaWebService : ApplicationService
     {
       var recordAsDict = (IDictionary<string, object>)record;
       var filteredRecord = recordAsDict
-          .Where(pair => !project.RowDepedenciesLinked.Contains(pair.Key))
+          .Where(pair => project.RowDepedenciesLinked.Contains(pair.Key) && !project.DatasetHasIdColumnList.Contains(pair.Key))
           .ToDictionary(pair => pair.Key, pair => pair.Value);
       csvWriter.WriteRecord(filteredRecord);
       csvWriter.NextRecord();
     }
     await writer.FlushAsync();
+
+
     return memoryStream.ToArray();
   }
 

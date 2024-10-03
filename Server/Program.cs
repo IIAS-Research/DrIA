@@ -12,6 +12,7 @@ using Server.Authorization.Handlers;
 using Server.Hubs;
 using SwaggerThemes;
 using SignalRChat.Hubs;
+using System.Text.Json.Serialization;
 
 public partial class Program
 {
@@ -66,7 +67,7 @@ public partial class Program
     builder.Services.AddControllers().AddJsonOptions(options =>
     {
       options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // Ensures camelCase serialization for JSON
-      //options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve; // Circle dependencies
+      options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; // Circle dependencies
     });
     builder.Services.AddDbContext<MainDbContext>(options =>
         options.UseNpgsql(builder.Configuration[Configuration.ConnectionString]));
