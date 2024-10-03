@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Server.Models;
 using Server.Services;
 using Server.Authorization;
-using System.Text.Json;
 using Server.DTOs;
 
 namespace Server.Controllers;
@@ -25,21 +24,34 @@ public class ProjectsController : ApplicationController
     }
 
     [HttpGet]
-    // [Authorize(Policy = "AdminOnly")]
-    [AllowAnonymous]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> GetProjects()
     {
-        ProjectService.ProjectResponseGetAll projectResponseGetAll = await _projectService.GetProjects();
+        var projectResponseGetAll = await _projectService.GetProjects();
         return Ok(projectResponseGetAll.Projects);
+    }
+
+    [HttpGet]
+    [Route("me")]
+    public async Task<IActionResult> GetUserProjects()
+    {
+        User? currentUser = await GetCurrentUser();
+        if (currentUser is null) return BadRequest();
+
+        var userProjects = await _projectService.GetUserProjects(currentUser!);
+        
+        return Ok(userProjects);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetProjectById(long id)
     {
-        ProjectService.ProjectResponseGetOne projectResponseGetOne = await _projectService.GetProjectById(id);
+        var projectResponseGetOne = await _projectService.GetProjectById(id);
         if (projectResponseGetOne.IsSuccess == false) return NotFound(projectResponseGetOne.Errors);
+
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, projectResponseGetOne.Project, Operations.ReadOnlyOwn);
         if (authorizationResult.Succeeded == false) return Unauthorized();
+
         return Ok(projectResponseGetOne.Project);
     }
 
@@ -49,8 +61,11 @@ public class ProjectsController : ApplicationController
         User? currentUser = await GetCurrentUser();
         if (currentUser is null) return BadRequest();
 
-        var responseProject = await _projectService.CreateProject(projectData, currentUser);
+        var responseProject = await _projectService.CreateProject(projectData, currentUser!);
         if (!responseProject.IsSuccess) return BadRequest(responseProject.Errors);
+
+        // TODO une fois que l'API est prête, route pour avoir le double fichier, et renvoyer le fichier de train à la runPipeline
+        // donc sortir le formatCsv du RunPipeline pour le mettre dans lka nouvelle route une fois prête
 
         var responseIaWeb = await _iaWebService.RunPipeline(projectData.File, responseProject.Data, projectData.Pipeline);
         if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
@@ -58,5 +73,24 @@ public class ProjectsController : ApplicationController
         await _processService.CreateProcess(responseIaWeb.Data, projectData.Pipeline, responseProject.Data);
 
         return Ok(responseIaWeb.Data);
+    }
+
+    [HttpGet("{id}/dataSample")]
+    public async Task<ActionResult> GetProjectDefaultFileLines(long projectId, [FromQuery]int rowCount = 10)
+    {
+        var projectResponseGetOne = await _projectService.GetProjectById(projectId);
+        if (projectResponseGetOne.IsSuccess == false) return NotFound(projectResponseGetOne.Errors);
+
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, projectResponseGetOne.Project, Operations.ReadOnlyOwn);
+        if (authorizationResult.Succeeded == false) return Unauthorized();
+
+        if (rowCount > 50 || rowCount < 1)
+        {
+          rowCount = 50;
+        }
+        var responseFile = await _projectService.GetProjectDefaultFileFirstNLine(projectId, rowCount);
+        if (responseFile.IsSuccess == false) return NotFound(responseFile.Errors);
+
+        return Ok(responseFile.Data);
     }
 }

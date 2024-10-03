@@ -21,7 +21,7 @@ public class IaWebService : ApplicationService
     {
       using (var http = new HttpClient())
       {
-        var options = new JsonSerializerOptions
+        var options = new JsonSerializerOptions // TODO make private readonly static?
         {
           PropertyNameCaseInsensitive = true,
           PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,

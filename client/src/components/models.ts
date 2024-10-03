@@ -5,6 +5,18 @@ export interface IUser {
   lastName: string;
   isAdmin: boolean;
 }
+export interface IProject {
+  id: number;
+  title: string;
+  description: string;
+  csvColumnToPredict: string;
+  rowDepedencies: boolean;
+  rowDepedenciesLinked: string[];
+  datasetHasIdColumn: boolean;
+  datasetHasIdColumnList: string[];
+  createdAt?: Date;
+  updateAt?: Date;
+}
 export interface IProcess {
   id: number;
   iaWebServiceJobId?: string;

@@ -58,4 +58,9 @@ public class ProjectRepository(MainDbContext dbContext)
       return projectFile;
     }
 
+    public async Task<ProjectFile?> GetProjectFileByProjectId(long id)
+    {
+      return await _dbContext.ProjectFiles.Where(pj => pj.ProjectId == id).FirstOrDefaultAsync();
+    }
+
 }
