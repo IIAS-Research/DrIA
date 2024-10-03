@@ -1,38 +1,88 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import {
-  ICsvProject, IPipeline, IProcess, IProject,
+  ICsvProject, IPipeline, IProject,
 } from 'components/models';
 import { useSignalR } from 'src/utils/useSignalR';
 import { useRoute } from 'vue-router';
 import ProcessCards from 'components/projects/ProcessCards.vue';
 import TableShowDataSample from 'components/projects/TableShowDataSample.vue';
+import { getProjectByIdAsync, getProjectDataSampleAsync } from 'src/api/projects.api';
 
 const route = useRoute();
 
 // eslint-disable-next-line no-undef
 let interval: NodeJS.Timeout;
 
+const projectId = ref(parseInt(route.params.id as string, 10));
 const progress = ref(0);
 const startProcessTime = ref<number>();
 const approximativeRemainingTime = ref<number>();
-const project = ref<IProject & { maxDuration: number}>({
+const project = ref<IProject>({
   id: 51,
   title: 'fedferv',
   description: 'vdfvdfdfv',
   csvColumnToPredict: 'Price',
   rowDepedencies: false,
-  rowDepedenciesLinked: [
-    '[]',
-  ],
+  rowDepedenciesLinked: [],
   datasetHasIdColumn: false,
-  datasetHasIdColumnList: [
-    '[]',
-  ],
+  datasetHasIdColumnList: [],
   createdAt: '',
   updatedAt: '',
   userId: 3,
-  maxDuration: 1000 * 60 * 5, // TODO: Fetch real max time duration
+  processes: [
+    {
+      id: 32,
+      date: new Date(new Date().getTime() - Math.random() * 10000000000), // Random date within the last 3 months
+      duration: Math.floor(Math.random() * (60 * 60 * 1000)), // Random duration up to 1 hour in milliseconds
+      pipeline: {} as IPipeline, // Assign a random pipeline
+      status: 'RUNNING',
+      projectId: 51,
+      bestTestAccuracy: null,
+      bestTrainAccuracy: 898,
+      iaRemoteId: 'uifhiufhzeiufhiz',
+      maxDuration: 1000 * 60 * 5,
+      models: [
+        {
+          iaRemoteId: 'remote-456',
+          id: 1,
+          metrics: {
+            metricsInfos: {
+              balancedAxccuracy: {
+                name: 'Noname',
+                description: 'fhzeuicbnizebnicvnzebzeu',
+              },
+              classification_error: {
+                name: 'Noname',
+                description: 'fhzeuicbnizebnicvnzebzeu',
+              },
+              f1Score: {
+                name: 'Noname',
+                description: 'fhzeuicbnizebnicvnzebzeu',
+              },
+              precision: {
+                name: 'Noname',
+                description: 'fhzeuicbnizebnicvnzebzeu',
+              },
+              specificationMulticlass: {
+                name: 'Noname',
+                description: 'fhzeuicbnizebnicvnzebzeu',
+              },
+            },
+            metricsTrain: {
+              balancedAccuracy: 0.85,
+              classification_error: 0.15,
+              f1Score: 0.82,
+              precision: 0.84,
+              recall: 0.80,
+              specificationMulticlass: 0.78,
+            },
+            metricsTest: null,
+            mainMetric: 'balancedAccuracy',
+          },
+        }],
+    },
+  ],
 });
 const projectFileDataSample = ref<ICsvProject>({
   columns: [
@@ -147,21 +197,25 @@ const projectFileDataSample = ref<ICsvProject>({
       iron: '6%',
     }],
 });
-const projectProcesses = ref<IProcess[]>([
-  {
-    id: 32,
-    date: new Date(new Date().getTime() - Math.random() * 10000000000), // Random date within the last 3 months
-    Duration: Math.floor(Math.random() * (60 * 60 * 1000)), // Random duration up to 1 hour in milliseconds
-    Pipeline: {} as IPipeline, // Assign a random pipeline
-    status: 'RUNNING',
-    ProjectId: 51,
-  },
-]);
+
+async function getProjectDataSample() {
+  if (!projectId.value) return undefined;
+  const responseDataSample = await getProjectDataSampleAsync(projectId.value);
+  return responseDataSample;
+}
+
+async function getProjectById() {
+  if (!projectId.value) return undefined;
+  const responseProject = await getProjectByIdAsync(projectId.value);
+  return responseProject;
+}
 
 function updateProgressVal() {
+  const maxDuration = project.value.processes.find((p) => p.status === 'RUNNING')?.maxDuration;
+
+  if (!maxDuration) return;
   const currentTime = new Date().getTime();
   const elapsedTime = currentTime - startProcessTime.value!;
-  const { maxDuration } = project.value;
 
   progress.value = (elapsedTime) / maxDuration;
   if (progress.value >= 1) {
@@ -183,7 +237,9 @@ function connectWebSocketsIfNeeded() {
   }, 2000);
 }
 
-onMounted(() => {
+onMounted(async () => {
+  console.log(await getProjectById());
+  console.log(await getProjectDataSample());
   connectWebSocketsIfNeeded();
 });
 
@@ -193,8 +249,8 @@ const remainingFormatedTime = computed(() => {
 
   const totalSeconds = Math.floor(totalMilliseconds / 1000);
 
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const hours = Math.floor(totalSeconds / 3600) >= 0 ? Math.floor(totalSeconds / 3600) : 0;
+  const minutes = Math.floor((totalSeconds % 3600) / 60) >= 0 ? Math.floor((totalSeconds % 3600) / 60) : 0;
 
   let timeString = '';
   if (hours > 0) {
@@ -219,7 +275,7 @@ const remainingFormatedTime = computed(() => {
     </div>
 
     <div
-      v-if="projectProcesses.some(p => p.status === 'RUNNING')"
+      v-if="project.processes.some(p => p.status === 'RUNNING')"
       class="text-h6 text-primary q-mt-md"
     >
       Traitement des process en cours
@@ -235,7 +291,8 @@ const remainingFormatedTime = computed(() => {
         <q-badge
           color="white"
           text-color="primary"
-          :label="`${Math.floor(progress * 100)} % (Environ ${remainingFormatedTime})`"
+          :label="progress === 1 ? '100 % Terminé' :
+            `${Math.floor(progress * 100)} % (Environ ${remainingFormatedTime})`"
         />
       </div>
     </q-linear-progress>
@@ -243,8 +300,8 @@ const remainingFormatedTime = computed(() => {
     <TableShowDataSample :project-file-data-sample="projectFileDataSample" />
 
     <ProcessCards
-      v-if="projectProcesses"
-      :processes="projectProcesses"
+      v-if="project.processes"
+      :processes="project.processes"
       class="q-mt-md"
     />
   </q-page>

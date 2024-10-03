@@ -9,32 +9,84 @@ const props = defineProps<{
 
 const lastRunningProcess = computed(() => props.processes
   .map((p) => p).sort((a, b) => b.date.getTime() - a.date.getTime())[0]);
+
+const bestModel = computed(() => props.processes.map((p) => p.models[0])
+  .sort((a, b) => {
+    if (!a.metrics.metricsTest || !b.metrics.metricsTest) {
+      return b.metrics.metricsTrain[b.metrics.mainMetric] - a.metrics.metricsTrain[a.metrics.mainMetric];
+    }
+    return b.metrics.metricsTest[b.metrics.mainMetric] - a.metrics.metricsTest[a.metrics.mainMetric];
+  })[0]);
 </script>
 
 <template>
   <div>
     <div class="row q-col-gutter-x-sm">
-      <div class="col-4">
-        <q-card>
+      <div
+        class="col-4"
+        style="align-self: stretch;"
+      >
+        <q-card class="full-height">
           <q-card-section class="text-h6">
             Last processing
           </q-card-section>
 
           <q-card-section>
-            le {{ formatToDDMMYYYHHmm(lastRunningProcess.date) }}
+            <q-list
+              bordered
+              separator
+            >
+              <q-item
+                clickable
+                v-ripple
+                class="column"
+              >
+                <q-item-label>
+                  Id: {{ lastRunningProcess.id }}
+                </q-item-label>
+                <q-item-label>
+                  Duration: {{ lastRunningProcess.duration }}
+                </q-item-label>
+                <q-item-label>
+                  Date: {{ formatToDDMMYYYHHmm(lastRunningProcess.date) }}
+                </q-item-label>
+                <q-item-label>
+                  Statut: {{ lastRunningProcess.status }}
+                </q-item-label>
+
+                <q-item-label>
+                  bestTrainAccuracy: {{ lastRunningProcess.bestTrainAccuracy }}
+                </q-item-label>
+              </q-item>
+            </q-list>
           </q-card-section>
         </q-card>
       </div>
 
-      <div class="col-8">
-        <q-card class="bg-teal-4">
+      <div
+        class="col-8"
+        style="align-self: stretch;"
+      >
+        <q-card class="bg-teal-4 full-height">
           <q-card-section class="text-h6 text-white">
-            Best processing
+            Best Model
           </q-card-section>
 
           <q-card-section class="text-white">
-            <!-- TODO: Retreive best processing and display it here -->
-            le {{ formatToDDMMYYYHHmm(lastRunningProcess.date) }}
+            <q-list
+              bordered
+              separator
+            >
+              <q-item
+                clickable
+                v-ripple
+                class="column"
+              >
+                <q-item-label>
+                  <pre>{{ bestModel }}</pre>
+                </q-item-label>
+              </q-item>
+            </q-list>
           </q-card-section>
         </q-card>
       </div>
@@ -48,25 +100,40 @@ const lastRunningProcess = computed(() => props.processes
       <q-card-section>
         <q-list
           bordered
-          separator
         >
-          <q-item
+          <q-expansion-item
             v-for="process in processes"
             :key="process.id"
-            clickable
-            v-ripple
-            class="column"
+            expand-separator
           >
-            <q-item-label>
-              {{ formatToDDMMYYYHHmm(process.date) }}
-            </q-item-label>
-            <q-item-label>
-              Duration: {{ process.Duration }}
-            </q-item-label>
-            <q-item-label>
-              Statut: {{ process.status }}
-            </q-item-label>
-          </q-item>
+            <template #header>
+              <div class="full-width">
+                <div>
+                  Id: {{ process.id }}
+                </div>
+                <div>
+                  Duration: {{ process.duration }}
+                </div>
+                <div>
+                  Date: {{ formatToDDMMYYYHHmm(process.date) }}
+                </div>
+                <div>
+                  Statut: {{ process.status }}
+                </div>
+                <div>
+                  bestTrainAccuracy: {{ process.bestTrainAccuracy }}
+                </div>
+              </div>
+            </template>
+            <q-card
+              v-for="model in process.models"
+              :key="model.id"
+            >
+              <q-card-section>
+                <pre>{{ model }}</pre>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
         </q-list>
       </q-card-section>
     </q-card>

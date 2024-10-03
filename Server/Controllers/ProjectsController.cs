@@ -39,7 +39,7 @@ public class ProjectsController : ApplicationController
         if (currentUser is null) return BadRequest();
 
         var userProjects = await _projectService.GetUserProjects(currentUser!);
-        
+
         return Ok(userProjects);
     }
 
@@ -90,7 +90,7 @@ public class ProjectsController : ApplicationController
         if (!responseGetTestFile.IsSuccess) return BadRequest(responseGetTestFile.Errors);
         var responseCreateProjectFileTest = await _projectService.CreateProjectFile(responseGetTestFile.Data, responseProject.Data, ProjectFile.EProjectFileType.TEST);
         if (!responseCreateProjectFileTest.IsSuccess) return BadRequest(responseCreateProjectFileTest.Errors);
-        
+
 
         var responseIaWeb = await _iaWebService.RunPipeline(responseGetTrainFile.Data, responseGetTestFile.Data, responseProject.Data, projectData.Pipeline);
         if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
@@ -99,9 +99,10 @@ public class ProjectsController : ApplicationController
         return Ok(new { responseIaWeb.Data.id, responseIaWeb.Data.socket, responseIaWeb.Data.status, projectId = responseProject.Data.Id });
     }
 
-    [HttpGet("{projectId}/dataSample")]
-    public async Task<ActionResult> GetProjectDefaultFileLines(long projectId, [FromQuery]int rowCount = 10)
+    [HttpGet("{projectId}/data-sample")]
+    public async Task<ActionResult> GetProjectDefaultFileLines(long projectId, [FromQuery] int rowCount = 10)
     {
+
         var projectResponseGetOne = await _projectService.GetProjectById(projectId);
         if (projectResponseGetOne.IsSuccess == false) return NotFound(projectResponseGetOne.Errors);
 
@@ -110,7 +111,7 @@ public class ProjectsController : ApplicationController
 
         if (rowCount > 50 || rowCount < 1)
         {
-          rowCount = 50;
+            rowCount = 50;
         }
         var responseFile = await _projectService.GetProjectDefaultFileFirstNLine(projectId, rowCount);
         if (responseFile.IsSuccess == false) return NotFound(responseFile.Errors);
