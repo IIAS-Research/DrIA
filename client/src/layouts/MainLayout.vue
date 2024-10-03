@@ -74,7 +74,10 @@ onMounted(async () => {
       bordered
     >
       <!-- drawer content -->
-      <DrawerContent @click="async () => { await userStore.logout(); leftDrawerOpen = false }" />
+      <DrawerContent
+        @click="async () => { await userStore.logout(); leftDrawerOpen = false }"
+        :is-user-connected="userStore.isUserConnected"
+      />
     </q-drawer>
 
     <q-page-container>

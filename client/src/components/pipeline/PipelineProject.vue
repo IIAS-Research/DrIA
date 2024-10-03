@@ -3,9 +3,9 @@
 import { onMounted, ref } from 'vue';
 import { QSplitter, QTab, QTabPanel } from 'quasar';
 import { getDefaultPipeline } from 'src/api/ia-web-service.api';
-import { IMetaOrderedStep, IStep } from '../models';
+import { IPipeline } from '../models';
 
-const pipeline = ref<IMetaOrderedStep>();
+const pipeline = ref<IPipeline>();
 const tab = ref<QTabPanel['name']>('');
 const innerTab = ref<QTabPanel['name']>('');
 const splitterModel = ref<QSplitter['modelValue']>(50);
@@ -15,7 +15,7 @@ defineExpose({
   pipeline,
 });
 
-function chooseRightInputType(valueToProceed: IStep['configuration'][0]) {
+function chooseRightInputType(valueToProceed: IPipeline['configuration'][0]) {
   const valueType = typeof valueToProceed.value;
   const qInputTypes = ['string', 'number', 'bigint'];
   const qToggleType = ['boolean'];
@@ -28,10 +28,10 @@ function chooseRightInputType(valueToProceed: IStep['configuration'][0]) {
 async function initPipeline() {
   pipeline.value = await getDefaultPipeline();
   if (!pipeline.value) return;
-  tab.value = `${pipeline.value.children[0].name}-0`;
+  tab.value = `${pipeline.value.children[0].step}-0`;
 }
 
-function resetValueWithDefault(stepConf: IStep['configuration'][0]) {
+function resetValueWithDefault(stepConf: IPipeline['configuration'][0]) {
   stepConf.value = stepConf.default;
 }
 
@@ -66,7 +66,7 @@ onMounted(async () => {
                 v-for="(metaStep, metaIndex) in pipeline.children"
                 :key="metaIndex"
                 :name="`${metaStep.step}-${metaIndex}`"
-                :label="`${metaStep.name}-${metaIndex}`"
+                :label="metaStep.name"
                 :style="{ height: `${(500 / pipeline.children.length)}px` }"
               />
             </q-tabs>
@@ -84,7 +84,7 @@ onMounted(async () => {
                   ?.filter((s, i) => `${s.step}-${i}` === tab)?.[0]?.children || []"
                 :key="stepIndex"
                 :name="`${step.step}-${stepIndex}`"
-                :label="`${step.name}-${stepIndex}`"
+                :label="step.name"
                 :style="{ height: `${(500 / pipeline.children.length)}px` }"
               />
             </q-tabs>
@@ -151,7 +151,7 @@ onMounted(async () => {
                 <q-select
                   v-if="chooseRightInputType(confObj) === 'QSelect'"
                   v-model="confObj.value"
-                  :options="confObj.categorical"
+                  :options="confObj.categorical?.map(c => c ? c : 'Aucun')"
                   :disable="!step.enable"
                   :label="`${key} (Default value: ${confObj.default})`"
                   filled

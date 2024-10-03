@@ -5,15 +5,6 @@ export interface IUser {
   lastName: string;
   isAdmin: boolean;
 }
-
-export interface IProcess {
-  id: number;
-  iaWebServiceJobId?: string;
-}
-// export interface IProcess {
-//   id: number;
-//   iaWebServiceJobId?: string;
-// }
 export interface ICreateUserDTO {
   email: string;
   firstName: string;
@@ -23,7 +14,13 @@ export interface ICreateUserDTO {
 
 export interface ICreateProjectResponseDTO {
   id: string;
-  status: 'QUEUED' | 'RUNNING' | 'FINISHED' | 'CANCELED' | 'CRASHED' | 'TIMEOUT';
+  status:
+    | 'QUEUED'
+    | 'RUNNING'
+    | 'FINISHED'
+    | 'CANCELED'
+    | 'CRASHED'
+    | 'TIMEOUT';
   socket: string;
   projectId: number;
 }
@@ -42,6 +39,7 @@ export interface IPipeline {
   name: string;
   description: string;
   enable: boolean;
+  can_be_disable: boolean;
   configuration: {
     [key: string]: IConfigurationKey;
   };
@@ -68,9 +66,11 @@ export interface IProject {
   rowDepedenciesLinked: string[];
   datasetHasIdColumn: boolean;
   datasetHasIdColumnList: string[];
-  createdAt?: string,
-  updatedAt?: string,
-  userId: IUser['id']
+  createdAt?: string;
+  updatedAt?: string;
+  userId: IUser['id'];
+  // eslint-disable-next-line no-use-before-define
+  processes: IProcess[];
 }
 
 export interface IColumn {
@@ -85,12 +85,56 @@ export interface ICsvProject {
   rows: IRow[];
 }
 
-type PipelineStatus = 'QUEUED' | 'RUNNING' | 'FINISHED' | 'CANCELED' | 'CRASHED' | 'TIMEOUT';
+export interface IModelAccuracyData {
+  [key: string]: number;
+}
+
+export interface IMetrics {
+  metricsInfos: {
+    [key: string]: {
+      name: string;
+      description: string;
+    };
+  };
+  metricsTrain: IModelAccuracyData;
+  metricsTest: IModelAccuracyData | null;
+  mainMetric: string;
+}
+
+export interface IStructuredBibliography {
+  step: string;
+  year: number;
+  name: string;
+  author: string[];
+  doi: string | null;
+  publisher: string | null;
+}
+export interface IModel {
+  iaRemoteId: string;
+  id: number;
+  metrics: IMetrics;
+  bibliography?: string; // Only for model slug page
+  structuredBibliography?: IStructuredBibliography; // Only for model slug page
+}
+
+type PipelineStatus =
+  | 'QUEUED'
+  | 'RUNNING'
+  | 'FINISHED'
+  | 'CANCELED'
+  | 'CRASHED'
+  | 'TIMEOUT';
 export interface IProcess {
+  iaRemoteId: string;
   id: number;
   date: Date;
-  Duration: number;
-  Pipeline: IPipeline;
+  duration: number;
+  maxDuration: number;
+  pipeline: IPipeline;
   status: PipelineStatus;
-  ProjectId: IProject['id'];
+  bestTrainAccuracy: number;
+  bestTestAccuracy: number | null;
+  // mainMetricsName?: string;
+  models: IModel[];
+  projectId: IProject['id'];
 }

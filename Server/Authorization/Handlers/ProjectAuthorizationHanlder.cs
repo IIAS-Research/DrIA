@@ -25,7 +25,7 @@ public class ProjectAuthorizationCrudHandler :
             context.Succeed(requirement);
         }
 
-        if (Operations.ReadOnlyOwn.Name == requirement.Name && context.User.Identity?.Name == resource.User?.Id.ToString())
+        if (Operations.ReadOnlyOwn.Name == requirement.Name && context.User.Identity?.Name == resource.UserId.ToString())
         {
             context.Succeed(requirement);
         }
