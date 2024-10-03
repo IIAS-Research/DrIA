@@ -55,6 +55,18 @@ public class ProjectsController : ApplicationController
         return Ok(projectResponseGetOne.Project);
     }
 
+    [HttpGet("{id}/nestedData")]
+    public async Task<IActionResult> GetProjectNestedDataById(long id)
+    {
+        var responseProject = await _projectService.GetProjectNestedDataById(id);
+        if (responseProject.IsSuccess == false) return NotFound(responseProject.Errors);
+
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, responseProject.Data, Operations.ReadOnlyOwn);
+        if (authorizationResult.Succeeded == false) return Unauthorized();
+
+        return Ok(responseProject.Data);
+    }
+
     [HttpPost]
     public async Task<ActionResult<RunPipelineOutDTO>> RegisterProject([FromForm] StartProjectInDTO projectData)
     {

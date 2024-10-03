@@ -35,13 +35,12 @@ public class Project : ApplicationRecord
   [Timestamp]
   public byte[]? UpdatedAt { get; set; } = [];
 
-
   [Required]
   public required long UserId { get; set; }
   public User? User { get; set; }
 
-  public ProjectFile? ProjectFile { get; set; }
+  public ICollection<ProjectFile> ProjectFile { get; } = [];
 
-  public Collection<Process>? Processes { get; set; }
+  public ICollection<Process> Processes { get; } = [];
 
 }

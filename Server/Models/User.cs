@@ -18,5 +18,5 @@ public class User : IdentityUser<long>
   [Timestamp]
   public byte[]? CreatedAt { get; set; }
 
-  public Collection<Project>? Projects { get; set; }
+  public ICollection<Project> Projects { get; set; } = [];
 }

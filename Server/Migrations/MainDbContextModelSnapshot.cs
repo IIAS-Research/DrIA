@@ -145,15 +145,24 @@ namespace server.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<object>("Metrics")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("PredictionModelName")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<long>("ProcessId")
+                        .HasColumnType("bigint");
 
                     b.Property<Model.ModelResult>("Results")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProcessId");
 
                     b.ToTable("Models");
                 });
@@ -322,8 +331,7 @@ namespace server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId")
-                        .IsUnique();
+                    b.HasIndex("ProjectId");
 
                     b.ToTable("ProjectFiles");
                 });
@@ -491,6 +499,17 @@ namespace server.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Server.Models.Model", b =>
+                {
+                    b.HasOne("Server.Models.Process", "Process")
+                        .WithMany("Models")
+                        .HasForeignKey("ProcessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Process");
+                });
+
             modelBuilder.Entity("Server.Models.ModelFile", b =>
                 {
                     b.HasOne("Server.Models.Model", "Model")
@@ -527,12 +546,17 @@ namespace server.Migrations
             modelBuilder.Entity("Server.Models.ProjectFile", b =>
                 {
                     b.HasOne("Server.Models.Project", "Project")
-                        .WithOne("ProjectFile")
-                        .HasForeignKey("Server.Models.ProjectFile", "ProjectId")
+                        .WithMany("ProjectFile")
+                        .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("Server.Models.Process", b =>
+                {
+                    b.Navigation("Models");
                 });
 
             modelBuilder.Entity("Server.Models.Project", b =>

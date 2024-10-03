@@ -81,6 +81,19 @@ public class ProjectService : ApplicationService
     return projectResponseGetOne;
   }
 
+  async public Task<ResponseService<Project>> GetProjectNestedDataById(long id)
+  {
+    var response = new ResponseService<Project>();
+    Project? projectWithNestedData = await _projectRepository.GetProjectNestedDataById(id);
+    if (projectWithNestedData == null)
+    {
+      response.AddError("Project not found for this id");
+      return response;
+    }
+    response.SetSuccessful(projectWithNestedData);
+    return response;
+  }
+
   async public Task<ResponseService<ProjectResponseGetDefaultFile>> GetProjectDefaultFile(long id)
   {
     var response = new ResponseService<ProjectResponseGetDefaultFile>();

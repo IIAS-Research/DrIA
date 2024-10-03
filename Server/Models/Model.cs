@@ -26,6 +26,14 @@ public class Model
   [Column(TypeName = "jsonb")]
   public required ModelExplanation Explanation { get; set; }
 
+  [Required]
+  [Column(TypeName = "jsonb")]
+  public required object Metrics { get; set; }
+
+  [Required]
+  public required long ProcessId { get; set; }
+  public Process? Process { get; set; }
+
 
   public record ModelResult
   {
