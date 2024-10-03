@@ -82,7 +82,7 @@ export const useUserStore = defineStore('user', () => {
     if (!decodedJwtAccessToken.value) return;
     currentUser.value = {
       // sub is set by the server so no doubts it is defined here
-      id: decodedJwtAccessToken.value.sub!,
+      id: parseInt(decodedJwtAccessToken.value.sub!, 10),
       email: decodedJwtAccessToken.value.email,
       firstName: decodedJwtAccessToken.value.firstName,
       lastName: decodedJwtAccessToken.value.lastName,

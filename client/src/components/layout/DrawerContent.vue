@@ -2,7 +2,7 @@
 import { onMounted, ref } from "vue";
 import { getUserProjects } from "src/api/projects.api";
 import { IProject } from "src/components/models";
-import { dateFormat } from "src/utils/date";
+import { formatToDDMMYYYHHmm } from "src/utils/date";
 
 // emits
 const emits = defineEmits<{
@@ -52,7 +52,7 @@ onMounted(async () => {
           <q-item-section>
             <q-item-label>{{ project.title }}</q-item-label>
             <q-item-label caption>{{
-              dateFormat(project.updateAt)
+              formatToDDMMYYYHHmm(project.updatedAt)
             }}</q-item-label>
           </q-item-section>
         </q-item>
