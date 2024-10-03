@@ -53,6 +53,8 @@ public class Process : ApplicationRecord
   public required long ProjectId { get; set; }
   public Project? Project { get; set; }
 
+  public ICollection<Model> Models { get; } = [];
+
   public enum EProcessStatut
   {
     QUEUED,

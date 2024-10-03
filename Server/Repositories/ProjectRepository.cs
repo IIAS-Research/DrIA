@@ -63,4 +63,12 @@ public class ProjectRepository(MainDbContext dbContext)
       return await _dbContext.ProjectFiles.Where(pj => pj.ProjectId == id).FirstOrDefaultAsync();
     }
 
+    public async Task<Project?> GetProjectNestedDataById(long id)
+    {
+      return await _dbContext.Projects
+        .Include(proj => proj.Processes)
+        .ThenInclude(proc => proc.Models)
+        .FirstOrDefaultAsync(proj => proj.Id == id);
+    }
+
 }
