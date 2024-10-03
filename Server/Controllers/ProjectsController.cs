@@ -64,17 +64,30 @@ public class ProjectsController : ApplicationController
         var responseProject = await _projectService.CreateProject(projectData, currentUser!);
         if (!responseProject.IsSuccess) return BadRequest(responseProject.Errors);
 
-        // TODO une fois que l'API est prête, route pour avoir le double fichier, et renvoyer le fichier de train à la runPipeline
-        // donc sortir le formatCsv du RunPipeline pour le mettre dans lka nouvelle route une fois prête
+        var responseSplit = await _iaWebService.Split(projectData.File, responseProject.Data);
+        if (!responseSplit.IsSuccess) return BadRequest(responseSplit.Errors);
 
-        var responseIaWeb = await _iaWebService.RunPipeline(projectData.File, responseProject.Data, projectData.Pipeline);
+        await Task.Delay(2000); // TODO dégueulasse mais c'est en cours
+
+        // Get and save files
+        var responseGetTrainFile = await _iaWebService.GetSplitTrainFile(responseSplit.Data.id);
+        if (!responseGetTrainFile.IsSuccess) return BadRequest(responseGetTrainFile.Errors);
+        var responseCreateProjectFileTrain = await _projectService.CreateProjectFile(responseGetTrainFile.Data, responseProject.Data, ProjectFile.EProjectFileType.TRAIN);
+        if (!responseCreateProjectFileTrain.IsSuccess) return BadRequest(responseCreateProjectFileTrain.Errors);
+        var responseGetTestFile = await _iaWebService.GetSplitTestFile(responseSplit.Data.id);
+        if (!responseGetTestFile.IsSuccess) return BadRequest(responseGetTestFile.Errors);
+        var responseCreateProjectFileTest = await _projectService.CreateProjectFile(responseGetTestFile.Data, responseProject.Data, ProjectFile.EProjectFileType.TEST);
+        if (!responseCreateProjectFileTest.IsSuccess) return BadRequest(responseCreateProjectFileTest.Errors);
+        
+
+        var responseIaWeb = await _iaWebService.RunPipeline(responseGetTrainFile.Data, responseGetTestFile.Data, responseProject.Data, projectData.Pipeline);
         if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
 
         await _processService.CreateProcess(responseIaWeb.Data, projectData.Pipeline, responseProject.Data);
         return Ok(new { responseIaWeb.Data.id, responseIaWeb.Data.socket, responseIaWeb.Data.status, projectId = responseProject.Data.Id });
     }
 
-    [HttpGet("{id}/dataSample")]
+    [HttpGet("{projectId}/dataSample")]
     public async Task<ActionResult> GetProjectDefaultFileLines(long projectId, [FromQuery]int rowCount = 10)
     {
         var projectResponseGetOne = await _projectService.GetProjectById(projectId);
@@ -91,5 +104,20 @@ public class ProjectsController : ApplicationController
         if (responseFile.IsSuccess == false) return NotFound(responseFile.Errors);
 
         return Ok(responseFile.Data);
+    }
+
+    [HttpGet("{projectId}/defaultFile")]
+    public async Task<ActionResult> GetProjectDefaultFile(long projectId)
+    {
+        var projectResponseGetOne = await _projectService.GetProjectById(projectId);
+        if (projectResponseGetOne.IsSuccess == false) return NotFound(projectResponseGetOne.Errors);
+
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, projectResponseGetOne.Project, Operations.ReadOnlyOwn);
+        if (authorizationResult.Succeeded == false) return Unauthorized();
+
+        var responseFile = await _projectService.GetProjectDefaultFile(projectId);
+        if (responseFile.IsSuccess == false) return BadRequest(responseFile.Errors);
+
+        return File(responseFile.Data.Data, responseFile.Data.MimeType);
     }
 }

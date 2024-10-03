@@ -72,3 +72,22 @@ public record GetModelBibliographyOutDTO
   public required string bibliography;
   public required object structured_bibliography;
 }
+public record SplitOutDTO
+{
+  public required string id;
+  public required string socket;
+  public required Process.EProcessStatut status;
+}
+
+public record GetSplitStatusOutDTO
+{
+  public required string id;
+  public required string socket;
+  public required SplitStatus status;
+
+  public record SplitStatus
+  {
+    public required Process.EProcessStatut current;
+    public object? history;
+  }
+}

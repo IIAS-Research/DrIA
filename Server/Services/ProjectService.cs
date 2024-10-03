@@ -23,9 +23,9 @@ public class ProjectService : ApplicationService
     return await _projectRepository.GetProjectByUser(user);
   }
 
-  async public Task<ResponseService<FileStorageService.FileStorageResponseWrite>> WriteProjectFile(IFormFile file)
+  async public Task<ResponseService<FileStorageService.FileStorageResponseWrite>> WriteProjectFile(IFormFile file, ProjectFile.EProjectFileType type)
   {
-    return await _fileStorageService.WriteProjectFileToStorageAsync(file);
+    return await _fileStorageService.WriteProjectFileToStorageAsync(file, type);
   }
 
   async public Task<ProjectResponseGetAll> GetProjects()
@@ -46,10 +46,24 @@ public class ProjectService : ApplicationService
   {
     var response = new ResponseService<Project>();
     Project project = await _projectRepository.CreateProject(projectData, user);
-    var responseWriteFile = await WriteProjectFile(projectData.File);
+
+    var responseWriteFile = await WriteProjectFile(projectData.File, ProjectFile.EProjectFileType.DEFAULT);
     if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
-    await _projectRepository.CreateProjectFile(project, projectData.File.FileName, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType);
+
+    await _projectRepository.CreateProjectFile(project, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType);
     response.SetSuccessful(project);
+    return response;
+  }
+
+  async public Task<ResponseService<ProjectFile>> CreateProjectFile(IFormFile file, Project project, ProjectFile.EProjectFileType type)
+  {
+    var response = new ResponseService<ProjectFile>();
+
+    var responseWriteFile = await WriteProjectFile(file, type);
+    if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
+
+    var projectFile = await _projectRepository.CreateProjectFile(project, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType);
+    response.SetSuccessful(projectFile);
     return response;
   }
 

@@ -1,4 +1,5 @@
 using MimeTypes;
+using Server.Models;
 
 namespace Server.Services;
 
@@ -26,6 +27,7 @@ public class FileStorageService : ApplicationService
     writeResponse.SetSuccessful(new FileStorageResponseWrite
     {
       FilePath = filePath,
+      OriginalFilename = formfile.FileName,
       MimeType = mimeType
     });
     return writeResponse;
@@ -61,10 +63,28 @@ public class FileStorageService : ApplicationService
     return await WriteFileToStorageAsync(formfile, relativePath);
   }
 
-  public async Task<ResponseService<FileStorageResponseWrite>> WriteProjectFileToStorageAsync(IFormFile formfile)
+  public async Task<ResponseService<FileStorageResponseWrite>> WriteProjectFileToStorageAsync(IFormFile formfile, ProjectFile.EProjectFileType type)
   {
     var writeResponse = new ResponseService<FileStorageResponseWrite>();
-    var storageOptions = new ProjectFileOptions();
+    GenericFileOptions storageOptions;
+    switch (type)
+    {
+      case ProjectFile.EProjectFileType.DEFAULT:
+        storageOptions = new ProjectDefaultFileOptions();
+        break;
+
+      case ProjectFile.EProjectFileType.TRAIN:
+        storageOptions = new ProjectTrainFileOptions();
+        break;
+
+      case ProjectFile.EProjectFileType.TEST:
+        storageOptions = new ProjectTestFileOptions();
+        break;
+
+      default:
+        storageOptions = new ProjectDefaultFileOptions();
+        break;
+    }
     var responseFileOk = storageOptions.EnsureFileIsOk(formfile);
     if (responseFileOk.IsSuccess == false)
     {
@@ -123,7 +143,7 @@ public class FileStorageService : ApplicationService
     var storageFolders = new List<string>() {
             new ModelBinaryFileOptions().GetRelativePath(),
             new ModelImageFileOptions().GetRelativePath(),
-            new ProjectFileOptions().GetRelativePath(),
+            new ProjectDefaultFileOptions().GetRelativePath(),
             DefaultStorageFolder
         };
     foreach (var folder in storageFolders)
@@ -138,6 +158,7 @@ public class FileStorageService : ApplicationService
   public class FileStorageResponseWrite
   {
     public string FilePath = string.Empty;
+    public string OriginalFilename = string.Empty;
     public string MimeType = string.Empty;
     public bool FilePathIsSet()
     {
@@ -162,28 +183,42 @@ public class FileStorageService : ApplicationService
 
 
   // Options
-  private class ProjectFileOptions : GenericFileOptions
+  public class ProjectDefaultFileOptions : GenericFileOptions
   {
-    protected override string[] FolderPath { get; set; } = ["ProjectFile"];
+    protected override string[] FolderPath { get; set; } = ["ProjectFile", "Default"];
     protected override string[] PermittedExtensions { get; set; } = [".csv"];
     protected override long MaxFileLength { get; set; } = 100L * 1024L * 1024L; // 100Mb
   }
 
-  private class ModelBinaryFileOptions : GenericFileOptions
+  public class ProjectTrainFileOptions : GenericFileOptions
+  {
+    protected override string[] FolderPath { get; set; } = ["ProjectFile", "Train"];
+    protected override string[] PermittedExtensions { get; set; } = [".csv"];
+    protected override long MaxFileLength { get; set; } = 100L * 1024L * 1024L; // 100Mb
+  }
+
+  public class ProjectTestFileOptions : GenericFileOptions
+  {
+    protected override string[] FolderPath { get; set; } = ["ProjectFile", "Test"];
+    protected override string[] PermittedExtensions { get; set; } = [".csv"];
+    protected override long MaxFileLength { get; set; } = 100L * 1024L * 1024L; // 100Mb
+  }
+
+  public class ModelBinaryFileOptions : GenericFileOptions
   {
     protected override string[] FolderPath { get; set; } = ["ModelFile", "Binary"];
     protected override string[] PermittedExtensions { get; set; } = [".pickle"];
     protected override long MaxFileLength { get; set; } = 100L * 1024L * 1024L; // 100Mb
   }
 
-  private class ModelImageFileOptions : GenericFileOptions
+  public class ModelImageFileOptions : GenericFileOptions
   {
     protected override string[] FolderPath { get; set; } = ["ModelFile", "Images"];
     protected override string[] PermittedExtensions { get; set; } = [".png", ".jpeg"];
     protected override long MaxFileLength { get; set; } = 5L * 1024L * 1024L; // 5Mb
   }
 
-  private abstract class GenericFileOptions
+  public abstract class GenericFileOptions
   {
     protected virtual string[] FolderPath { get; set; } = [];
     protected virtual string[] PermittedExtensions { get; set; } = [];

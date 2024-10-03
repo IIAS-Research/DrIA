@@ -13,31 +13,31 @@ namespace Server.Services;
 public class IaWebService : ApplicationService
 {
   private readonly string _ia_url = "http://rss00992:32845";
-  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(IFormFile file, Project project, string pipeline)
+  private readonly JsonSerializerOptions _serializeOptions = new JsonSerializerOptions
+  {
+    PropertyNameCaseInsensitive = true,
+    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
+  };
+
+  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(IFormFile trainFile, IFormFile testFile, Project project, string pipeline)
   {
     var response = new ResponseService<RunPipelineOutDTO>();
-    byte[] formatedFile = await FormatFileForPipeline(file, project);
     try
     {
       using (var http = new HttpClient())
       {
-        var options = new JsonSerializerOptions // TODO make private readonly static?
-        {
-          PropertyNameCaseInsensitive = true,
-          PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-          Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
-        };
-        var stringPipeline = new StringContent(pipeline, Encoding.UTF8, "application/json");
         var requestContent = new MultipartFormDataContent
         {
-            { new ByteArrayContent(formatedFile), "train_dataset", file.FileName },
+            { new ByteArrayContent(await IFormFileToByteArray(trainFile)), "train_dataset", trainFile.FileName },
+            { new ByteArrayContent(await IFormFileToByteArray(testFile)), "test_dataset", testFile.FileName },
             { new StringContent(project.CsvColumnToPredict), "dataset_target" },
-            { stringPipeline, "pipeline" }
+            { new StringContent(pipeline, Encoding.UTF8, "application/json"), "pipeline" }
         };
         var httpResponse = await http.PostAsync($"{_ia_url}/pipeline/run", requestContent);
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<RunPipelineOutDTO>(httpResponseBody, options)!);
+        response.SetSuccessful(JsonSerializer.Deserialize<RunPipelineOutDTO>(httpResponseBody, _serializeOptions)!);
       }
       return response;
     }
@@ -221,6 +221,106 @@ public class IaWebService : ApplicationService
     }
   }
 
+  async public Task<ResponseService<SplitOutDTO>> Split(IFormFile file, Project project)
+  {
+    var response = new ResponseService<SplitOutDTO>();
+    byte[] formatedFile = await FormatFileForPipeline(file, project);
+    try
+    {
+      using (var http = new HttpClient())
+      {
+        var requestContent = new MultipartFormDataContent
+        {
+            { new ByteArrayContent(formatedFile), "dataset", file.FileName },
+            { new StringContent(project.CsvColumnToPredict), "dataset_target" },
+        };
+        var httpResponse = await http.PostAsync($"{_ia_url}/split", requestContent);
+        httpResponse.EnsureSuccessStatusCode();
+        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
+        response.SetSuccessful(JsonSerializer.Deserialize<SplitOutDTO>(httpResponseBody, _serializeOptions)!);
+      }
+      return response;
+    }
+    catch (Exception exception)
+    {
+      response.AddError(exception.Message);
+      return response;
+    }
+  }
+
+  async public Task<ResponseService<GetSplitStatusOutDTO>> GetSplitStatus(string splitProcessId)
+  {
+    var response = new ResponseService<GetSplitStatusOutDTO>();
+    try
+    {
+      using (var http = new HttpClient())
+      {
+        var httpResponse = await http.GetAsync($"{_ia_url}/split/{splitProcessId}/status");
+        httpResponse.EnsureSuccessStatusCode();
+        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
+        response.SetSuccessful(JsonSerializer.Deserialize<GetSplitStatusOutDTO>(httpResponseBody, _serializeOptions)!);
+      }
+      return response;
+    }
+    catch (Exception exception)
+    {
+      response.AddError(exception.Message);
+      return response;
+    }
+  }
+
+  async public Task<ResponseService<IFormFile>> GetSplitTrainFile(string splitProcessId)
+  {
+    var response = new ResponseService<IFormFile>();
+    try
+    {
+      using (var http = new HttpClient())
+      {
+        var httpResponse = await http.GetAsync($"{_ia_url}/split/{splitProcessId}/train");
+        httpResponse.EnsureSuccessStatusCode();
+        var content = await httpResponse.Content.ReadAsByteArrayAsync();
+        using var stream = new MemoryStream(content);
+        var formFile = new FormFile(stream, 0, stream.Length, "", $"Train{splitProcessId}.csv")
+        {
+          ContentType = httpResponse.Content.Headers.ContentType?.ToString() ?? "text/csv"
+        };
+        response.SetSuccessful(formFile);
+      }
+      return response;
+    }
+    catch (Exception exception)
+    {
+      response.AddError(exception.Message);
+      return response;
+    }
+  }
+
+  async public Task<ResponseService<IFormFile>> GetSplitTestFile(string splitProcessId)
+  {
+    var response = new ResponseService<IFormFile>();
+    try
+    {
+      using (var http = new HttpClient())
+      {
+        var httpResponse = await http.GetAsync($"{_ia_url}/split/{splitProcessId}/test");
+        httpResponse.EnsureSuccessStatusCode();
+        var content = await httpResponse.Content.ReadAsByteArrayAsync();
+        using var stream = new MemoryStream(content);
+        var formFile = new FormFile(stream, 0, stream.Length, "", $"Test{splitProcessId}.csv")
+        {
+          ContentType = httpResponse.Content.Headers.ContentType?.ToString() ?? "text/csv"
+        };
+        response.SetSuccessful(formFile);
+      }
+      return response;
+    }
+    catch (Exception exception)
+    {
+      response.AddError(exception.Message);
+      return response;
+    }
+  }
+
   async private static Task<byte[]> FormatFileForPipeline(IFormFile file, Project project)
   {
     var config = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -239,7 +339,7 @@ public class IaWebService : ApplicationService
 
     var headerRow = ((IDictionary<string, object>)records.First()).Keys;
     var filteredHeaders = headerRow
-        .Where(header => !project.RowDepedenciesLinked.Contains(header))
+        .Where(header => project.RowDepedenciesLinked.Contains(header) && !project.DatasetHasIdColumnList.Contains(header))
         .ToList();
     csvWriter.WriteField(filteredHeaders);
     csvWriter.NextRecord();
@@ -257,4 +357,10 @@ public class IaWebService : ApplicationService
     return memoryStream.ToArray();
   }
 
+  private async static Task<byte[]> IFormFileToByteArray(IFormFile file)
+  {
+    await using var memoryStream = new MemoryStream();
+    await file.CopyToAsync(memoryStream);
+    return memoryStream.ToArray();
+  }
 }

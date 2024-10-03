@@ -30,6 +30,7 @@
     </PackageReference>
     <PackageReference Include="MimeTypeMapOfficial" Version="1.0.17" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.8" />
+    <PackageReference Include="oqo0.SwaggerThemes" Version="1.3.3" />
     <PackageReference Include="SocketIOClient" Version="3.0.6" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.8.1" />
   </ItemGroup>

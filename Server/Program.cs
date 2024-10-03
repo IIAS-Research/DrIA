@@ -9,9 +9,9 @@ using Server.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Server.Authorization.Handlers;
-using SignalRChat.Hubs;
-using System.Text.Json.Serialization;
 using Server.Hubs;
+using SwaggerThemes;
+using SignalRChat.Hubs;
 
 public partial class Program
 {
@@ -40,6 +40,7 @@ public partial class Program
     if (app.Environment.IsDevelopment())
     {
       app.UseSwagger();
+      app.UseSwaggerThemes(Theme.UniversalDark);
       app.UseSwaggerUI();
     }
 
@@ -49,7 +50,7 @@ public partial class Program
     app.UseAuthorization();
     app.MapControllers().RequireAuthorization();
     app.MapHub<IaStatusHub>("/api/ws/status");
-    //app.MapHub<IaMetricHub>("/api/ws/metrics");
+    app.MapHub<IaMetricHub>("/api/ws/metrics");
     app.Run();
   }
 

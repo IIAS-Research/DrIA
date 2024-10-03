@@ -105,7 +105,7 @@ async function handleNextStepValidation() {
             v-model="uploadedFile"
             class="q-mt-lg"
             name="csv_test_set"
-            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+            accept=".csv"
             :max-file-size="10000000"
             label="Sélectionner un fichier .csv"
             clearable
