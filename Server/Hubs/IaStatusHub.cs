@@ -4,5 +4,5 @@ namespace Server.Hubs;
 
 public class IaStatusHub : ApplicationHub
 {
-  public IaStatusHub(IAWebSocketService iAWebSocketService) : base(iAWebSocketService) { }
+  public IaStatusHub(IAWebSocketServiceFuck iAWebSocketServiceFuck) : base(iAWebSocketServiceFuck) { }
 }

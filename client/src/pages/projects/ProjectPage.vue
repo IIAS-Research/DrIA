@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
 import {
+  computed, onMounted, ref, watch, watchEffect,
+} from 'vue';
+import {
+  ICreateProjectResponseDTO,
   ICsvProject, IPipeline, IProject,
 } from 'components/models';
 import { useSignalR } from 'src/utils/useSignalR';
@@ -14,76 +17,13 @@ const route = useRoute();
 // eslint-disable-next-line no-undef
 let interval: NodeJS.Timeout;
 
-const projectId = ref(parseInt(route.params.id as string, 10));
+const projectId = computed(() => parseInt(route.params.id as string, 10));
+
+const signalRRef = ref();
 const progress = ref(0);
 const startProcessTime = ref<number>();
 const approximativeRemainingTime = ref<number>();
-const project = ref<IProject>({
-  id: 51,
-  title: 'fedferv',
-  description: 'vdfvdfdfv',
-  csvColumnToPredict: 'Price',
-  rowDepedencies: false,
-  rowDepedenciesLinked: [],
-  datasetHasIdColumn: false,
-  datasetHasIdColumnList: [],
-  createdAt: '',
-  updatedAt: '',
-  userId: 3,
-  processes: [
-    {
-      id: 32,
-      date: new Date(new Date().getTime() - Math.random() * 10000000000), // Random date within the last 3 months
-      duration: Math.floor(Math.random() * (60 * 60 * 1000)), // Random duration up to 1 hour in milliseconds
-      pipeline: {} as IPipeline, // Assign a random pipeline
-      status: 'RUNNING',
-      projectId: 51,
-      bestTestAccuracy: null,
-      bestTrainAccuracy: 898,
-      iaRemoteId: 'uifhiufhzeiufhiz',
-      maxDuration: 1000 * 60 * 5,
-      models: [
-        {
-          iaRemoteId: 'remote-456',
-          id: 1,
-          metrics: {
-            metricsInfos: {
-              balancedAxccuracy: {
-                name: 'Noname',
-                description: 'fhzeuicbnizebnicvnzebzeu',
-              },
-              classification_error: {
-                name: 'Noname',
-                description: 'fhzeuicbnizebnicvnzebzeu',
-              },
-              f1Score: {
-                name: 'Noname',
-                description: 'fhzeuicbnizebnicvnzebzeu',
-              },
-              precision: {
-                name: 'Noname',
-                description: 'fhzeuicbnizebnicvnzebzeu',
-              },
-              specificationMulticlass: {
-                name: 'Noname',
-                description: 'fhzeuicbnizebnicvnzebzeu',
-              },
-            },
-            metricsTrain: {
-              balancedAccuracy: 0.85,
-              classification_error: 0.15,
-              f1Score: 0.82,
-              precision: 0.84,
-              recall: 0.80,
-              specificationMulticlass: 0.78,
-            },
-            metricsTest: null,
-            mainMetric: 'balancedAccuracy',
-          },
-        }],
-    },
-  ],
-});
+const project = ref<IProject>();
 
 const projectFileDataSample = ref<ICsvProject>();
 
@@ -96,10 +36,12 @@ async function getProjectDataSample() {
 async function getProjectById() {
   if (!projectId.value) return undefined;
   const responseProject = await GetProjectWithNestedDataById(projectId.value);
-  return responseProject;
+  if (responseProject) project.value = responseProject;
+  return undefined;
 }
 
 function updateProgressVal() {
+  if (!project.value) return;
   const maxDuration = project.value.processes.find((p) => p.status === 'RUNNING')?.maxDuration;
 
   if (!maxDuration) return;
@@ -118,6 +60,7 @@ function connectWebSocketsIfNeeded() {
   const { jobId } = route.query;
   if (!jobId) return;
   const signalR = useSignalR('status', String(jobId));
+  signalRRef.value = signalR;
   signalR.connect();
   startProcessTime.value = new Date().getTime();
   if (interval) return;
@@ -149,49 +92,62 @@ const remainingFormatedTime = computed(() => {
 
   return timeString.trim();
 });
+
+watchEffect(async () => {
+  console.log('it worked =>  ', signalRRef.value?.receivedMessageRef);
+  const messageReceived = signalRRef.value?.receivedMessageRef as ICreateProjectResponseDTO;
+  if (messageReceived?.status !== 'FINISHED') return;
+  await getProjectById();
+});
+
+watch(route, async () => {
+  await getProjectById();
+}, { deep: true });
 </script>
 
 <template>
   <q-page padding>
-    <div class="text-h5">
-      {{ project.title }}
-    </div>
-    <div
-      v-if="project.description"
-      class="text-subtitle2 text-grey-8"
-    >
-      {{ project.description }}
-    </div>
-
-    <div
-      v-if="project.processes.some(p => p.status === 'RUNNING')"
-      class="text-h6 text-primary q-mt-md"
-    >
-      Traitement des process en cours
-    </div>
-    <q-linear-progress
-      :value="progress"
-      rounded
-      stripe
-      size="30px"
-      class="q-mb-md"
-    >
-      <div class="absolute-full flex flex-center">
-        <q-badge
-          color="white"
-          text-color="primary"
-          :label="progress === 1 ? '100 % Terminé' :
-            `${Math.floor(progress * 100)} % (Environ ${remainingFormatedTime})`"
-        />
+    <template v-if="project">
+      <div class="text-h5">
+        {{ project.title }}
       </div>
-    </q-linear-progress>
+      <div
+        v-if="project.description"
+        class="text-subtitle2 text-grey-8"
+      >
+        {{ project.description }}
+      </div>
 
-    <TableShowDataSample :project-file-data-sample="projectFileDataSample" />
+      <div
+        v-if="project.processes.some(p => p.status === 'RUNNING')"
+        class="text-h6 text-primary q-mt-md"
+      >
+        Traitement des process en cours
+      </div>
+      <q-linear-progress
+        :value="progress"
+        rounded
+        stripe
+        size="30px"
+        class="q-mb-md"
+      >
+        <div class="absolute-full flex flex-center">
+          <q-badge
+            color="white"
+            text-color="primary"
+            :label="progress === 1 ? '100 % Terminé' :
+              `${Math.floor(progress * 100)} % (Environ ${remainingFormatedTime})`"
+          />
+        </div>
+      </q-linear-progress>
 
-    <ProcessCards
-      v-if="project.processes"
-      :processes="project.processes"
-      class="q-mt-md"
-    />
+      <TableShowDataSample :project-file-data-sample="projectFileDataSample" />
+
+      <ProcessCards
+        v-if="project.processes?.length"
+        :processes="project.processes"
+        class="q-mt-md"
+      />
+    </template>
   </q-page>
 </template>

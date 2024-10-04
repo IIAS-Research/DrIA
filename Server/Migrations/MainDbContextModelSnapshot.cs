@@ -222,6 +222,10 @@ namespace server.Migrations
                     b.Property<long>("Duration")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("IaRemoteId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("PipelineJson")
                         .IsRequired()
                         .HasColumnType("jsonb");

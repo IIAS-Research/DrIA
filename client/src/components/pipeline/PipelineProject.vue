@@ -15,6 +15,10 @@ defineExpose({
   pipeline,
 });
 
+const emits = defineEmits<{
+  isPipelineLoading: [pipelineLoadStatus: boolean];
+}>();
+
 function chooseRightInputType(valueToProceed: IPipeline['configuration'][0]) {
   const valueType = typeof valueToProceed.value;
   const qInputTypes = ['string', 'number', 'bigint'];
@@ -28,6 +32,7 @@ function chooseRightInputType(valueToProceed: IPipeline['configuration'][0]) {
 async function initPipeline() {
   pipeline.value = await getDefaultPipeline();
   if (!pipeline.value) return;
+  emits('isPipelineLoading', false);
   tab.value = `${pipeline.value.children[0].step}-0`;
 }
 

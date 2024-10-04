@@ -4,7 +4,6 @@ import {
 } from 'vue';
 import { getUserProjects } from 'src/api/projects.api';
 import { IProject } from 'src/components/models';
-import { formatToDDMMYYYHHmm } from 'src/utils/date';
 
 // props
 const props = defineProps<{

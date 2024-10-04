@@ -26,6 +26,7 @@ const stepper = ref<QStepper>();
 const project = ref({ ...initialProjectInfos });
 const formSteppers = ref<QForm[]>([]);
 const pipelineComponentRef = ref<InstanceType<typeof PipelineProject>>();
+const isPipelineLoading = ref(true);
 
 function getCsvFileHeaderColumns() {
   if (!uploadedFile.value) return;
@@ -265,6 +266,7 @@ async function handleNextStepValidation() {
             <PipelineProject
               ref="pipelineComponentRef"
               class="bg-grey-3"
+              @is-pipeline-loading="(status: boolean) => { isPipelineLoading = status }"
             />
           </q-expansion-item>
         </q-form>
@@ -284,6 +286,7 @@ async function handleNextStepValidation() {
             @click="handleNextStepValidation"
             color="primary"
             :label="step === 2 ? 'Valider' : 'Suivant'"
+            :loading="step === 5 && isPipelineLoading"
           />
         </q-stepper-navigation>
       </template>
