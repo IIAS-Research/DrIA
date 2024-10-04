@@ -74,9 +74,9 @@ public record GetModelBibliographyOutDTO
 }
 public record SplitOutDTO
 {
-  public required string id;
-  public required string socket;
-  public required Process.EProcessStatut status;
+  public required string id { get; set; }
+  public required string socket { get; set; }
+  public required Process.EProcessStatut status { get; set; }
 }
 
 public record GetSplitStatusOutDTO

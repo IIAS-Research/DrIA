@@ -163,14 +163,14 @@ public class ProjectService : ApplicationService
       };
       fileFormated.Columns.Add(newColumn);
     }
-    for (var i = 1; i <= rowCount + 1; i++)
+    for (var i = 0; i < rowCount; i++)
     {
       var recordAsDict = (IDictionary<string, object>)records[i];
       if (recordAsDict == null)
       {
         continue;
       }
-      fileFormated.Rows.Add(recordAsDict);
+      fileFormated.Rows.Add(recordAsDict.ToDictionary(entry => entry.Key.Replace(" ", ""), entry => entry.Value));
     }
 
     response.SetSuccessful(fileFormated);
@@ -197,13 +197,13 @@ public class ProjectService : ApplicationService
   // Utils
   public record ProjectFileFormated
   {
-    public List<ProjectFileFormatedColumn> Columns = [];
-    public List<IDictionary<string, object>> Rows = [];
+    public List<ProjectFileFormatedColumn> Columns { get; set; } = new();
+    public List<IDictionary<string, object>> Rows { get; set; } = new();
 
     public record ProjectFileFormatedColumn
     {
-      public string Label = string.Empty;
-      public string Name = string.Empty;
+      public string Label { get; set; } = string.Empty;
+      public string Name { get; set; } = string.Empty;
     }
   }
 

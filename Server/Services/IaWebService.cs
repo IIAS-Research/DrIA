@@ -282,16 +282,18 @@ public class IaWebService : ApplicationService
     var response = new ResponseService<IFormFile>();
     try
     {
+      MemoryStream trainStream;
       using (var http = new HttpClient())
       {
         var httpResponse = await http.GetAsync($"{_ia_url}/split/{splitProcessId}/train");
         httpResponse.EnsureSuccessStatusCode();
         var content = await httpResponse.Content.ReadAsByteArrayAsync();
-        using var stream = new MemoryStream(content);
-        var formFile = new FormFile(stream, 0, stream.Length, "", $"Train{splitProcessId}.csv")
+        trainStream = new MemoryStream(content);
+        var formFile = new FormFile(baseStream: trainStream, baseStreamOffset: 0, length: content.Length, name: "", fileName: $"Train{splitProcessId}.csv")
         {
-          ContentType = httpResponse.Content.Headers.ContentType?.ToString() ?? "text/csv"
+          Headers = new HeaderDictionary()
         };
+        formFile.ContentType = httpResponse.Content.Headers.ContentType?.MediaType?.ToString() ?? "text/csv";
         response.SetSuccessful(formFile);
       }
       return response;
@@ -306,6 +308,7 @@ public class IaWebService : ApplicationService
   async public Task<ResponseService<IFormFile>> GetSplitTestFile(string splitProcessId)
   {
     var response = new ResponseService<IFormFile>();
+    MemoryStream testStream;
     try
     {
       using (var http = new HttpClient())
@@ -313,11 +316,12 @@ public class IaWebService : ApplicationService
         var httpResponse = await http.GetAsync($"{_ia_url}/split/{splitProcessId}/test");
         httpResponse.EnsureSuccessStatusCode();
         var content = await httpResponse.Content.ReadAsByteArrayAsync();
-        using var stream = new MemoryStream(content);
-        var formFile = new FormFile(stream, 0, stream.Length, "", $"Test{splitProcessId}.csv")
+        testStream = new MemoryStream(content);
+        var formFile = new FormFile(baseStream: testStream, baseStreamOffset: 0, length: content.Length, name: "", fileName: $"Test{splitProcessId}.csv")
         {
-          ContentType = httpResponse.Content.Headers.ContentType?.ToString() ?? "text/csv"
+          Headers = new HeaderDictionary()
         };
+        formFile.ContentType = httpResponse.Content.Headers.ContentType?.MediaType?.ToString() ?? "text/csv";
         response.SetSuccessful(formFile);
       }
       return response;

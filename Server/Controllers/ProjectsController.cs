@@ -55,7 +55,7 @@ public class ProjectsController : ApplicationController
         return Ok(projectResponseGetOne.Project);
     }
 
-    [HttpGet("{id}/nestedData")]
+    [HttpGet("{id}/nested-data")]
     public async Task<IActionResult> GetProjectNestedDataById(long id)
     {
         var responseProject = await _projectService.GetProjectNestedDataById(id);
@@ -100,7 +100,7 @@ public class ProjectsController : ApplicationController
     }
 
     [HttpGet("{projectId}/data-sample")]
-    public async Task<ActionResult> GetProjectDefaultFileLines(long projectId, [FromQuery] int rowCount = 10)
+    public async Task<ActionResult<ProjectService.ProjectFileFormated>> GetProjectDefaultFileLines(long projectId, [FromQuery] int rowCount = 10)
     {
 
         var projectResponseGetOne = await _projectService.GetProjectById(projectId);

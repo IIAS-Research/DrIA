@@ -20,8 +20,8 @@ public class FileStorageService : ApplicationService
     var filePath = Path.Combine(storageFolderName ?? DefaultStorageFolder, randomFilename);
     var filePathInStorage = Path.Combine(GetMainPathStorage(_config), filePath);
     var mimeType = MimeTypeMap.GetMimeType(formfile.FileName);
+    
     using (var stream = File.Create(filePathInStorage))
-
     {
       await formfile.CopyToAsync(stream);
     }
@@ -145,6 +145,8 @@ public class FileStorageService : ApplicationService
             new ModelBinaryFileOptions().GetRelativePath(),
             new ModelImageFileOptions().GetRelativePath(),
             new ProjectDefaultFileOptions().GetRelativePath(),
+            new ProjectTrainFileOptions().GetRelativePath(),
+            new ProjectTestFileOptions().GetRelativePath(),
             DefaultStorageFolder
         };
     foreach (var folder in storageFolders)

@@ -15,9 +15,9 @@ export async function getUserProjects(): Promise<IProject[]> {
   }
 }
 
-export async function getProjectByIdAsync(projectId: IProject['id']): Promise<IProject | undefined> {
+export async function GetProjectWithNestedDataById(projectId: IProject['id']): Promise<IProject | undefined> {
   try {
-    const response = (await api.get(`${projectUrl}/${projectId}`))?.data;
+    const response = (await api.get(`${projectUrl}/${projectId}/nested-data`))?.data;
     return response;
   } catch (error) {
     console.error('Error fetching project:', error);
