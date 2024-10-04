@@ -70,17 +70,17 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async public Task<ResponseService<JobStatusOutDTO>> GetJobStatus(Process process)
+  async public Task<ResponseService<JobStatusOutDTO>> GetJobStatus(string processRemoteId)
   {
     var response = new ResponseService<JobStatusOutDTO>();
     try
     {
       using (var http = new HttpClient())
       {
-        var httpResponse = await http.GetAsync($"{_ia_url}/job/{process.Id}/status");
+        var httpResponse = await http.GetAsync($"{_ia_url}/job/{processRemoteId}/status");
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<JobStatusOutDTO>(httpResponseBody)!);
+        response.SetSuccessful(JsonSerializer.Deserialize<JobStatusOutDTO>(httpResponseBody, _serializeOptions)!);
       }
       return response;
     }
@@ -100,7 +100,7 @@ public class IaWebService : ApplicationService
       var httpResponse = await http.PostAsync($"{_ia_url}/job/{process.Id}/cancel", null);
       httpResponse.EnsureSuccessStatusCode();
       string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-      response.SetSuccessful(JsonSerializer.Deserialize<CancelJobOutDTO>(httpResponseBody)!);
+      response.SetSuccessful(JsonSerializer.Deserialize<CancelJobOutDTO>(httpResponseBody, _serializeOptions)!);
       return response;
     }
     catch (Exception exception)
@@ -110,16 +110,16 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async public Task<ResponseService<GetJobMetricsOutDTO>> RetrieveJobMetric(Process process)
+  async public Task<ResponseService<GetJobMetricsOutDTO>> RetrieveJobMetric(string processRemoteId)
   {
     var response = new ResponseService<GetJobMetricsOutDTO>();
     try
     {
       using var http = new HttpClient();
-      var httpResponse = await http.GetAsync($"{_ia_url}/job/{process.Id}/metrics");
+      var httpResponse = await http.GetAsync($"{_ia_url}/job/{processRemoteId}/metrics");
       httpResponse.EnsureSuccessStatusCode();
       string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-      response.SetSuccessful(JsonSerializer.Deserialize<GetJobMetricsOutDTO>(httpResponseBody)!);
+      response.SetSuccessful(JsonSerializer.Deserialize<GetJobMetricsOutDTO>(httpResponseBody, _serializeOptions)!);
       return response;
     }
     catch (Exception exception)
@@ -168,7 +168,7 @@ public class IaWebService : ApplicationService
         var httpResponse = await http.PostAsync($"{_ia_url}/explain", formData);
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<ExplainModelOutDTO>(httpResponseBody)!);
+        response.SetSuccessful(JsonSerializer.Deserialize<ExplainModelOutDTO>(httpResponseBody, _serializeOptions)!);
       }
       return response;
     }
@@ -189,7 +189,7 @@ public class IaWebService : ApplicationService
         var httpResponse = await http.GetAsync($"{_ia_url}/job/{process.Id}/model/{jobMetricId}/explain");
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<GetModelTextExplanationOutDTO>(httpResponseBody)!);
+        response.SetSuccessful(JsonSerializer.Deserialize<GetModelTextExplanationOutDTO>(httpResponseBody, _serializeOptions)!);
       }
       return response;
     }
@@ -323,8 +323,8 @@ public class IaWebService : ApplicationService
         };
         formFile.ContentType = httpResponse.Content.Headers.ContentType?.MediaType?.ToString() ?? "text/csv";
         response.SetSuccessful(formFile);
+        return response;
       }
-      return response;
     }
     catch (Exception exception)
     {
@@ -333,7 +333,7 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async private Task<byte[]> FormatFileForPipeline(IFormFile file, Project project)
+  private async static Task<byte[]> FormatFileForPipeline(IFormFile file, Project project)
   {
     var config = new CsvConfiguration(CultureInfo.InvariantCulture)
     {

@@ -24,6 +24,7 @@ public class FileStorageService : ApplicationService
     using (var stream = File.Create(filePathInStorage))
     {
       await formfile.CopyToAsync(stream);
+      stream.Position = 0;
     }
     writeResponse.SetSuccessful(new FileStorageResponseWrite
     {

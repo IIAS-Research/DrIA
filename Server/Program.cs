@@ -81,7 +81,7 @@ public partial class Program
     builder.Services.AddTransient<UserService>();
     builder.Services.AddTransient<IaWebService>();
     builder.Services.AddTransient<ProcessService>();
-    builder.Services.AddSingleton<IAWebSocketService>();
+    builder.Services.AddSingleton<IAWebSocketServiceFuck>();
 
     builder.Services.AddSignalR();
 

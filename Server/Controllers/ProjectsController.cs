@@ -5,6 +5,7 @@ using Server.Models;
 using Server.Services;
 using Server.Authorization;
 using Server.DTOs;
+using Microsoft.AspNetCore.Http.Timeouts;
 
 namespace Server.Controllers;
 
@@ -68,6 +69,7 @@ public class ProjectsController : ApplicationController
     }
 
     [HttpPost]
+    // [RequestTimeout(milliseconds: 300000)]
     public async Task<ActionResult<RunPipelineOutDTO>> RegisterProject([FromForm] StartProjectInDTO projectData)
     {
         User? currentUser = await GetCurrentUser();
@@ -78,8 +80,6 @@ public class ProjectsController : ApplicationController
 
         var responseSplit = await _iaWebService.Split(projectData.File, responseProject.Data);
         if (!responseSplit.IsSuccess) return BadRequest(responseSplit.Errors);
-
-        await Task.Delay(2000); // TODO dégueulasse mais c'est en cours
 
         // Get and save files
         var responseGetTrainFile = await _iaWebService.GetSplitTrainFile(responseSplit.Data.id);

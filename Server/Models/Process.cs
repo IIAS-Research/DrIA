@@ -43,6 +43,9 @@ public class Process : ApplicationRecord
   [Required]
   public required EProcessStatut Status { get; set; }
 
+  [Required]
+  public required string IaRemoteId { get; set; }
+
   [Timestamp]
   public byte[]? CreatedAt { get; set; } = [];
 

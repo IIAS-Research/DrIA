@@ -31,7 +31,6 @@ async function submitProject(projectForm: IProjectForm, file: File) {
       },
     }))?.data;
     if (responsePostProject) {
-      console.log(responsePostProject);
       router.push({
         name: 'project-show',
         params: { id: responsePostProject.projectId },

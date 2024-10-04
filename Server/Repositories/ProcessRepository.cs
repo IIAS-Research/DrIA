@@ -10,8 +10,6 @@ public class ProcessRepository(MainDbContext dbContext)
 
   public async Task<Process> CreateProcess(RunPipelineOutDTO pipelineResponse, string pipelineData, Project project)
   {
-
-
     Process process = new Process
     {
       Date = DateTime.Now,
@@ -19,9 +17,15 @@ public class ProcessRepository(MainDbContext dbContext)
       Status = pipelineResponse.status,
       PipelineJson = pipelineData,
       ProjectId = project.Id,
+      IaRemoteId = pipelineResponse.id
     };
     await _dbContext.Processes.AddRangeAsync(process);
     await _dbContext.SaveChangesAsync();
     return process;
+  }
+
+  public async Task UpdateProcessStatus(string processRemoteId, Process.EProcessStatut statut)
+  {
+    
   }
 }
