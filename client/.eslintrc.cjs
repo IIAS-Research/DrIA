@@ -62,6 +62,7 @@ module.exports = {
 
   // add your custom rules here
   rules: {
+    'no-return-await': 'off',
     'no-param-reassign': 'off',
     'no-void': 'off',
     'no-nested-ternary': 'off',
@@ -83,7 +84,7 @@ module.exports = {
 
     'prefer-promise-reject-errors': 'off',
 
-    'max-len': ['error', { ignoreComments: true, ignoreUrls: true, code: 120 }],
+    'max-len': 'off',
 
     quotes: ['warn', 'single', { avoidEscape: true }],
 

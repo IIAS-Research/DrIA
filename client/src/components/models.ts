@@ -15,12 +15,12 @@ export interface ICreateUserDTO {
 export interface ICreateProjectResponseDTO {
   id: string;
   status:
-    | 'QUEUED'
-    | 'RUNNING'
-    | 'FINISHED'
-    | 'CANCELED'
-    | 'CRASHED'
-    | 'TIMEOUT';
+    | "QUEUED"
+    | "RUNNING"
+    | "FINISHED"
+    | "CANCELED"
+    | "CRASHED"
+    | "TIMEOUT";
   socket: string;
   projectId: number;
 }
@@ -68,7 +68,7 @@ export interface IProject {
   datasetHasIdColumnList: string[];
   createdAt?: string;
   updatedAt?: string;
-  userId: IUser['id'];
+  userId: IUser["id"];
   // eslint-disable-next-line no-use-before-define
   processes: IProcess[];
 }
@@ -90,15 +90,17 @@ export interface IModelAccuracyData {
 }
 
 export interface IMetrics {
-  metricsInfos: {
-    [key: string]: {
-      name: string;
-      description: string;
-    };
-  };
-  metricsTrain: IModelAccuracyData;
-  metricsTest: IModelAccuracyData | null;
-  mainMetric: string;
+  id: number;
+  model: string;
+  metrics_info: { [name: string]: IMetricInfo };
+  main_metrics: string;
+  metrics_train: { [name: string]: number };
+  metrics_test: { [name: string]: number } | undefined;
+}
+
+export interface IMetricInfo {
+  name: string;
+  desc: string;
 }
 
 export interface IStructuredBibliography {
@@ -110,20 +112,24 @@ export interface IStructuredBibliography {
   publisher: string | null;
 }
 export interface IModel {
-  iaRemoteId: string;
   id: number;
+  date: string;
   metrics: IMetrics;
-  bibliography?: string; // Only for model slug page
-  structuredBibliography?: IStructuredBibliography; // Only for model slug page
+  explanation: IExplanation[];
+  bibliography?: IBibliography[];
 }
 
+export interface IExplanation {}
+
+export interface IBibliography {}
+
 type PipelineStatus =
-  | 'QUEUED'
-  | 'RUNNING'
-  | 'FINISHED'
-  | 'CANCELED'
-  | 'CRASHED'
-  | 'TIMEOUT';
+  | "QUEUED"
+  | "RUNNING"
+  | "FINISHED"
+  | "CANCELED"
+  | "CRASHED"
+  | "TIMEOUT";
 export interface IProcess {
   iaRemoteId: string;
   id: number;
@@ -136,5 +142,5 @@ export interface IProcess {
   bestTestAccuracy: number | null;
   // mainMetricsName?: string;
   models: IModel[];
-  projectId: IProject['id'];
+  projectId: IProject["id"];
 }
