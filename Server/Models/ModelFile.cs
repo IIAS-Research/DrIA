@@ -17,7 +17,7 @@ public class ModelFile : ApplicationRecord
     public string MimeType { get; set; } = "application/octet-stream";
 
     [Timestamp]
-    public required byte[] CreatedAt { get; set; }
+    public byte[]? CreatedAt { get; set; } = [];
 
     [Required]
     public required long ModelId { get; set; }

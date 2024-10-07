@@ -43,5 +43,12 @@ public class ProcessRepository(MainDbContext dbContext)
       await _dbContext.SaveChangesAsync();
     }
   }
+  
+    public async Task<Process?> GetProcessByIaRemoteId(string processRemoteId)
+  {
+    return await _dbContext.Processes.FirstOrDefaultAsync(p => p.IaRemoteId == processRemoteId);
+  }
+
+  
 
 }

@@ -2,4 +2,4 @@ GET http://rss00992:32845/pipeline/generate
 
 ###
 
-GET http://rss00992:32845/jobs/6c2cc525-e46a-4128-878d-e1935aa0008d/status
+GET http://rss00992:32845/jobs/ca04dca7-916f-479d-9f1d-e8a22bdc56b0/status

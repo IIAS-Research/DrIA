@@ -134,7 +134,7 @@ namespace server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<Model.ModelBibliographie>("Bibliographie")
+                    b.Property<Model.ModelBibliographie>("Bibliography")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
@@ -142,23 +142,14 @@ namespace server.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<Model.ModelExplanation>("Explanation")
-                        .IsRequired()
                         .HasColumnType("jsonb");
 
                     b.Property<object>("Metrics")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
-                    b.Property<string>("PredictionModelName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<long>("ProcessId")
                         .HasColumnType("bigint");
-
-                    b.Property<Model.ModelResult>("Results")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
 
                     b.HasKey("Id");
 
@@ -177,7 +168,6 @@ namespace server.Migrations
 
                     b.Property<byte[]>("CreatedAt")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea");
 

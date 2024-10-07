@@ -40,7 +40,7 @@ namespace Server.Services
         hub = _iaStatusHub;
       }
 
-      var newConnection = new IaConnectionFuck(jobWebServiceId, hub, _processRepository, _iaWebService, _scopeFactory);
+      var newConnection = new IaConnectionFuck(jobWebServiceId, hub, _processRepository, _iaWebService, _modelService, _scopeFactory);
       _connections.Add(newConnection);
       return newConnection;
     }
@@ -64,7 +64,7 @@ namespace Server.Services
     }
   }
 
-  public class IaConnectionFuck(string jobWebServiceId, IHubContext<ApplicationHub> hub, ProcessRepository processRepository, IaWebService iaWebService, IServiceScopeFactory scopeFactory)
+  public class IaConnectionFuck(string jobWebServiceId, IHubContext<ApplicationHub> hub, ProcessRepository processRepository, IaWebService iaWebService, ModelService modelService, IServiceScopeFactory scopeFactory)
   {
     public IHubContext<ApplicationHub> Hub { get; } = hub;
     public string JobWebServiceId { get; } = jobWebServiceId;
@@ -75,6 +75,8 @@ namespace Server.Services
     private readonly List<string> _connectionIds = [];
     private readonly System.Timers.Timer _timer = new System.Timers.Timer(1000 * 10);
     public IServiceScopeFactory ScopeFactory = scopeFactory;
+    public ModelService ModelService = modelService;
+
 
 
     public async Task StartPulling()
@@ -109,8 +111,6 @@ namespace Server.Services
 
         Status = responseGetStatus.Data.status.current;
 
-        // await UpdateProcessStatusIfNeeded(responseGetStatus.Data);
-
         // If status has changed, update it in DB
         var currentProcess = await dbContext.Processes.FirstOrDefaultAsync(p => p.IaRemoteId == responseGetStatus.Data.id);
 
@@ -131,19 +131,15 @@ namespace Server.Services
             _timer.Enabled = true;
             break;
           case Process.EProcessStatut.FINISHED:
-            var responseGetMetric = await IaWebService.RetrieveJobMetric(JobWebServiceId);
-            Console.WriteLine(responseGetMetric);
-            // var jobModels = await SaveModelInfos(responseGetMetric);
-            // var responseGenerateBibliography = await IaWebService.GenerateBibliography(JobWebServiceId);
-            if (!responseGetMetric.IsSuccess)
+            var onProcessFinishResponse = await OnProcessFinish(responseGetStatus.Data);
+
+            if (!onProcessFinishResponse.IsSuccess)
             {
-              await SendErrorsToWs(responseGetMetric);
+              await SendErrorsToWs(onProcessFinishResponse);
               return;
             }
-            // get metrics + save
 
-            // je comprends plus rien à ce projet de mort
-            await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", "");
+            await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", responseGetStatus.Data.status.current);
             break;
           case Process.EProcessStatut.CANCELED:
             Console.WriteLine(responseGetStatus);
@@ -166,28 +162,50 @@ namespace Server.Services
       StopPulling();
     }
 
-    private async Task SaveModelInfos(ResponseService<GetJobMetricsOutDTO> responseService)
+    private async Task<ResponseService<List<Model>>> OnProcessFinish(JobStatusOutDTO jobStatusOutDTO)
     {
-      Console.WriteLine($"responseService. in SaveModelInfos: {responseService.Data}");
-      foreach (var model in responseService.Data.Metrics)
+      var responseOnProcessFinish = new ResponseService<List<Model>>();
+      // Get metrics
+      var responseGetMetric = await IaWebService.RetrieveJobMetric(JobWebServiceId);
+      Console.WriteLine(responseGetMetric);
+
+      List<Model> modelList = new List<Model>();
+
+      // For each model, download the model file, generate bibliography and save infos in DB
+      foreach (var model in responseGetMetric.Data.metrics)
       {
-        var idModelProperty = model.GetType().GetProperty("id")?.ToString();
-        if (idModelProperty != null)
+        var idModelProperty = model.GetType().GetProperty("id");
+        var idValue = idModelProperty.GetValue(model);
+
+        // Ensure the idValue is not null and can be parsed to an int
+        if (idValue != null && Int32.TryParse(idValue.ToString(), out int modelId))
         {
-          var downloadModelFileResponse = await IaWebService.DownloadModelFile(responseService.Data.IaRemoteId, idModelProperty);
-          // var saveModelResponse = await ModelService.SaveModelAndItsFile(model, downloadModelFileResponse);
+          if (idModelProperty != null)
+          {
+            // Download model file
+            var downloadModelFileResponse = await IaWebService.DownloadModelFile(responseGetMetric.Data.id, modelId);
+
+            // Generate bibliography of the model
+            var responseBibliography = await IaWebService.GetBibliography(responseGetMetric.Data.id, modelId);
+
+            // Save all this previous stuff in DB
+            var process = ProcessRepository.GetProcessByIaRemoteId(responseGetMetric.Data.id);
+            if (process == null || !responseBibliography.IsSuccess) return responseOnProcessFinish;
+
+            await ModelService.CreateModelFile(downloadModelFileResponse.Data, model);
+
+            var saveModelResponse = await ModelService.CreateModel(process.Id, model, responseBibliography.Data);
+            if (!saveModelResponse.IsSuccess) return responseOnProcessFinish;
+
+            // Add the saved model to the modelList
+            modelList.Add(saveModelResponse.Data);
+          }
         }
       }
-    }
 
-    // private async Task UpdateProcessStatusIfNeeded(JobStatusOutDTO jobStatus)
-    // {
-    //   var processStatus = await ProcessRepository.GetProcessStatusById(jobStatus.id);
-    //   if (jobStatus.status != processStatus)
-    //   {
-    //     await ProcessRepository.UpdateProcessStatus(jobStatus.id, jobStatus.status);
-    //   }
-    // }
+      responseOnProcessFinish.SetSuccessful(modelList);
+      return responseOnProcessFinish;
+    }
 
     public void StopPulling()
     {

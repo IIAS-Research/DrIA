@@ -55,16 +55,28 @@ public record CancelJobOutDTO
 
 public record GetJobMetricsOutDTO
 {
-  public required string IaRemoteId { get; set; }
-  public required IMetrics[] Metrics { get; set; }
+  public required string id { get; init; }
+  public required Metrics[] metrics { get; init; }
 }
 
-public record IMetrics
+public record Metrics
 {
-  // TODO: Here les metrics a typer
+  public required int id { get; init; }
+  public required string model { get; init; }
+  public required Dictionary<string, MetricInfo> metrics_info { get; init; }
+  public required string main_metrics { get; init; }
+  public required Dictionary<string, float> metrics_train { get; init; }
+  public required Dictionary<string, float>? metrics_test { get; init; }
 }
 
-public record GenerateJobBibliographyOutDTO
+public record MetricInfo
+{
+  public required string name { get; init; }
+  public required string desc { get; init; }
+}
+
+
+public record GetJobBibliographyOutDTO
 {
   public required string IaRemoteId { get; set; }
   public required int Rid { get; set; }
