@@ -1,6 +1,9 @@
 using System.Net.WebSockets;
 using System.Timers;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using Server.DAL.Db;
+using Server.DTOs;
 using Server.Hubs;
 using Server.Models;
 using Server.Repositories;
@@ -9,14 +12,17 @@ using static Server.Services.ApplicationService;
 
 namespace Server.Services
 {
-  public class IAWebSocketServiceFuck(IHubContext<IaStatusHub> iaStatusHub, IHubContext<IaMetricHub> iaMetricHub, ProcessRepository processRepository, IaWebService iaWebService) : ApplicationService
+  public class IAWebSocketServiceFuck(IHubContext<IaStatusHub> iaStatusHub, IHubContext<IaMetricHub> iaMetricHub, ProcessRepository processRepository, IaWebService iaWebService, ModelService modelService, IServiceScopeFactory scopeFactory) : ApplicationService
   {
     public static readonly string _url = "http://rss00992:32845";
     private readonly List<IaConnectionFuck> _connections = [];
     private readonly IHubContext<IaStatusHub> _iaStatusHub = iaStatusHub;
     private readonly IHubContext<IaMetricHub> _iaMetricHub = iaMetricHub;
     private readonly ProcessRepository _processRepository = processRepository;
-    private IaWebService _iaWebService = iaWebService;
+    private readonly ModelService _modelService = modelService;
+    private readonly IaWebService _iaWebService = iaWebService;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+
 
     public IaConnectionFuck? GetIaConnection(string jobWebServiceId) =>
         _connections.FirstOrDefault(c => c.JobWebServiceId == jobWebServiceId);
@@ -34,7 +40,7 @@ namespace Server.Services
         hub = _iaStatusHub;
       }
 
-      var newConnection = new IaConnectionFuck(jobWebServiceId, hub, _processRepository, _iaWebService);
+      var newConnection = new IaConnectionFuck(jobWebServiceId, hub, _processRepository, _iaWebService, _scopeFactory);
       _connections.Add(newConnection);
       return newConnection;
     }
@@ -58,16 +64,17 @@ namespace Server.Services
     }
   }
 
-  public class IaConnectionFuck(string jobWebServiceId, IHubContext<ApplicationHub> hub, ProcessRepository processRepository, IaWebService iaWebService)
+  public class IaConnectionFuck(string jobWebServiceId, IHubContext<ApplicationHub> hub, ProcessRepository processRepository, IaWebService iaWebService, IServiceScopeFactory scopeFactory)
   {
     public IHubContext<ApplicationHub> Hub { get; } = hub;
     public string JobWebServiceId { get; } = jobWebServiceId;
     public bool IsPulling { get; set; } = false;
     public ProcessRepository ProcessRepository = processRepository;
     public IaWebService IaWebService = iaWebService;
-    public Process.EProcessStatut Statut { get; set;} = Process.EProcessStatut.QUEUED;
+    public Process.EProcessStatut Status { get; set; }
     private readonly List<string> _connectionIds = [];
-    private System.Timers.Timer _timer = new System.Timers.Timer(1000 * 60);
+    private readonly System.Timers.Timer _timer = new System.Timers.Timer(1000 * 10);
+    public IServiceScopeFactory ScopeFactory = scopeFactory;
 
 
     public async Task StartPulling()
@@ -77,7 +84,7 @@ namespace Server.Services
       {
         _timer.Enabled = true;
         _timer.AutoReset = false;
-        _timer.Elapsed += RunInterval;
+        _timer.Elapsed += async (sender, args) => await RunInterval(sender, args);
       }
       catch (Exception ex)
       {
@@ -85,41 +92,72 @@ namespace Server.Services
       }
     }
 
-    private async void RunInterval(object source, ElapsedEventArgs elapseArg)
+    private async Task RunInterval(object source, ElapsedEventArgs elapseArg)
     {
-      var responseGetStatus = await IaWebService.GetJobStatus(JobWebServiceId);
-      if (!responseGetStatus.IsSuccess)
+      using (var scope = ScopeFactory.CreateScope())
       {
-        await SendErrorsToWs(responseGetStatus);
-        return;
-      }
+        var dbContext = scope.ServiceProvider.GetRequiredService<MainDbContext>();
 
-      switch(Statut)
-      {
-        case Process.EProcessStatut.QUEUED:
-        case Process.EProcessStatut.RUNNING:
-          // Bah rien en fait
-          break;
-        case Process.EProcessStatut.FINISHED:
-          var responseGetMetric = await IaWebService.RetrieveJobMetric(JobWebServiceId);
-          if (!responseGetMetric.IsSuccess)
-          {
-            await SendErrorsToWs(responseGetMetric);
-            return;
-          }
-          // get metrics + save
+        Console.WriteLine("Interval elapsed so RunInterval method has been triggered");
+        var responseGetStatus = await IaWebService.GetJobStatus(JobWebServiceId);
 
-          // je comprends plus rien à ce projet de mort
-          await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", "");
-          break;
-        case Process.EProcessStatut.CANCELED:
-        case Process.EProcessStatut.CRASHED:
-        case Process.EProcessStatut.TIMEOUT:
-          await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", $"Process terminé avec status : {Statut}");
-          StopPulling();
-          break;
+        if (!responseGetStatus.IsSuccess)
+        {
+          await SendErrorsToWs(responseGetStatus);
+          return;
+        }
+
+        Status = responseGetStatus.Data.status.current;
+
+        // await UpdateProcessStatusIfNeeded(responseGetStatus.Data);
+
+        // If status has changed, update it in DB
+        var currentProcess = await dbContext.Processes.FirstOrDefaultAsync(p => p.IaRemoteId == responseGetStatus.Data.id);
+
+        if (currentProcess != null && responseGetStatus.Data.status.current != currentProcess.Status)
+        {
+          currentProcess.Status = Status;
+          await dbContext.SaveChangesAsync();
+        }
+
+        Console.WriteLine($"Job status: {Status}");
+
+        switch (Status)
+        {
+          case Process.EProcessStatut.QUEUED:
+            _timer.Enabled = true;
+            break;
+          case Process.EProcessStatut.RUNNING:
+            _timer.Enabled = true;
+            break;
+          case Process.EProcessStatut.FINISHED:
+            var responseGetMetric = await IaWebService.RetrieveJobMetric(JobWebServiceId);
+            Console.WriteLine(responseGetMetric);
+            // var jobModels = await SaveModelInfos(responseGetMetric);
+            // var responseGenerateBibliography = await IaWebService.GenerateBibliography(JobWebServiceId);
+            if (!responseGetMetric.IsSuccess)
+            {
+              await SendErrorsToWs(responseGetMetric);
+              return;
+            }
+            // get metrics + save
+
+            // je comprends plus rien à ce projet de mort
+            await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", "");
+            break;
+          case Process.EProcessStatut.CANCELED:
+            Console.WriteLine(responseGetStatus);
+            break;
+          case Process.EProcessStatut.CRASHED:
+            Console.WriteLine(responseGetStatus);
+            break;
+          case Process.EProcessStatut.TIMEOUT:
+            Console.WriteLine("Avant le stop pulling");
+            await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", $"Process terminé avec status : {Status}");
+            StopPulling();
+            break;
+        }
       }
-      await ProcessRepository.UpdateProcessStatus(JobWebServiceId, Statut);
     }
 
     private async Task SendErrorsToWs<T>(ResponseService<T> responseService)
@@ -127,6 +165,29 @@ namespace Server.Services
       await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", $"Une erreur est survenue : {responseService.Errors}");
       StopPulling();
     }
+
+    private async Task SaveModelInfos(ResponseService<GetJobMetricsOutDTO> responseService)
+    {
+      Console.WriteLine($"responseService. in SaveModelInfos: {responseService.Data}");
+      foreach (var model in responseService.Data.Metrics)
+      {
+        var idModelProperty = model.GetType().GetProperty("id")?.ToString();
+        if (idModelProperty != null)
+        {
+          var downloadModelFileResponse = await IaWebService.DownloadModelFile(responseService.Data.IaRemoteId, idModelProperty);
+          // var saveModelResponse = await ModelService.SaveModelAndItsFile(model, downloadModelFileResponse);
+        }
+      }
+    }
+
+    // private async Task UpdateProcessStatusIfNeeded(JobStatusOutDTO jobStatus)
+    // {
+    //   var processStatus = await ProcessRepository.GetProcessStatusById(jobStatus.id);
+    //   if (jobStatus.status != processStatus)
+    //   {
+    //     await ProcessRepository.UpdateProcessStatus(jobStatus.id, jobStatus.status);
+    //   }
+    // }
 
     public void StopPulling()
     {

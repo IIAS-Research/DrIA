@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Server.Models;
 
@@ -41,10 +42,13 @@ public class Process : ApplicationRecord
   }
 
   [Required]
+  [JsonConverter(typeof(JsonStringEnumConverter))]
   public required EProcessStatut Status { get; set; }
 
   [Required]
   public required string IaRemoteId { get; set; }
+  [Required]
+  public required int MaxDuration { get; set; }
 
   [Timestamp]
   public byte[]? CreatedAt { get; set; } = [];

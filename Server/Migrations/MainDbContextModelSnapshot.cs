@@ -226,6 +226,9 @@ namespace server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("MaxDuration")
+                        .HasColumnType("integer");
+
                     b.Property<string>("PipelineJson")
                         .IsRequired()
                         .HasColumnType("jsonb");

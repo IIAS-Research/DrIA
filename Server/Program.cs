@@ -74,6 +74,7 @@ public partial class Program
     builder.Services.AddScoped<UsersRepository>();
     builder.Services.AddScoped<ProjectRepository>();
     builder.Services.AddScoped<ProcessRepository>();
+    builder.Services.AddScoped<ModelRepository>();
     builder.Services.AddTransient<FileStorageService>();
     builder.Services.AddTransient<AuthService>();
     builder.Services.AddTransient<MailerService>();
@@ -82,6 +83,7 @@ public partial class Program
     builder.Services.AddTransient<IaWebService>();
     builder.Services.AddTransient<ProcessService>();
     builder.Services.AddTransient<IAWebSocketServiceFuck>();
+    builder.Services.AddTransient<ModelService>();
 
     builder.Services.AddSignalR();
 

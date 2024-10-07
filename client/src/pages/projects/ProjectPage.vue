@@ -4,7 +4,7 @@ import {
 } from 'vue';
 import {
   ICreateProjectResponseDTO,
-  ICsvProject, IPipeline, IProject,
+  ICsvProject, IProject,
 } from 'components/models';
 import { useSignalR } from 'src/utils/useSignalR';
 import { useRoute } from 'vue-router';
@@ -36,14 +36,20 @@ async function getProjectDataSample() {
 async function getProjectById() {
   if (!projectId.value) return undefined;
   const responseProject = await GetProjectWithNestedDataById(projectId.value);
+  console.log('response project => ', responseProject);
   if (responseProject) project.value = responseProject;
   return undefined;
 }
 
 function updateProgressVal() {
   if (!project.value) return;
+  console.log('Upadte progress bar');
+  if (project.value.processes.find((p) => p.status === 'QUEUED')) {
+    console.log('No progress, the job is in QUEUE');
+    return;
+  }
   const maxDuration = project.value.processes.find((p) => p.status === 'RUNNING')?.maxDuration;
-
+  console.log('Max duration => ', maxDuration);
   if (!maxDuration) return;
   const currentTime = new Date().getTime();
   const elapsedTime = currentTime - startProcessTime.value!;
@@ -59,12 +65,14 @@ function updateProgressVal() {
 function connectWebSocketsIfNeeded() {
   const { jobId } = route.query;
   if (!jobId) return;
+  console.log('here connect web sockets');
   const signalR = useSignalR('status', String(jobId));
   signalRRef.value = signalR;
   signalR.connect();
   startProcessTime.value = new Date().getTime();
   if (interval) return;
   interval = setInterval(() => {
+    console.log('Interval triggered');
     updateProgressVal();
   }, 2000);
 }

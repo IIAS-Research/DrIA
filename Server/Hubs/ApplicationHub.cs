@@ -83,7 +83,7 @@ namespace Server.Hubs
 
         if (!connection.IsPulling)
         {
-          Console.WriteLine("Before await connection.ConnectAsync()");
+          Console.WriteLine("Before await connection.StartPulling() when connection is not already pulling");
           await connection.StartPulling();
         }
       }

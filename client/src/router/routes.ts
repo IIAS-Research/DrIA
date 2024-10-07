@@ -30,6 +30,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/projects/ProjectPage.vue'),
         beforeEnter: mustBeAuth,
       },
+      {
+        path: 'models/:id',
+        name: 'model-show',
+        component: () => import('pages/projects/ModelPage.vue'),
+        beforeEnter: mustBeAuth,
+      },
     ],
   },
 

@@ -73,14 +73,16 @@ public class IaWebService : ApplicationService
   async public Task<ResponseService<JobStatusOutDTO>> GetJobStatus(string processRemoteId)
   {
     var response = new ResponseService<JobStatusOutDTO>();
+    Console.WriteLine("IA Web service getting job status via api route from ia web service");
     try
     {
       using (var http = new HttpClient())
       {
-        var httpResponse = await http.GetAsync($"{_ia_url}/job/{processRemoteId}/status");
+        var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{processRemoteId}/status");
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
         response.SetSuccessful(JsonSerializer.Deserialize<JobStatusOutDTO>(httpResponseBody, _serializeOptions)!);
+        Console.WriteLine($"Response get job status: {JsonSerializer.Deserialize<JobStatusOutDTO>(httpResponseBody, _serializeOptions)}");
       }
       return response;
     }
@@ -129,16 +131,37 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async public Task<ResponseService<IFormFile>> DownloadModel(Process process, long jobMetricId = 0)
+  async public Task<ResponseService<GenerateJobBibliographyOutDTO>> GenerateBibliography(Process process, long jobMetricId = 0)
+  {
+    var response = new ResponseService<GenerateJobBibliographyOutDTO>();
+    try
+    {
+      using (var http = new HttpClient())
+      {
+        var httpResponse = await http.GetAsync($"{_ia_url}/job/{process.Id}/model/{jobMetricId}/bibliography");
+        httpResponse.EnsureSuccessStatusCode();
+        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
+        response.SetSuccessful(JsonSerializer.Deserialize<GenerateJobBibliographyOutDTO>(httpResponseBody)!);
+      }
+      return response;
+    }
+    catch (Exception exception)
+    {
+      response.AddError(exception.Message);
+      return response;
+    }
+  }
+
+  async public Task<ResponseService<IFormFile>> DownloadModel(string iaRemoteprocessId, long jobMetricId = 0)
   {
     var response = new ResponseService<IFormFile>();
     try
     {
       using var http = new HttpClient();
-      var httpResponse = await http.GetAsync($"{_ia_url}/job/{process.Id}/model/{jobMetricId}/download");
+      var httpResponse = await http.GetAsync($"{_ia_url}/job/{iaRemoteprocessId}/model/{jobMetricId}/download");
       httpResponse.EnsureSuccessStatusCode();
       using var stream = await httpResponse.Content.ReadAsStreamAsync();
-      var formFile = new FormFile(stream, 0, stream.Length, "file", $"Job{process.Id}/Model{jobMetricId}.pickle")
+      var formFile = new FormFile(stream, 0, stream.Length, "file", $"Job{iaRemoteprocessId}/Model{jobMetricId}.pickle")
       {
         Headers = new HeaderDictionary(),
         ContentType = httpResponse.Content.Headers.ContentType?.ToString() ?? "application/octet-stream"
@@ -200,26 +223,6 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async public Task<ResponseService<GetModelBibliographyOutDTO>> GetBibliography(Process process, long jobMetricId = 0)
-  {
-    var response = new ResponseService<GetModelBibliographyOutDTO>();
-    try
-    {
-      using (var http = new HttpClient())
-      {
-        var httpResponse = await http.GetAsync($"{_ia_url}/job/{process.Id}/model/{jobMetricId}/bibliography");
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<GetModelBibliographyOutDTO>(httpResponseBody)!);
-      }
-      return response;
-    }
-    catch (Exception exception)
-    {
-      response.AddError(exception.Message);
-      return response;
-    }
-  }
 
   async public Task<ResponseService<SplitOutDTO>> Split(IFormFile file, Project project)
   {
@@ -333,6 +336,34 @@ public class IaWebService : ApplicationService
     }
   }
 
+  public async Task<ResponseService<IFormFile>> DownloadModelFile(string jobId, string modelId)
+  {
+    var response = new ResponseService<IFormFile>();
+    MemoryStream stream;
+    try
+    {
+      using (var http = new HttpClient())
+      {
+        var httpResponse = await http.GetAsync($"{_ia_url}/job/{jobId}/model/{modelId}/download");
+        httpResponse.EnsureSuccessStatusCode();
+        var content = await httpResponse.Content.ReadAsByteArrayAsync();
+        stream = new MemoryStream(content);
+        var formFile = new FormFile(baseStream: stream, baseStreamOffset: 0, length: content.Length, name: "", fileName: $"{jobId}_{modelId}.pickle")
+        {
+          Headers = new HeaderDictionary()
+        };
+        formFile.ContentType = httpResponse.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+        response.SetSuccessful(formFile);
+        return response;
+      }
+    }
+    catch (Exception exception)
+    {
+      response.AddError(exception.Message);
+      return response;
+    }
+  }
+
   private async static Task<byte[]> FormatFileForPipeline(IFormFile file, Project project)
   {
     var config = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -377,4 +408,6 @@ public class IaWebService : ApplicationService
     await file.CopyToAsync(memoryStream);
     return memoryStream.ToArray();
   }
+
+
 }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Server.DAL.Db;
 using Server.DTOs;
 using Server.Models;
@@ -14,18 +15,33 @@ public class ProcessRepository(MainDbContext dbContext)
     {
       Date = DateTime.Now,
       Duration = 0L,
-      Status = pipelineResponse.status,
+      Status = pipelineResponse.Status,
       PipelineJson = pipelineData,
       ProjectId = project.Id,
-      IaRemoteId = pipelineResponse.id
+      IaRemoteId = pipelineResponse.Id,
+      MaxDuration = pipelineResponse.MaxDuration
     };
     await _dbContext.Processes.AddRangeAsync(process);
     await _dbContext.SaveChangesAsync();
     return process;
   }
 
+  public async Task<Process.EProcessStatut> GetProcessStatusById(string processRemoteId)
+  {
+    return await _dbContext.Processes
+    .Where(p => p.IaRemoteId == processRemoteId)
+    .Select(p => p.Status)
+    .FirstOrDefaultAsync();
+  }
+
   public async Task UpdateProcessStatus(string processRemoteId, Process.EProcessStatut statut)
   {
-    
+    var process = await _dbContext.Processes.FirstOrDefaultAsync(p => p.IaRemoteId == processRemoteId);
+    if (process != null)
+    {
+      process.Status = statut;
+      await _dbContext.SaveChangesAsync();
+    }
   }
+
 }

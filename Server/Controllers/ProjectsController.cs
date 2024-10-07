@@ -95,8 +95,8 @@ public class ProjectsController : ApplicationController
         var responseIaWeb = await _iaWebService.RunPipeline(responseGetTrainFile.Data, responseGetTestFile.Data, responseProject.Data, projectData.Pipeline);
         if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
 
-        await _processService.CreateProcess(responseIaWeb.Data, projectData.Pipeline, responseProject.Data);
-        return Ok(new { responseIaWeb.Data.id, responseIaWeb.Data.socket, responseIaWeb.Data.status, projectId = responseProject.Data.Id });
+        var responseProcess = await _processService.CreateProcess(responseIaWeb.Data, projectData.Pipeline, responseProject.Data);
+        return Ok(new { responseIaWeb.Data.Id, responseIaWeb.Data.Socket, responseIaWeb.Data.Status, projectId = responseProject.Data.Id, responseProcess.MaxDuration });
     }
 
     [HttpGet("{projectId}/data-sample")]

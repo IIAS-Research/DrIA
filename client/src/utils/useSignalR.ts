@@ -20,10 +20,10 @@ export function useSignalR(
       .withAutomaticReconnect()
       .build();
 
-    connection.value.onreconnecting((error) => {
-      console.log('Reconnecting...', error);
-      isConnected.value = false;
-    });
+    // connection.value.onreconnecting((error) => {
+    //   console.log('Reconnecting...', error);
+    //   isConnected.value = false;
+    // });
 
     // connection.value.onreconnected((connectionId) => {
     //   console.log('Reconnected:', connectionId);
