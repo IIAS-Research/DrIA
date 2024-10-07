@@ -1,4 +1,6 @@
 
+using Server.DTOs;
+using Server.Models;
 using Server.Repositories;
 
 namespace Server.Services;
@@ -14,16 +16,37 @@ public class ModelService : ApplicationService
         _fileStorageService = fileStorageService;
     }
 
-    // public async Task SaveModelAndItsFile(CreateModelDTO modelId,  ResponseService<IFormFile> modelFile)
+    // public async Task SaveModelAndItsFile(CreateModelDTO modelId, ResponseService<IFormFile> modelFile)
     // {
     //     var saveModelResponse = await _modelRepository.CreateModel()
     //     var writeModelFileResponse = await _fileStorageService.WriteModelImageToStorageAsync(modelId, modelFile);
     // }
 
-    // async public Task<ResponseService<FileStorageService.FileStorageResponseWrite>> WriteModelFile(string modelId, IFormFile file)
-    // {
-    //     return await _fileStorageService.WriteModelImageToStorageAsync(modelId, file);
-    // }
+
+    async public Task<ResponseService<Model>> CreateModel(long processId, Metrics metrics, GetJobBibliographyOutDTO bibliography)
+    {
+        var response = new ResponseService<Model>();
+        var model = await _modelRepository.CreateModel(processId, metrics, bibliography);
+        if (model != null) response.SetSuccessful(model);
+        return response;
+    }
+
+    async public Task<ResponseService<ModelFile>> CreateModelFile(IFormFile file, Metrics model)
+    {
+        var response = new ResponseService<ModelFile>();
+
+        var responseWriteFile = await WriteModelFile(file);
+        if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
+
+        var ModelFile = await _modelRepository.CreateModelFile(model, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType);
+        response.SetSuccessful(ModelFile);
+        return response;
+    }
+
+    async public Task<ResponseService<FileStorageService.FileStorageResponseWrite>> WriteModelFile(IFormFile file)
+    {
+        return await _fileStorageService.WriteModelBinaryToStorageAsync(file);
+    }
 }
 
 // Service responses

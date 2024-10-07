@@ -1,30 +1,23 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Server.DTOs;
 
 namespace Server.Models;
 
 public class Model
 {
   [Key]
-  public required long Id { get; set; }
+  public long Id { get; set; }
 
   [Required]
   public required DateTime Date { get; set; }
 
   [Required]
   [Column(TypeName = "jsonb")]
-  public required ModelResult Results { get; set; }
+  public required ModelBibliographie Bibliography { get; set; }
 
-  [Required]
-  public required string PredictionModelName { get; set; }
-
-  [Required]
   [Column(TypeName = "jsonb")]
-  public required ModelBibliographie Bibliographie { get; set; }
-
-  [Required]
-  [Column(TypeName = "jsonb")]
-  public required ModelExplanation Explanation { get; set; }
+  public ModelExplanation? Explanation { get; set; }
 
   [Required]
   [Column(TypeName = "jsonb")]
@@ -40,12 +33,15 @@ public class Model
 
   }
 
-  public record ModelBibliographie
-  {
+    public record ModelBibliographie
+    {
+        public static implicit operator ModelBibliographie(GetJobBibliographyOutDTO v)
+        {
+            throw new NotImplementedException();
+        }
+    }
 
-  }
-
-  public record ModelExplanation
+    public record ModelExplanation
   {
 
   }

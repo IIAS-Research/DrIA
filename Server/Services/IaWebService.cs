@@ -131,17 +131,17 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async public Task<ResponseService<GenerateJobBibliographyOutDTO>> GenerateBibliography(Process process, long jobMetricId = 0)
+  async public Task<ResponseService<GetJobBibliographyOutDTO>> GetBibliography(string iaRemoteProcessId, int jobMetricId = 0)
   {
-    var response = new ResponseService<GenerateJobBibliographyOutDTO>();
+    var response = new ResponseService<GetJobBibliographyOutDTO>();
     try
     {
       using (var http = new HttpClient())
       {
-        var httpResponse = await http.GetAsync($"{_ia_url}/job/{process.Id}/model/{jobMetricId}/bibliography");
+        var httpResponse = await http.GetAsync($"{_ia_url}/job/{iaRemoteProcessId}/model/{jobMetricId}/bibliography");
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<GenerateJobBibliographyOutDTO>(httpResponseBody)!);
+        response.SetSuccessful(JsonSerializer.Deserialize<GetJobBibliographyOutDTO>(httpResponseBody)!);
       }
       return response;
     }
@@ -336,7 +336,7 @@ public class IaWebService : ApplicationService
     }
   }
 
-  public async Task<ResponseService<IFormFile>> DownloadModelFile(string jobId, string modelId)
+  public async Task<ResponseService<IFormFile>> DownloadModelFile(string jobId, int modelId)
   {
     var response = new ResponseService<IFormFile>();
     MemoryStream stream;
