@@ -23,7 +23,9 @@
       </div>
 
       <div class="flex column col-4 q-pl-xl">
-        <h4 class="no-margin q-py-lg text-weight-medium">Bibliographie</h4>
+        <h4 class="no-margin q-py-lg text-weight-medium">
+          Bibliographie
+        </h4>
         <div>
           Lorem Ipsum is simply dummy text of the printing and typesetting
           industry. Lorem Ipsum has been the industry's standard dummy text ever

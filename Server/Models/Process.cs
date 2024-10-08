@@ -42,7 +42,6 @@ public class Process : ApplicationRecord
   }
 
   [Required]
-  [JsonConverter(typeof(JsonStringEnumConverter))]
   public required EProcessStatut Status { get; set; }
 
   [Required]

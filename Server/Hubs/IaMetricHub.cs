@@ -5,6 +5,6 @@ namespace SignalRChat.Hubs
 {
   public class IaMetricHub : ApplicationHub
   {
-    public IaMetricHub(IAWebSocketServiceFuck IAWebSocketServiceFuck) : base(IAWebSocketServiceFuck) {}
+    public IaMetricHub(IaPullingService iaPullingService) : base(iaPullingService) {}
   }
 }

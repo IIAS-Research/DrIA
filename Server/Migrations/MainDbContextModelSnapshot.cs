@@ -134,7 +134,7 @@ namespace server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<Model.ModelBibliographie>("Bibliography")
+                    b.Property<string>("BibliographyJson")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
@@ -144,7 +144,7 @@ namespace server.Migrations
                     b.Property<Model.ModelExplanation>("Explanation")
                         .HasColumnType("jsonb");
 
-                    b.Property<object>("Metrics")
+                    b.Property<string>("MetricsJson")
                         .IsRequired()
                         .HasColumnType("jsonb");
 

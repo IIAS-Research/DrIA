@@ -2,17 +2,18 @@
 import {
   computed, onMounted, ref, watch, watchEffect,
 } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import {
-  ICreateProjectResponseDTO,
   ICsvProject, IProject,
+  ProcessStatus,
 } from 'components/models';
 import { useSignalR } from 'src/utils/useSignalR';
-import { useRoute } from 'vue-router';
 import ProcessCards from 'components/projects/ProcessCards.vue';
 import TableShowDataSample from 'components/projects/TableShowDataSample.vue';
 import { GetProjectWithNestedDataById, getProjectDataSampleAsync } from 'src/api/projects.api';
 
 const route = useRoute();
+const router = useRouter();
 
 // eslint-disable-next-line no-undef
 let interval: NodeJS.Timeout;
@@ -43,23 +44,34 @@ async function getProjectById() {
 
 function updateProgressVal() {
   if (!project.value) return;
-  console.log('Upadte progress bar');
-  if (project.value.processes.find((p) => p.status === 'QUEUED')) {
-    console.log('No progress, the job is in QUEUE');
+
+  const process = project.value.processes.find((p) => p.status === 'RUNNING');
+  if (!process) {
+    console.log('No running process found, clearing interval.');
+    clearInterval(interval);
     return;
   }
-  const maxDuration = project.value.processes.find((p) => p.status === 'RUNNING')?.maxDuration;
-  console.log('Max duration => ', maxDuration);
-  if (!maxDuration) return;
-  const currentTime = new Date().getTime();
-  const elapsedTime = currentTime - startProcessTime.value!;
 
-  progress.value = (elapsedTime) / maxDuration;
+  const maxDuration = (process.maxDuration ?? 0) * 1000; // Convert from seconds to milliseconds
+
+  if (!maxDuration || !startProcessTime.value) return;
+
+  // Get current time and calculate elapsed time
+  const currentTime = new Date().getTime();
+  const elapsedTime = currentTime - startProcessTime.value;
+
+  // Calculate progress (ensure elapsedTime and maxDuration are in milliseconds)
+  progress.value = elapsedTime / maxDuration;
+
+  // If progress exceeds 100%, cap it at 100%
   if (progress.value >= 1) {
     progress.value = 1;
-    clearInterval(interval);
+    clearInterval(interval); // Stop updating when progress reaches 100%
   }
-  approximativeRemainingTime.value = Math.ceil(maxDuration - elapsedTime);
+
+  // Calculate remaining time in milliseconds, ensure it's not negative
+  const remainingTime = maxDuration - elapsedTime;
+  approximativeRemainingTime.value = Math.max(0, Math.ceil(remainingTime / 1000)); // Convert to seconds and prevent negative values
 }
 
 function connectWebSocketsIfNeeded() {
@@ -78,7 +90,7 @@ function connectWebSocketsIfNeeded() {
 }
 
 onMounted(async () => {
-  console.log(await getProjectById());
+  await getProjectById();
   projectFileDataSample.value = await getProjectDataSample();
   connectWebSocketsIfNeeded();
 });
@@ -103,13 +115,15 @@ const remainingFormatedTime = computed(() => {
 
 watchEffect(async () => {
   console.log('it worked =>  ', signalRRef.value?.receivedMessageRef);
-  const messageReceived = signalRRef.value?.receivedMessageRef as ICreateProjectResponseDTO;
-  if (messageReceived?.status !== 'FINISHED') return;
-  await getProjectById();
+  const messageReceived = signalRRef.value?.receivedMessageRef as ProcessStatus;
+  if (messageReceived !== 'FINISHED') return;
+  console.log('job finished !');
+  router.replace({ name: 'project-show', params: { id: projectId.value } });
 });
 
 watch(route, async () => {
   await getProjectById();
+  console.log('icicicicic');
 }, { deep: true });
 </script>
 
@@ -136,6 +150,7 @@ watch(route, async () => {
         :value="progress"
         rounded
         stripe
+        :color="progress === 1 ? 'positive' : 'primary'"
         size="30px"
         class="q-mb-md"
       >

@@ -68,6 +68,7 @@ public partial class Program
     {
       options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // Ensures camelCase serialization for JSON
       options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; // Circle dependencies
+      options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); // Make all app enum sent as string in JSON instead of int
     });
     builder.Services.AddDbContext<MainDbContext>(options =>
         options.UseNpgsql(builder.Configuration[Configuration.ConnectionString]));
@@ -82,7 +83,7 @@ public partial class Program
     builder.Services.AddTransient<UserService>();
     builder.Services.AddTransient<IaWebService>();
     builder.Services.AddTransient<ProcessService>();
-    builder.Services.AddTransient<IAWebSocketServiceFuck>();
+    builder.Services.AddTransient<IaPullingService>();
     builder.Services.AddTransient<ModelService>();
 
     builder.Services.AddSignalR();

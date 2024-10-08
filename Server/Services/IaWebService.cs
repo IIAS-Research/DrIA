@@ -7,6 +7,7 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using Server.DTOs;
 using Server.Models;
+using static Server.Models.Model;
 
 namespace Server.Services;
 
@@ -118,7 +119,7 @@ public class IaWebService : ApplicationService
     try
     {
       using var http = new HttpClient();
-      var httpResponse = await http.GetAsync($"{_ia_url}/job/{processRemoteId}/metrics");
+      var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{processRemoteId}/metrics");
       httpResponse.EnsureSuccessStatusCode();
       string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
       response.SetSuccessful(JsonSerializer.Deserialize<GetJobMetricsOutDTO>(httpResponseBody, _serializeOptions)!);
@@ -131,17 +132,17 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async public Task<ResponseService<GetJobBibliographyOutDTO>> GetBibliography(string iaRemoteProcessId, int jobMetricId = 0)
+  async public Task<ResponseService<ModelBibliography>> GetBibliography(string iaRemoteProcessId, int jobMetricId = 0)
   {
-    var response = new ResponseService<GetJobBibliographyOutDTO>();
+    var response = new ResponseService<ModelBibliography>();
     try
     {
       using (var http = new HttpClient())
       {
-        var httpResponse = await http.GetAsync($"{_ia_url}/job/{iaRemoteProcessId}/model/{jobMetricId}/bibliography");
+        var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{iaRemoteProcessId}/model/{jobMetricId}/bibliography");
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<GetJobBibliographyOutDTO>(httpResponseBody)!);
+        response.SetSuccessful(JsonSerializer.Deserialize<ModelBibliography>(httpResponseBody)!);
       }
       return response;
     }
@@ -344,7 +345,7 @@ public class IaWebService : ApplicationService
     {
       using (var http = new HttpClient())
       {
-        var httpResponse = await http.GetAsync($"{_ia_url}/job/{jobId}/model/{modelId}/download");
+        var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{jobId}/model/{modelId}/download");
         httpResponse.EnsureSuccessStatusCode();
         var content = await httpResponse.Content.ReadAsByteArrayAsync();
         stream = new MemoryStream(content);

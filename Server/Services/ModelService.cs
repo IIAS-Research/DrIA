@@ -2,6 +2,7 @@
 using Server.DTOs;
 using Server.Models;
 using Server.Repositories;
+using static Server.Models.Model;
 
 namespace Server.Services;
 
@@ -23,10 +24,19 @@ public class ModelService : ApplicationService
     // }
 
 
-    async public Task<ResponseService<Model>> CreateModel(long processId, Metrics metrics, GetJobBibliographyOutDTO bibliography)
+    async public Task<ResponseService<Model>> CreateModel(long processId, Metrics metrics, ModelBibliography bibliography)
     {
         var response = new ResponseService<Model>();
         var model = await _modelRepository.CreateModel(processId, metrics, bibliography);
+        if (model != null) response.SetSuccessful(model);
+        return response;
+    }
+
+
+    async public Task<ResponseService<Model>> CreateModelOutsideOfRequestContext(long processId, Metrics metrics, ModelBibliography bibliography)
+    {
+        var response = new ResponseService<Model>();
+        var model = await _modelRepository.CreateModelOutsideOfRequestContext(processId, metrics, bibliography);
         if (model != null) response.SetSuccessful(model);
         return response;
     }
@@ -39,6 +49,18 @@ public class ModelService : ApplicationService
         if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
 
         var ModelFile = await _modelRepository.CreateModelFile(model, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType);
+        response.SetSuccessful(ModelFile);
+        return response;
+    }
+
+    async public Task<ResponseService<ModelFile>> CreateModelFileOutsideOfRequestContext(IFormFile file, long localDbModelId)
+    {
+        var response = new ResponseService<ModelFile>();
+
+        var responseWriteFile = await WriteModelFile(file);
+        if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
+
+        var ModelFile = await _modelRepository.CreateModelFileOutsideOfRequestContext(responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType, localDbModelId);
         response.SetSuccessful(ModelFile);
         return response;
     }

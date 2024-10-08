@@ -12,10 +12,10 @@ const lastRunningProcess = computed(() => props.processes
 
 const bestModel = computed(() => props.processes.map((p) => p.models[0])
   .sort((a, b) => {
-    if (!a.metrics.metricsTest || !b.metrics.metricsTest) {
-      return b.metrics.metricsTrain[b.metrics.mainMetric] - a.metrics.metricsTrain[a.metrics.mainMetric];
+    if (!a.metrics.metrics_test || !b.metrics.metrics_test) {
+      return b.metrics.metrics_train[b.metrics.main_metrics] - a.metrics.metrics_train[a.metrics.main_metrics];
     }
-    return b.metrics.metricsTest[b.metrics.mainMetric] - a.metrics.metricsTest[a.metrics.mainMetric];
+    return b.metrics.metrics_test[b.metrics.main_metrics] - a.metrics.metrics_test[a.metrics.main_metrics];
   })[0]);
 </script>
 
@@ -74,16 +74,22 @@ const bestModel = computed(() => props.processes.map((p) => p.models[0])
 
           <q-card-section class="text-white">
             <q-list
-              bordered
+              :bordered="processes.some(p => p.models.length) ? true : false"
               separator
             >
               <q-item
+                v-if="processes.some(p => p.models.length)"
                 clickable
                 v-ripple
                 class="column"
               >
                 <q-item-label>
                   <pre>{{ bestModel }}</pre>
+                </q-item-label>
+              </q-item>
+              <q-item v-else>
+                <q-item-label class="text-caption text-italic">
+                  Aucun models actuellement disponible
                 </q-item-label>
               </q-item>
             </q-list>

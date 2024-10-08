@@ -17,7 +17,7 @@ public class AuthController : ApplicationController
     _authService = authService;
   }
 
-  // POST: api/register
+  // POST: api/register; TODO: Policy admin only to register users
   [HttpPost("register")]
   [AllowAnonymous]
   public async Task<ActionResult<User>> RegisterUser(RegisterUserDTO registerUserDTO)

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { formatToDDMMYYYHHmm } from "src/utils/date";
-import { IModel } from "../models";
+import { formatToDDMMYYYHHmm } from 'src/utils/date';
+import { IModel } from '../models';
 
 // props
 const propsComponent = defineProps<{

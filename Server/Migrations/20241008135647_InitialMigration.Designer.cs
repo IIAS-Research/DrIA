@@ -13,8 +13,8 @@ using Server.Models;
 namespace server.Migrations
 {
     [DbContext(typeof(MainDbContext))]
-    [Migration("20240930095707_AddDetailsToProjets")]
-    partial class AddDetailsToProjets
+    [Migration("20241008135647_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -137,7 +137,7 @@ namespace server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<Model.ModelBibliographie>("Bibliographie")
+                    b.Property<string>("BibliographyJson")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
@@ -145,18 +145,18 @@ namespace server.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<Model.ModelExplanation>("Explanation")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("MetricsJson")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
-                    b.Property<string>("PredictionModelName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Model.ModelResult>("Results")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
+                    b.Property<long>("ProcessId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProcessId");
 
                     b.ToTable("Models");
                 });
@@ -171,7 +171,6 @@ namespace server.Migrations
 
                     b.Property<byte[]>("CreatedAt")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea");
 
@@ -216,14 +215,21 @@ namespace server.Migrations
                     b.Property<long>("Duration")
                         .HasColumnType("bigint");
 
-                    b.Property<Process.ProcessPipeline>("Pipeline")
+                    b.Property<string>("IaRemoteId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("MaxDuration")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PipelineJson")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("Statut")
+                    b.Property<int>("Status")
                         .HasColumnType("integer");
 
                     b.Property<byte[]>("UpdatedAt")
@@ -325,8 +331,7 @@ namespace server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId")
-                        .IsUnique();
+                    b.HasIndex("ProjectId");
 
                     b.ToTable("ProjectFiles");
                 });
@@ -494,6 +499,17 @@ namespace server.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Server.Models.Model", b =>
+                {
+                    b.HasOne("Server.Models.Process", "Process")
+                        .WithMany("Models")
+                        .HasForeignKey("ProcessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Process");
+                });
+
             modelBuilder.Entity("Server.Models.ModelFile", b =>
                 {
                     b.HasOne("Server.Models.Model", "Model")
@@ -530,12 +546,17 @@ namespace server.Migrations
             modelBuilder.Entity("Server.Models.ProjectFile", b =>
                 {
                     b.HasOne("Server.Models.Project", "Project")
-                        .WithOne("ProjectFile")
-                        .HasForeignKey("Server.Models.ProjectFile", "ProjectId")
+                        .WithMany("ProjectFile")
+                        .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("Server.Models.Process", b =>
+                {
+                    b.Navigation("Models");
                 });
 
             modelBuilder.Entity("Server.Models.Project", b =>

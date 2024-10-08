@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { QCarousel } from "quasar";
-import { ref } from "vue";
-import { IModel } from "../models";
+import { QCarousel } from 'quasar';
+import { ref } from 'vue';
+import { IModel } from '../models';
 
 // props
 const propsComponent = defineProps<{
@@ -15,7 +15,9 @@ const carousel = ref<InstanceType<typeof QCarousel>>();
 
 <template>
   <div class="flex column">
-    <h4 class="no-margin q-py-lg text-weight-medium">Performances</h4>
+    <h4 class="no-margin q-py-lg text-weight-medium">
+      Performances
+    </h4>
     <div class="flex row items-start">
       <div class="flex column q-gutter-y-sm col-2">
         <q-item
@@ -29,12 +31,19 @@ const carousel = ref<InstanceType<typeof QCarousel>>();
         >
           <q-item-section>
             <div class="flex row items-center justify-between">
-              <div class="text-weight-medium">{{ item[0] }} :</div>
-              <div class="text-weight-medium">{{ item[1] }}</div>
+              <div class="text-weight-medium">
+                {{ item[0] }} :
+              </div>
+              <div class="text-weight-medium">
+                {{ item[1] }}
+              </div>
             </div>
           </q-item-section>
           <q-item-section side>
-            <q-icon name="info" color="blue">
+            <q-icon
+              name="info"
+              color="blue"
+            >
               <!-- <q-tooltip>Surement du texte</q-tooltip> -->
             </q-icon>
           </q-item-section>
@@ -81,15 +90,19 @@ const carousel = ref<InstanceType<typeof QCarousel>>();
                 type="button"
                 style="font-size: 10px"
               >
-                <span class="q-focus-helper"></span>
+                <span class="q-focus-helper" />
                 <span
                   class="q-btn__content text-center col items-center q-anchor--skip justify-center row"
                 >
-                  <i class="q-icon" aria-hidden="true" role="img">
+                  <i
+                    class="q-icon"
+                    aria-hidden="true"
+                    role="img"
+                  >
                     <svg viewBox="0 0 24 24">
                       <path
                         d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
-                      ></path>
+                      />
                     </svg>
                   </i>
                 </span>

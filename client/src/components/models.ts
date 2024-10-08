@@ -12,15 +12,17 @@ export interface ICreateUserDTO {
   isAdmin: boolean;
 }
 
+export type ProcessStatus =
+  | 'QUEUED'
+  | 'RUNNING'
+  | 'FINISHED'
+  | 'CANCELED'
+  | 'CRASHED'
+  | 'TIMEOUT';
+
 export interface ICreateProjectResponseDTO {
   id: string;
-  status:
-    | "QUEUED"
-    | "RUNNING"
-    | "FINISHED"
-    | "CANCELED"
-    | "CRASHED"
-    | "TIMEOUT";
+  status: ProcessStatus;
   socket: string;
   projectId: number;
 }
@@ -68,7 +70,7 @@ export interface IProject {
   datasetHasIdColumnList: string[];
   createdAt?: string;
   updatedAt?: string;
-  userId: IUser["id"];
+  userId: IUser['id'];
   // eslint-disable-next-line no-use-before-define
   processes: IProcess[];
 }
@@ -89,6 +91,11 @@ export interface IModelAccuracyData {
   [key: string]: number;
 }
 
+export interface IMetricInfo {
+  name: string;
+  desc: string;
+}
+
 export interface IMetrics {
   id: number;
   model: string;
@@ -96,11 +103,6 @@ export interface IMetrics {
   main_metrics: string;
   metrics_train: { [name: string]: number };
   metrics_test: { [name: string]: number } | undefined;
-}
-
-export interface IMetricInfo {
-  name: string;
-  desc: string;
 }
 
 export interface IStructuredBibliography {
@@ -115,21 +117,13 @@ export interface IModel {
   id: number;
   date: string;
   metrics: IMetrics;
-  explanation: IExplanation[];
-  bibliography?: IBibliography[];
+  // explanation: IExplanation[];
+  // bibliography?: IBibliography[];
 }
 
-export interface IExplanation {}
+// export interface IExplanation {}
 
-export interface IBibliography {}
-
-type PipelineStatus =
-  | "QUEUED"
-  | "RUNNING"
-  | "FINISHED"
-  | "CANCELED"
-  | "CRASHED"
-  | "TIMEOUT";
+// export interface IBibliography {}
 export interface IProcess {
   iaRemoteId: string;
   id: number;
@@ -137,10 +131,10 @@ export interface IProcess {
   duration: number;
   maxDuration: number;
   pipeline: IPipeline;
-  status: PipelineStatus;
+  status: ProcessStatus;
   bestTrainAccuracy: number;
   bestTestAccuracy: number | null;
   // mainMetricsName?: string;
   models: IModel[];
-  projectId: IProject["id"];
+  projectId: IProject['id'];
 }

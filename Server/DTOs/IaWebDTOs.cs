@@ -67,6 +67,7 @@ public record Metrics
   public required string main_metrics { get; init; }
   public required Dictionary<string, float> metrics_train { get; init; }
   public required Dictionary<string, float>? metrics_test { get; init; }
+  public required Plot[] plots { get; init; }
 }
 
 public record MetricInfo
@@ -75,14 +76,21 @@ public record MetricInfo
   public required string desc { get; init; }
 }
 
-
-public record GetJobBibliographyOutDTO
+public record Plot
 {
-  public required string IaRemoteId { get; set; }
-  public required int Rid { get; set; }
-  public required string Bibliography { get; set; }
-  public required IStructuredBibliography StructuredBibliography { get; set; }
+  public required string title { get; init; }
+  public required string description { get; init; }
+  public required string image { get; init; }
 }
+
+
+// public record GetJobBibliographyOutDTO
+// {
+//   public required string id { get; set; }
+//   public required int rid { get; set; }
+//   public required string bibliography { get; set; }
+//   public required StructuredBibliography[] structured_bibliography { get; set; }
+// }
 
 
 public record ExplainModelInDTO
@@ -123,12 +131,12 @@ public record GetSplitStatusOutDTO
   }
 }
 
-public record IStructuredBibliography
-{
-  public required string Step { get; set; }
-  public required int Year { get; set; }
-  public required string Name { get; set; }
-  public required string[] Authors { get; set; }
-  public required string Doi { get; set; }
-  public required string Publisher { get; set; }
-}
+// public record StructuredBibliography
+// {
+//   public required string step { get; set; }
+//   public required int year { get; set; }
+//   public required string name { get; set; }
+//   public required string[] authors { get; set; }
+//   public required string doi { get; set; }
+//   public required string publisher { get; set; }
+// }

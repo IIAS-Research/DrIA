@@ -12,10 +12,10 @@ using static Server.Services.ApplicationService;
 
 namespace Server.Services
 {
-  public class IAWebSocketServiceFuck(IHubContext<IaStatusHub> iaStatusHub, IHubContext<IaMetricHub> iaMetricHub, ProcessRepository processRepository, IaWebService iaWebService, ModelService modelService, IServiceScopeFactory scopeFactory) : ApplicationService
+  public class IaPullingService(IHubContext<IaStatusHub> iaStatusHub, IHubContext<IaMetricHub> iaMetricHub, ProcessRepository processRepository, IaWebService iaWebService, ModelService modelService, IServiceScopeFactory scopeFactory) : ApplicationService
   {
     public static readonly string _url = "http://rss00992:32845";
-    private readonly List<IaConnectionFuck> _connections = [];
+    private readonly List<IaConnectionPulling> _connections = [];
     private readonly IHubContext<IaStatusHub> _iaStatusHub = iaStatusHub;
     private readonly IHubContext<IaMetricHub> _iaMetricHub = iaMetricHub;
     private readonly ProcessRepository _processRepository = processRepository;
@@ -24,10 +24,10 @@ namespace Server.Services
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
 
-    public IaConnectionFuck? GetIaConnection(string jobWebServiceId) =>
+    public IaConnectionPulling? GetIaConnection(string jobWebServiceId) =>
         _connections.FirstOrDefault(c => c.JobWebServiceId == jobWebServiceId);
 
-    public IaConnectionFuck CreateIaConnection(string jobWebServiceId, Type hubType)
+    public IaConnectionPulling CreateIaConnection(string jobWebServiceId, Type hubType)
     {
       IHubContext<ApplicationHub> hub;
 
@@ -40,12 +40,12 @@ namespace Server.Services
         hub = _iaStatusHub;
       }
 
-      var newConnection = new IaConnectionFuck(jobWebServiceId, hub, _processRepository, _iaWebService, _modelService, _scopeFactory);
+      var newConnection = new IaConnectionPulling(jobWebServiceId, hub, _processRepository, _iaWebService, _modelService, _scopeFactory);
       _connections.Add(newConnection);
       return newConnection;
     }
 
-    public List<IaConnectionFuck> SearchConnectionsByConnectionId(string connectionId) =>
+    public List<IaConnectionPulling> SearchConnectionsByConnectionId(string connectionId) =>
         _connections.FindAll(c => c.HasConnectionId(connectionId));
 
     public void DeleteIaConnection(string uuid)
@@ -58,13 +58,13 @@ namespace Server.Services
       }
     }
 
-    public List<IaConnectionFuck> SearchForConnectionIdInConnection(string connectionId)
+    public List<IaConnectionPulling> SearchForConnectionIdInConnection(string connectionId)
     {
       return _connections.FindAll(c => c.HasConnectionId(connectionId));
     }
   }
 
-  public class IaConnectionFuck(string jobWebServiceId, IHubContext<ApplicationHub> hub, ProcessRepository processRepository, IaWebService iaWebService, ModelService modelService, IServiceScopeFactory scopeFactory)
+  public class IaConnectionPulling(string jobWebServiceId, IHubContext<ApplicationHub> hub, ProcessRepository processRepository, IaWebService iaWebService, ModelService modelService, IServiceScopeFactory scopeFactory)
   {
     public IHubContext<ApplicationHub> Hub { get; } = hub;
     public string JobWebServiceId { get; } = jobWebServiceId;
@@ -120,7 +120,7 @@ namespace Server.Services
           await dbContext.SaveChangesAsync();
         }
 
-        Console.WriteLine($"Job status: {Status}");
+        Console.WriteLine($"PULLING => Job status: {Status}");
 
         switch (Status)
         {
@@ -138,19 +138,21 @@ namespace Server.Services
               await SendErrorsToWs(onProcessFinishResponse);
               return;
             }
-
-            await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", responseGetStatus.Data.status.current);
+            StopPulling();
+            await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", responseGetStatus.Data.status.current.ToString());
             break;
           case Process.EProcessStatut.CANCELED:
             Console.WriteLine(responseGetStatus);
+            StopPulling();
             break;
           case Process.EProcessStatut.CRASHED:
             Console.WriteLine(responseGetStatus);
+            StopPulling();
             break;
           case Process.EProcessStatut.TIMEOUT:
             Console.WriteLine("Avant le stop pulling");
-            await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", $"Process terminé avec status : {Status}");
             StopPulling();
+            await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", $"Process terminé avec status : {Status}");
             break;
         }
       }
@@ -171,7 +173,7 @@ namespace Server.Services
 
       List<Model> modelList = new List<Model>();
 
-      // For each model, download the model file, generate bibliography and save infos in DB
+      // For each model, download the model file (binary), generate bibliography and save infos in DB
       foreach (var model in responseGetMetric.Data.metrics)
       {
         var idModelProperty = model.GetType().GetProperty("id");
@@ -189,21 +191,22 @@ namespace Server.Services
             var responseBibliography = await IaWebService.GetBibliography(responseGetMetric.Data.id, modelId);
 
             // Save all this previous stuff in DB
-            var process = ProcessRepository.GetProcessByIaRemoteId(responseGetMetric.Data.id);
+            var process = await ProcessRepository.GetProcessByIaRemoteIdOutsideOfRequestContext(responseGetMetric.Data.id);
             if (process == null || !responseBibliography.IsSuccess) return responseOnProcessFinish;
 
-            await ModelService.CreateModelFile(downloadModelFileResponse.Data, model);
+            var createModelResponse = await ModelService.CreateModelOutsideOfRequestContext(process.Id, model, responseBibliography.Data);
+            if (!createModelResponse.IsSuccess) return responseOnProcessFinish;
 
-            var saveModelResponse = await ModelService.CreateModel(process.Id, model, responseBibliography.Data);
-            if (!saveModelResponse.IsSuccess) return responseOnProcessFinish;
+            await ModelService.CreateModelFileOutsideOfRequestContext(downloadModelFileResponse.Data, createModelResponse.Data.Id);
+
 
             // Add the saved model to the modelList
-            modelList.Add(saveModelResponse.Data);
+            modelList.Add(createModelResponse.Data);
           }
         }
       }
 
-      responseOnProcessFinish.SetSuccessful(modelList);
+      if (modelList.Count > 0) responseOnProcessFinish.SetSuccessful(modelList);
       return responseOnProcessFinish;
     }
 
