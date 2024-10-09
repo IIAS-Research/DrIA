@@ -5,7 +5,6 @@ using Server.Models;
 using Server.Services;
 using Server.Authorization;
 using Server.DTOs;
-using Microsoft.AspNetCore.Http.Timeouts;
 
 namespace Server.Controllers;
 
@@ -37,7 +36,7 @@ public class ProjectsController : ApplicationController
     public async Task<IActionResult> GetUserProjects()
     {
         User? currentUser = await GetCurrentUser();
-        if (currentUser is null) return BadRequest();
+        if (currentUser is null) return Unauthorized();
 
         var userProjects = await _projectService.GetUserProjects(currentUser!);
 

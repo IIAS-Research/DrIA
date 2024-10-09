@@ -1,38 +1,52 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { ref, toRef } from "vue";
+import { getModeleExplanationById } from "src/api/models.api";
+import { IModel } from "../models";
+
+// props
+const propsComponent = defineProps<{
+  model: IModel;
+}>();
+
+// refs
+const isLoadingExplanation = ref(false);
+const textExplanation = toRef(propsComponent.model.textExplanation);
+
+// functions
+async function getExplanation() {
+  isLoadingExplanation.value = true;
+  textExplanation.value =
+    (await getModeleExplanationById(propsComponent.model.id)) ?? [];
+  isLoadingExplanation.value = false;
+}
+</script>
 
 <template>
   <div class="flex column">
-    <div class="flex row items-center">
+    <div class="flex row items-start">
       <div class="flex column col-6 q-pr-xl q-mr-xl">
         <h4 class="no-margin q-py-lg text-weight-medium">
           Explication des traitements
         </h4>
-        <div>
-          Lorem Ipsum is simply dummy text of the printing and typesetting
-          industry. Lorem Ipsum has been the industry's standard dummy text ever
-          since the 1500s, when an unknown printer took a galley of type and
-          scrambled it to make a type specimen book. It has survived not only
-          five centuries, but also the leap into electronic typesetting,
-          remaining essentially unchanged. Lorem Ipsum is simply dummy text of
-          the printing and typesetting industry. Lorem Ipsum has been the
-          industry's standard dummy text ever since the 1500s, when an unknown
-          printer took a galley of type and scrambled it to make a type specimen
-          book. It has survived not only five centuries, but also the leap into
-          electronic typesetting, remaining essentially unchanged.
+        <div v-if="!propsComponent.model.textExplanation" class="flex">
+          <q-btn
+            @click="getExplanation"
+            :loading="isLoadingExplanation"
+            label="Voir l'explication"
+            color="yellow-8"
+          />
+        </div>
+        <div v-else class="flex column q-gutter-y-md">
+          <div v-for="(text, index) in textExplanation" :key="index">
+            <div v-html="text" />
+          </div>
         </div>
       </div>
 
       <div class="flex column col-4 q-pl-xl">
-        <h4 class="no-margin q-py-lg text-weight-medium">
-          Bibliographie
-        </h4>
+        <h4 class="no-margin q-py-lg text-weight-medium">Bibliographie</h4>
         <div>
-          Lorem Ipsum is simply dummy text of the printing and typesetting
-          industry. Lorem Ipsum has been the industry's standard dummy text ever
-          since the 1500s, when an unknown printer took a galley of type and
-          scrambled it to make a type specimen book. It has survived not only
-          five centuries, but also the leap into electronic typesetting,
-          remaining essentially unchanged.
+          {{ propsComponent.model.bibliography?.bibliography }}
         </div>
       </div>
     </div>

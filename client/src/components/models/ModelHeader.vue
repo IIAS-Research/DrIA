@@ -52,7 +52,7 @@ const propsComponent = defineProps<{
             class="model-info-card model-info-card-right column justify-center text-center"
             style="width: 200px;"
           >
-            0.87
+            {{ propsComponent.model.metrics.metrics_train["precision"] ?? "???" }}
           </div>
         </div>
 

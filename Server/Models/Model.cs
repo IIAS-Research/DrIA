@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
-using Server.DTOs;
 
 namespace Server.Models;
 
@@ -13,6 +12,9 @@ public class Model
 
   [Key]
   public long Id { get; set; }
+
+  [Required]
+  public required int IaRemoteId { get; set;}
 
   [Required]
   public required DateTime Date { get; set; }
@@ -43,6 +45,8 @@ public class Model
 
   [Column(TypeName = "jsonb")]
   public ModelExplanation? Explanation { get; set; }
+
+  public string[] TextExplanation { get; set;} = [];
 
   [NotMapped] // This ensures Entity Framework doesn't treat this as a mapped column
   public object? Metrics

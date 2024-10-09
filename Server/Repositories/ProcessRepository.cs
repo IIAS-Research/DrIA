@@ -1,14 +1,12 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Server.DAL.Db;
 using Server.DTOs;
 using Server.Models;
 
 namespace Server.Repositories;
-public class ProcessRepository(MainDbContext dbContext, IServiceScopeFactory serviceScopeFactory)
+public class ProcessRepository(MainDbContext dbContext)
 {
   private readonly MainDbContext _dbContext = dbContext;
-  private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
 
   public async Task<Process> CreateProcess(RunPipelineOutDTO pipelineResponse, string pipelineData, Project project)
   {
@@ -49,16 +47,5 @@ public class ProcessRepository(MainDbContext dbContext, IServiceScopeFactory ser
   {
     return await _dbContext.Processes.FirstOrDefaultAsync(p => p.IaRemoteId == processRemoteId);
   }
-
-  public async Task<Process?> GetProcessByIaRemoteIdOutsideOfRequestContext(string processRemoteId)
-  {
-    using (var scope = _serviceScopeFactory.CreateScope())
-    {
-      var dbContext = scope.ServiceProvider.GetRequiredService<MainDbContext>();
-      return await dbContext.Processes.FirstOrDefaultAsync(p => p.IaRemoteId == processRemoteId);
-    }
-  }
-
-
 
 }

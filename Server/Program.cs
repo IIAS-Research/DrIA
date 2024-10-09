@@ -83,8 +83,8 @@ public partial class Program
     builder.Services.AddTransient<UserService>();
     builder.Services.AddTransient<IaWebService>();
     builder.Services.AddTransient<ProcessService>();
-    builder.Services.AddTransient<IaPullingService>();
     builder.Services.AddTransient<ModelService>();
+    builder.Services.AddSingleton<IaPullingService>();
 
     builder.Services.AddSignalR();
 
@@ -95,6 +95,8 @@ public partial class Program
         ));
 
     builder.Services.AddSingleton<IAuthorizationHandler, ProjectAuthorizationCrudHandler>();
+    builder.Services.AddSingleton<IAuthorizationHandler, ModelAuthorizationCrudHandler>();
+    builder.Services.AddSingleton<IAuthorizationHandler, UserAuthorizationCrudHandler>();
 
     builder.Services.AddIdentityCore<User>()
                 .AddEntityFrameworkStores<MainDbContext>()

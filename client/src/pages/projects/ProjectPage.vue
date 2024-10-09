@@ -14,13 +14,14 @@ import { GetProjectWithNestedDataById, getProjectDataSampleAsync } from 'src/api
 
 const route = useRoute();
 const router = useRouter();
+const { jobId } = route.query;
+const signalR = useSignalR('status', String(jobId));
 
 // eslint-disable-next-line no-undef
 let interval: NodeJS.Timeout;
 
 const projectId = computed(() => parseInt(route.params.id as string, 10));
 
-const signalRRef = ref();
 const progress = ref(0);
 const startProcessTime = ref<number>();
 const approximativeRemainingTime = ref<number>();
@@ -75,11 +76,7 @@ function updateProgressVal() {
 }
 
 function connectWebSocketsIfNeeded() {
-  const { jobId } = route.query;
-  if (!jobId) return;
   console.log('here connect web sockets');
-  const signalR = useSignalR('status', String(jobId));
-  signalRRef.value = signalR;
   signalR.connect();
   startProcessTime.value = new Date().getTime();
   if (interval) return;
@@ -114,21 +111,23 @@ const remainingFormatedTime = computed(() => {
 });
 
 watchEffect(async () => {
-  console.log('it worked =>  ', signalRRef.value?.receivedMessageRef);
-  const messageReceived = signalRRef.value?.receivedMessageRef as ProcessStatus;
+  const messageReceived = signalR.receivedMessageRef.value as ProcessStatus;
   if (messageReceived !== 'FINISHED') return;
-  console.log('job finished !');
   router.replace({ name: 'project-show', params: { id: projectId.value } });
 });
 
 watch(route, async () => {
   await getProjectById();
-  console.log('icicicicic');
 }, { deep: true });
 </script>
 
 <template>
   <q-page padding>
+    <q-dialog v-model="signalR.errorDialog.value">
+      <q-card class="q-pa-md">
+        <div>{{ signalR.receivedMessageRef.value }}</div>
+      </q-card>
+    </q-dialog>
     <template v-if="project">
       <div class="text-h5">
         {{ project.title }}

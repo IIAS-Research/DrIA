@@ -203,14 +203,14 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async public Task<ResponseService<GetModelTextExplanationOutDTO>> GetTextExplanation(Process process, long jobMetricId = 0)
+  async public Task<ResponseService<GetModelTextExplanationOutDTO>> GetTextExplanation(string processRemoteId, int modelRemoteId)
   {
     var response = new ResponseService<GetModelTextExplanationOutDTO>();
     try
     {
       using (var http = new HttpClient())
       {
-        var httpResponse = await http.GetAsync($"{_ia_url}/job/{process.Id}/model/{jobMetricId}/explain");
+        var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{processRemoteId}/model/{modelRemoteId}/explanations");
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
         response.SetSuccessful(JsonSerializer.Deserialize<GetModelTextExplanationOutDTO>(httpResponseBody, _serializeOptions)!);
@@ -223,7 +223,6 @@ public class IaWebService : ApplicationService
       return response;
     }
   }
-
 
   async public Task<ResponseService<SplitOutDTO>> Split(IFormFile file, Project project)
   {

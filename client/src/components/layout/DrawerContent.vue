@@ -64,12 +64,14 @@ watchEffect(async () => {
         </q-btn>
       </div>
 
-      <q-list>
+      <div class="text-weight-medium text-body1 q-pt-md q-pb-sm q-pl-md">Mes projets</div>
+      <q-list separator bordered>
         <q-item
           v-for="project in userProjects"
           :key="project.id"
           clickable
           v-ripple
+          class="bg-grey-3"
           :to="{ name: 'project-show', params: { id: project.id } }"
         >
           <q-item-section>

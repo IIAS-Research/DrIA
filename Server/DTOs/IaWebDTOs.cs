@@ -99,16 +99,16 @@ public record ExplainModelInDTO
 }
 public record ExplainModelOutDTO
 {
-  public required string id;
-  public required string socket;
-  public required Process.EProcessStatut status;
+  public required string id { get; init; }
+  public required string socket { get; init; }
+  public required Process.EProcessStatut status { get; init; }
 }
 
 public record GetModelTextExplanationOutDTO
 {
-  public required string id;
-  public int? rid;
-  public required string[] explanations;
+  public required string id { get; init; }
+  public required int rid { get; init; }
+  public required string[] explanations { get; init; }
 }
 
 public record SplitOutDTO
@@ -120,9 +120,9 @@ public record SplitOutDTO
 
 public record GetSplitStatusOutDTO
 {
-  public required string id;
-  public required string socket;
-  public required SplitStatus status;
+  public required string id { get; init; }
+  public required string socket { get; init; }
+  public required SplitStatus status { get; init; }
 
   public record SplitStatus
   {
