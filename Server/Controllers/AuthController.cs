@@ -46,15 +46,24 @@ public class AuthController : ApplicationController
   }
 
   // GET: api/refresh-token
-  [HttpPost("refresh-access-token")]
-  public async Task<ActionResult> RefreshToken(string accessToken)
+  [HttpGet("refresh-access-token")]
+  public async Task<ActionResult<string>> RefreshToken()
   {
-    var authServiceResponse = await _authService.RefreshAccessToken(accessToken);
-    if (authServiceResponse.IsLoggedIn)
+    // Retrieve the authorization header from the request
+    var authHeader = Request.Headers.Authorization.ToString();
+
+    // Check if the Authorization header contains a Bearer token
+    if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
     {
+      // Extract the token from the Bearer string
+      var accessToken = authHeader["Bearer ".Length..].Trim();
+
+      var authServiceResponse = await _authService.RefreshAccessToken(accessToken);
+
+      if (!authServiceResponse.IsLoggedIn) return BadRequest("Token expired or invalid.");
       return Ok(authServiceResponse);
     }
-    return BadRequest();
+    return BadRequest("Authorization Bearer invalid.");
   }
 
 

@@ -8,6 +8,7 @@ import { IProject } from 'src/components/models';
 // props
 const props = defineProps<{
   isUserConnected: boolean;
+  isUserAdmin?: boolean;
 }>();
 
 // emits
@@ -47,6 +48,7 @@ watchEffect(async () => {
         </q-btn>
 
         <q-btn
+          v-if="isUserAdmin"
           color="primary"
           icon="settings"
           to="/manage-users"

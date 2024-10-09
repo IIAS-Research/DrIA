@@ -53,6 +53,7 @@ public class AuthService(IConfiguration config, UserManager<User> userManager) :
         var decodedAccessToken = DecodeJwt(accessToken);
         var userEmailClaim = decodedAccessToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Email) ?? throw new InvalidOperationException("User EMAIL claim is missing from the token.");
         var identityUser = await _userManager.FindByEmailAsync(userEmailClaim.Value);
+        if(identityUser == null) return new LoginResponse { IsLoggedIn = false };
         var refreshedAccessToken = GenerateTokenString(identityUser);
         return new LoginResponse { AccessToken = refreshedAccessToken, IsLoggedIn = true };
     }

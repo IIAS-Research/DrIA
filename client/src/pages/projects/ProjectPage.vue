@@ -8,9 +8,9 @@ import {
   ProcessStatus,
 } from 'components/models';
 import { useSignalR } from 'src/utils/useSignalR';
-import ProcessCards from 'components/projects/ProcessCards.vue';
 import TableShowDataSample from 'components/projects/TableShowDataSample.vue';
 import { GetProjectWithNestedDataById, getProjectDataSampleAsync } from 'src/api/projects.api';
+import TrainResultsCards from 'src/components/projects/TrainResultsCards.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -134,38 +134,39 @@ watch(route, async () => {
       </div>
       <div
         v-if="project.description"
-        class="text-subtitle2 text-grey-8"
+        class="text-subtitle2 text-grey-8 q-mb-md"
       >
         {{ project.description }}
       </div>
 
-      <div
-        v-if="project.processes.some(p => p.status === 'RUNNING')"
-        class="text-h6 text-primary q-mt-md"
-      >
-        Traitement des process en cours
-      </div>
-      <q-linear-progress
-        :value="progress"
-        rounded
-        stripe
-        :color="progress === 1 ? 'positive' : 'primary'"
-        size="30px"
-        class="q-mb-md"
-      >
-        <div class="absolute-full flex flex-center">
-          <q-badge
-            color="white"
-            text-color="primary"
-            :label="progress === 1 ? '100 % Terminé' :
-              `${Math.floor(progress * 100)} % (Environ ${remainingFormatedTime})`"
-          />
+      <div v-if="project.processes.some(p => p.status === 'RUNNING')">
+        <div
+          class="text-h6 text-primary"
+        >
+          Traitement des process en cours
         </div>
-      </q-linear-progress>
+        <q-linear-progress
+          :value="progress"
+          rounded
+          stripe
+          :color="progress === 1 ? 'positive' : 'primary'"
+          size="30px"
+          class="q-mb-md"
+        >
+          <div class="absolute-full flex flex-center">
+            <q-badge
+              color="white"
+              text-color="primary"
+              :label="progress === 1 ? '100 % Terminé' :
+                `${Math.floor(progress * 100)} % (Environ ${remainingFormatedTime})`"
+            />
+          </div>
+        </q-linear-progress>
+      </div>
 
       <TableShowDataSample :project-file-data-sample="projectFileDataSample" />
 
-      <ProcessCards
+      <TrainResultsCards
         v-if="project.processes?.length"
         :processes="project.processes"
         class="q-mt-md"

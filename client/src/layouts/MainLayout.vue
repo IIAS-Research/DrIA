@@ -77,6 +77,7 @@ onMounted(async () => {
       <DrawerContent
         @click="async () => { await userStore.logout(); leftDrawerOpen = false }"
         :is-user-connected="userStore.isUserConnected"
+        :is-user-admin="userStore.isUserAdmin"
       />
     </q-drawer>
 

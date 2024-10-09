@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Cookies } from 'quasar';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 import { IUser } from 'src/components/models';
@@ -34,6 +34,9 @@ export const useUserStore = defineStore('user', () => {
   const isUserConnected = ref(false);
   const isAccessTokenExpired = ref(false);
   const accessTokenExpirationTime = ref(0);
+
+  // Getters
+  const isUserAdmin = computed(() => currentUser.value?.isAdmin);
 
   // Actions
   function checkIfAccessTokenIsExpired() {
@@ -148,6 +151,7 @@ export const useUserStore = defineStore('user', () => {
     isUserConnected,
     isAccessTokenExpired,
     accessTokenExpirationTime,
+    isUserAdmin,
     login,
     checkIfAccessTokenWillExpireSoon,
     checkIfUserIsConnected,
