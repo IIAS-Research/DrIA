@@ -51,7 +51,8 @@ namespace Server.Controllers
 
         // PUT: api/User/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
+        [HttpPatch("{id}")]
+        // [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> PutUser(long id, User user)
         {
             if (id != user.Id)
@@ -77,7 +78,7 @@ namespace Server.Controllers
                 }
             }
 
-            return NoContent();
+            return Ok(user);
         }
 
         // POST: api/User
