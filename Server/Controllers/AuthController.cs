@@ -61,7 +61,7 @@ public class AuthController : ApplicationController
       var authServiceResponse = await _authService.RefreshAccessToken(accessToken);
 
       if (!authServiceResponse.IsLoggedIn) return BadRequest("Token expired or invalid.");
-      return Ok(authServiceResponse.AccessToken);
+      return Ok(authServiceResponse);
     }
     return BadRequest("Authorization Bearer invalid.");
   }
