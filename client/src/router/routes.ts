@@ -42,6 +42,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/models/ModelPage.vue'),
         beforeEnter: mustBeAuth,
       },
+      {
+        path: 'projets/:projectId/processes/:processId/pipeline-fork',
+        name: 'pipeline-fork',
+        component: () => import('pages/processes/ForkPipelineEditor.vue'),
+        beforeEnter: mustBeAuth,
+      },
     ],
   },
 

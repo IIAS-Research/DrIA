@@ -71,4 +71,9 @@ public class ProjectRepository(MainDbContext dbContext)
         .FirstOrDefaultAsync(proj => proj.Id == id);
     }
 
+    public async Task<ProjectFile?> GetProjectFileAsync(long projectId, ProjectFile.EProjectFileType type)
+    {
+      return await _dbContext.ProjectFiles.FirstOrDefaultAsync(p => p.ProjectId == projectId && p.FileType == type);
+    }
+
 }

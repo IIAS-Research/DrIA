@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { formatToDDMMYYYHHmm } from 'src/utils/date';
 import ModelCardContent from 'components/projects/ModelCardContent.vue';
-import { IProcess } from '../models';
+import { useRouter } from 'vue-router';
+import { IModel, IProcess } from '../models';
 import ProcessCardContent from './ProcessCardContent.vue';
+
+const router = useRouter();
 
 const props = defineProps<{
   processes: IProcess[]
+  projectId: number;
 }>();
 
 const lastRunningProcess = computed(() => props.processes
@@ -19,6 +22,17 @@ const bestModel = computed(() => props.processes.map((p) => p.models[0])
     }
     return b.metrics.metrics_test[b.metrics.main_metrics] - a.metrics.metrics_test[a.metrics.main_metrics];
   })[0]);
+
+function getParentProcessOfModel(model: IModel) {
+  return props.processes.filter((p) => p.models.find((m) => JSON.stringify(m) === JSON.stringify(model)))[0];
+}
+
+function forkPipeline() {
+  console.log('Forking pipeline');
+  const processId = getParentProcessOfModel(bestModel.value)?.id;
+  if (!processId) return;
+  router.push({ name: 'pipeline-fork', params: { projectId: props.projectId, processId } });
+}
 </script>
 
 <template>
@@ -34,7 +48,10 @@ const bestModel = computed(() => props.processes.map((p) => p.models[0])
               Last processing
             </div>
 
-            <ProcessCardContent :process="lastRunningProcess" />
+            <ProcessCardContent
+              v-if="lastRunningProcess"
+              :process="lastRunningProcess"
+            />
           </q-card-section>
         </q-card>
       </div>
@@ -55,11 +72,24 @@ const bestModel = computed(() => props.processes.map((p) => p.models[0])
               class="text-white"
             />
           </q-card-section>
+
+          <q-card-actions
+            align="right"
+          >
+            <q-btn
+              label="Fork pipeline"
+              color="primary"
+              @click="forkPipeline"
+            />
+          </q-card-actions>
         </q-card>
       </div>
     </div>
 
-    <q-card class="q-mt-md">
+    <q-card
+      v-if="processes?.length"
+      class="q-mt-md"
+    >
       <q-card-section class="text-h6">
         All processing
       </q-card-section>

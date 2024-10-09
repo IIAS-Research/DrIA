@@ -1,4 +1,5 @@
 using Server.Models;
+using static Server.Models.Process;
 
 namespace Server.DTOs;
 
@@ -131,12 +132,28 @@ public record GetSplitStatusOutDTO
   }
 }
 
-// public record StructuredBibliography
-// {
-//   public required string step { get; set; }
-//   public required int year { get; set; }
-//   public required string name { get; set; }
-//   public required string[] authors { get; set; }
-//   public required string doi { get; set; }
-//   public required string publisher { get; set; }
-// }
+public record RunNewProcessDTO
+{
+  public required long ProjectId { get; set; }
+  public required string Pipeline { get; set; } // JSON
+}
+
+public record RunNewPipelineDTO
+{
+  public required Project Project { get; set; }
+  public required ProcessPipeline PipelineToRun { get; set; }
+  public required byte[] TrainFile { get; set; }
+  public required byte[] TestFile { get; set; }
+}
+
+public record GetTrainAndTestFilesOutDTO
+{
+  public required RunPipelineFileDTO TrainFile { get; set; }
+  public required RunPipelineFileDTO TestFile { get; set; }
+}
+
+public record RunPipelineFileDTO
+{
+  public required byte[] File { get; set; }
+  public required string FileName { get; set; }
+}

@@ -2,12 +2,18 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http.Json;
 
 namespace Server.Models;
 
 public class Process : ApplicationRecord
 {
   private string _pipelineJson = "";
+  private readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions
+  {
+    PropertyNameCaseInsensitive = true,
+    WriteIndented = true
+  };
 
   [Key]
   public long Id { get; set; }
@@ -24,7 +30,7 @@ public class Process : ApplicationRecord
     {
       return string.IsNullOrWhiteSpace(_pipelineJson)
           ? null
-          : JsonSerializer.Deserialize<ProcessPipeline>(_pipelineJson);
+          : JsonSerializer.Deserialize<ProcessPipeline>(_pipelineJson, jsonOptions);
     }
     set
     {

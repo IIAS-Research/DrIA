@@ -21,7 +21,7 @@ public class IaWebService : ApplicationService
     Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
   };
 
-  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(IFormFile trainFile, IFormFile testFile, Project project, string pipeline)
+  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(RunPipelineFileDTO trainFile, RunPipelineFileDTO testFile, Project project, string pipeline)
   {
     var response = new ResponseService<RunPipelineOutDTO>();
     try
@@ -30,8 +30,8 @@ public class IaWebService : ApplicationService
       {
         var requestContent = new MultipartFormDataContent
         {
-            { new ByteArrayContent(await IFormFileToByteArray(trainFile)), "train_dataset", trainFile.FileName },
-            { new ByteArrayContent(await IFormFileToByteArray(testFile)), "test_dataset", testFile.FileName },
+            { new ByteArrayContent(trainFile.File), "train_dataset", trainFile.FileName },
+            { new ByteArrayContent(testFile.File), "test_dataset", testFile.FileName },
             { new StringContent(project.CsvColumnToPredict), "dataset_target" },
             { new StringContent(pipeline, Encoding.UTF8, "application/json"), "pipeline" }
         };
@@ -403,7 +403,7 @@ public class IaWebService : ApplicationService
     return memoryStream.ToArray();
   }
 
-  private async static Task<byte[]> IFormFileToByteArray(IFormFile file)
+  public async static Task<byte[]> IFormFileToByteArray(IFormFile file)
   {
     await using var memoryStream = new MemoryStream();
     await file.CopyToAsync(memoryStream);

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Server.DAL.Db;
 using Server.DTOs;
 using Server.Models;
+using static Server.Models.Process;
 
 namespace Server.Repositories;
 public class ProcessRepository(MainDbContext dbContext, IServiceScopeFactory serviceScopeFactory)
@@ -57,6 +58,15 @@ public class ProcessRepository(MainDbContext dbContext, IServiceScopeFactory ser
       var dbContext = scope.ServiceProvider.GetRequiredService<MainDbContext>();
       return await dbContext.Processes.FirstOrDefaultAsync(p => p.IaRemoteId == processRemoteId);
     }
+  }
+
+  public async Task<ProcessPipeline?> GetProcessPipeline(long processId, long projectId)
+  {
+    var process = await _dbContext.Processes
+        .Where(p => p.ProjectId == projectId && p.Id == processId)
+        .FirstOrDefaultAsync();
+
+    return process?.Pipeline;
   }
 
 

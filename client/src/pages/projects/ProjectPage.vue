@@ -169,6 +169,7 @@ watch(route, async () => {
 
       <TrainResultsCards
         v-if="project.processes?.length"
+        :project-id="project.id"
         :processes="project.processes"
         class="q-mt-md"
       />

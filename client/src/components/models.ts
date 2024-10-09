@@ -138,3 +138,8 @@ export interface IProcess {
   models: IModel[];
   projectId: IProject['id'];
 }
+
+export interface IRunPipelineForkDto {
+  projectId: number;
+  pipeline: IPipeline;
+}

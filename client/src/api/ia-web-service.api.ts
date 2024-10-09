@@ -1,8 +1,8 @@
 import { api } from 'src/boot/axios';
-import { IMetaOrderedStep } from 'src/components/models';
+import { IPipeline } from 'src/components/models';
 import { notify } from 'src/utils/notify';
 
-export async function getDefaultPipeline(): Promise<IMetaOrderedStep | undefined> {
+export async function getDefaultPipeline(): Promise<IPipeline | undefined> {
   try {
     const response = (await api.get('IaWebService/pipeline'))?.data;
     return response;

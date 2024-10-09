@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { QForm, QStepper } from 'quasar';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { parse } from 'papaparse';
-import { IProjectForm } from '../models';
+import { getDefaultPipeline } from 'src/api/ia-web-service.api';
+import { IPipeline, IProjectForm } from '../models';
 import PipelineProject from '../pipeline/PipelineProject.vue';
 
 const emitsComponent = defineEmits<{(e: 'submitProject', projectForm: IProjectForm, file: File): Promise<void>
@@ -27,6 +28,7 @@ const project = ref({ ...initialProjectInfos });
 const formSteppers = ref<QForm[]>([]);
 const pipelineComponentRef = ref<InstanceType<typeof PipelineProject>>();
 const isPipelineLoading = ref(true);
+const pipeline = ref<IPipeline>();
 
 function getCsvFileHeaderColumns() {
   if (!uploadedFile.value) return;
@@ -58,7 +60,7 @@ async function submitForAITrain() {
   if (uploadedFile.value === null || pipelineComponentRef.value === undefined) {
     return;
   }
-  project.value.pipeline = pipelineComponentRef.value.pipeline;
+  project.value.pipeline = pipelineComponentRef.value.pipelineRefLocalComponent;
   emitsComponent('submitProject', project.value, uploadedFile.value);
 }
 
@@ -76,6 +78,9 @@ async function handleNextStepValidation() {
   }
 }
 
+onMounted(async () => {
+  pipeline.value = await getDefaultPipeline();
+});
 </script>
 
 <template>
@@ -265,7 +270,9 @@ async function handleNextStepValidation() {
           >
             <PipelineProject
               ref="pipelineComponentRef"
+              v-if="pipeline"
               class="bg-grey-3"
+              :pipeline="pipeline"
               @is-pipeline-loading="(status: boolean) => { isPipelineLoading = status }"
             />
           </q-expansion-item>
