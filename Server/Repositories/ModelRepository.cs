@@ -8,79 +8,74 @@ using static Server.Models.Model;
 namespace Server.Repositories;
 public class ModelRepository(MainDbContext dbContext, IServiceScopeFactory serviceScopeFactory)
 {
-    private readonly MainDbContext _dbContext = dbContext;
-    private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
+  private readonly MainDbContext _dbContext = dbContext;
+  private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
 
 
-    public async Task<List<Model>> GetModels()
+  public async Task<Model?> GetModelById(long id)
+  {
+    return await _dbContext.Models.FindAsync(id);
+  }
+
+  public async Task<Model?> GetModeleWithProcessById(long id)
+  {
+    return await _dbContext.Models
+      .Include(m => m.Process)
+      .FirstOrDefaultAsync(m => m.Id == id);
+  }
+
+  public async Task<List<Model>> GetModels()
+  {
+    return await _dbContext.Models.ToListAsync();
+  }
+
+  public async Task<Model> CreateModel(long processId, Metrics metrics, ModelBibliography bibliography, int iaRemoteId)
+  {
+    Model model = new Model
     {
-        return await _dbContext.Models.ToListAsync();
-    }
+      MetricsJson = JsonSerializer.Serialize(metrics),
+      ProcessId = processId,
+      Date = DateTime.Now,
+      BibliographyJson = JsonSerializer.Serialize(bibliography),
+      IaRemoteId = iaRemoteId
+    };
+    await _dbContext.Models.AddRangeAsync(model);
+    await _dbContext.SaveChangesAsync();
+    return model;
+  }
 
-    public async Task<Model> CreateModel(long processId, Metrics metrics, ModelBibliography bibliography)
+  public async Task<ModelFile> CreateModelFile(string filename, string filePath, string mimeType, long modelId)
+  {
+    ModelFile ModelFile = new ModelFile
     {
-        Model model = new Model
-        {
-            Metrics = metrics,
-            ProcessId = processId,
-            Date = DateTime.Now,
-            Bibliography = bibliography,
-        };
-        await _dbContext.Models.AddRangeAsync(model);
-        await _dbContext.SaveChangesAsync();
-        return model;
-    }
+      Filename = filename,
+      StorageFilename = filePath,
+      ModelId = modelId,
+      MimeType = mimeType
+    };
+    await _dbContext.ModelFiles.AddRangeAsync(ModelFile);
+    await _dbContext.SaveChangesAsync();
+    return ModelFile;
+  }
 
-    public async Task<Model> CreateModelOutsideOfRequestContext(long processId, Metrics metrics, ModelBibliography bibliography)
-    {
-        using (var scope = _serviceScopeFactory.CreateScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<MainDbContext>();
+  public async Task<Model> SaveTextExplanation(Model model, string[] explanation)
+  {
+    model.TextExplanation = explanation; 
+    await _dbContext.SaveChangesAsync();
+    return model;
+  }
 
-            Model model = new Model
-            {
-                MetricsJson = JsonSerializer.Serialize(metrics),
-                ProcessId = processId,
-                Date = DateTime.Now,
-                BibliographyJson = JsonSerializer.Serialize(bibliography),
-            };
-            await dbContext.Models.AddRangeAsync(model);
-            await dbContext.SaveChangesAsync();
-            return model;
-        }
-    }
-
-    public async Task<ModelFile> CreateModelFile(Metrics model, string filename, string filePath, string mimeType)
-    {
-        ModelFile ModelFile = new ModelFile
-        {
-            Filename = filename,
-            StorageFilename = filePath,
-            ModelId = model.id,
-            MimeType = mimeType
-        };
-        await _dbContext.ModelFiles.AddRangeAsync(ModelFile);
-        await _dbContext.SaveChangesAsync();
-        return ModelFile;
-    }
-
-    public async Task<ModelFile> CreateModelFileOutsideOfRequestContext(string filename, string filePath, string mimeType, long localDbModelId)
-    {
-        using (var scope = _serviceScopeFactory.CreateScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<MainDbContext>();
-
-            ModelFile ModelFile = new ModelFile
-            {
-                Filename = filename,
-                StorageFilename = filePath,
-                ModelId = localDbModelId,
-                MimeType = mimeType
-            };
-            await dbContext.ModelFiles.AddRangeAsync(ModelFile);
-            await dbContext.SaveChangesAsync();
-            return ModelFile;
-        }
-    }
+  // Policies
+  async public Task<bool> UserCanAccessModel(Model model, long userId)
+  {
+    var modelProcess = await _dbContext.Projects
+      .Include(proj => proj.Processes)
+      .ThenInclude(proc => proc.Models)
+      .Where(proj => proj.UserId == userId)
+      .Where(proj => proj.Processes.Any(proc => proc.Models.Any(mod => mod.Id == model.Id)))
+      .Select(p => p.Id)
+      .ToListAsync();
+    return modelProcess.Count > 0;
+  }
 
 }

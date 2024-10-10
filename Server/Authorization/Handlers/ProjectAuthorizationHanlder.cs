@@ -12,7 +12,7 @@ public class ProjectAuthorizationCrudHandler :
                                                    Project resource)
     {
         if (Operations.Admin.Name == requirement.Name)
-        {
+        { 
             var isAdminClaim = context.User.FindFirst(c => c.Type == "isAdmin");
             if (isAdminClaim != null && bool.TryParse(isAdminClaim.Value, out bool isAdmin))
             {

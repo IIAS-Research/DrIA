@@ -103,6 +103,13 @@ export interface IMetrics {
   main_metrics: string;
   metrics_train: { [name: string]: number };
   metrics_test: { [name: string]: number } | undefined;
+  plots: IPlot[];
+}
+
+export interface IPlot {
+  title: string;
+  description: string;
+  image: string;
 }
 
 export interface IStructuredBibliography {
@@ -117,15 +124,24 @@ export interface IModel {
   id: number;
   date: string;
   metrics: IMetrics;
-  // explanation: IExplanation[];
-  // bibliography?: IBibliography[];
+  explanation: IExplanation;
+  textExplanation: string[];
+  bibliography?: IBibliography;
 }
 
-// export interface IExplanation {}
+export interface IExplanation {
+  
+}
 
-// export interface IBibliography {}
+export interface IBibliography {
+  id: string;
+  rid: number;
+  bibliography: string;
+  structured_bibliography: IStructuredBibliography[];
+}
+
 export interface IProcess {
-  iaRemoteId: string;
+  iaRemoteId: number;
   id: number;
   date: Date;
   duration: number;

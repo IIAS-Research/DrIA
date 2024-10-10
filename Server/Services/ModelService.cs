@@ -10,57 +10,31 @@ public class ModelService : ApplicationService
 {
     private readonly ModelRepository _modelRepository;
     private readonly FileStorageService _fileStorageService;
+    private readonly IaWebService _iaWebService;
 
-    public ModelService(ModelRepository modelRepository, FileStorageService fileStorageService)
+    public ModelService(ModelRepository modelRepository, FileStorageService fileStorageService, IaWebService iaWebService)
     {
         _modelRepository = modelRepository;
         _fileStorageService = fileStorageService;
+        _iaWebService = iaWebService;
     }
 
-    // public async Task SaveModelAndItsFile(CreateModelDTO modelId, ResponseService<IFormFile> modelFile)
-    // {
-    //     var saveModelResponse = await _modelRepository.CreateModel()
-    //     var writeModelFileResponse = await _fileStorageService.WriteModelImageToStorageAsync(modelId, modelFile);
-    // }
-
-
-    async public Task<ResponseService<Model>> CreateModel(long processId, Metrics metrics, ModelBibliography bibliography)
+    async public Task<ResponseService<Model>> CreateModel(long processId, Metrics metrics, ModelBibliography bibliography, int iaRemoteId)
     {
         var response = new ResponseService<Model>();
-        var model = await _modelRepository.CreateModel(processId, metrics, bibliography);
+        var model = await _modelRepository.CreateModel(processId, metrics, bibliography, iaRemoteId);
         if (model != null) response.SetSuccessful(model);
         return response;
     }
 
-
-    async public Task<ResponseService<Model>> CreateModelOutsideOfRequestContext(long processId, Metrics metrics, ModelBibliography bibliography)
-    {
-        var response = new ResponseService<Model>();
-        var model = await _modelRepository.CreateModelOutsideOfRequestContext(processId, metrics, bibliography);
-        if (model != null) response.SetSuccessful(model);
-        return response;
-    }
-
-    async public Task<ResponseService<ModelFile>> CreateModelFile(IFormFile file, Metrics model)
+    async public Task<ResponseService<ModelFile>> CreateModelFile(IFormFile file, long modelId)
     {
         var response = new ResponseService<ModelFile>();
 
         var responseWriteFile = await WriteModelFile(file);
         if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
 
-        var ModelFile = await _modelRepository.CreateModelFile(model, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType);
-        response.SetSuccessful(ModelFile);
-        return response;
-    }
-
-    async public Task<ResponseService<ModelFile>> CreateModelFileOutsideOfRequestContext(IFormFile file, long localDbModelId)
-    {
-        var response = new ResponseService<ModelFile>();
-
-        var responseWriteFile = await WriteModelFile(file);
-        if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
-
-        var ModelFile = await _modelRepository.CreateModelFileOutsideOfRequestContext(responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType, localDbModelId);
+        var ModelFile = await _modelRepository.CreateModelFile(responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType, modelId);
         response.SetSuccessful(ModelFile);
         return response;
     }
@@ -69,7 +43,52 @@ public class ModelService : ApplicationService
     {
         return await _fileStorageService.WriteModelBinaryToStorageAsync(file);
     }
+
+    async public Task<ResponseService<Model>> GetModelById(long id)
+    {
+      var response = new ResponseService<Model>();
+      var model = await _modelRepository.GetModelById(id);
+      if (model == null)
+      {
+        response.AddError("Model not found");
+        return response;
+      }
+      response.SetSuccessful(model);
+      return response;
+    }
+
+    async public Task<ResponseService<Model>> GetModeleWithProcessById(long id)
+    {
+      var response = new ResponseService<Model>();
+      var model = await _modelRepository.GetModeleWithProcessById(id);
+      if (model == null)
+      {
+        response.AddError("Model not found");
+        return response;
+      }
+      response.SetSuccessful(model);
+      return response;
+    }
+
+    async public Task<ResponseService<Model>> GetModeleExplanationById(long id)
+    {
+      var response = new ResponseService<Model>();
+
+      var responseModele = await GetModeleWithProcessById(id);
+      if (!response.EnsureOtherServiceIsSuccess(responseModele)) return response;
+      
+      var responseExplanation = await _iaWebService.GetTextExplanation(responseModele.Data.Process!.IaRemoteId, responseModele.Data.IaRemoteId);
+      if (!response.EnsureOtherServiceIsSuccess(responseExplanation)) return response;
+
+      var model = await _modelRepository.SaveTextExplanation(responseModele.Data, responseExplanation.Data.explanations);
+
+      response.SetSuccessful(model);
+      return response;
+    }
+
+    async public Task<bool> UserCanAccessModel(Model model, long userId)
+    {
+      return await _modelRepository.UserCanAccessModel(model, userId);
+    }
+    
 }
-
-// Service responses
-

@@ -1,20 +1,29 @@
-import { ref } from 'vue';
-import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
+import { ref } from "vue";
+import { HubConnection, HubConnectionBuilder } from "@microsoft/signalr";
 
-export function useSignalR(
-  hubName: 'status' | 'metrics',
-  processId: string,
-) {
+export function useSignalR(hubName: "status" | "metrics", processId: string) {
   // refs
   const connection = ref<HubConnection | null>(null);
   const isConnected = ref(false);
   const receivedMessageRef = ref<any>();
+  const errorDialog = ref(false);
 
   // functions
+  function disconnect() {
+    if (!connection.value) {
+      return;
+    }
+    connection.value
+      .stop()
+      .then(() => {
+        console.log("Disconnected from SignalR");
+        isConnected.value = false;
+      })
+      .catch((error: Error) => console.error("Error disconnecting:", error));
+  }
+
   async function connect() {
     const url = `${process.env.API}/ws/${hubName}`;
-    console.log(url);
-
     connection.value = new HubConnectionBuilder()
       .withUrl(url)
       .withAutomaticReconnect()
@@ -30,34 +39,27 @@ export function useSignalR(
     //   isConnected.value = true;
     // });
 
-    connection.value.on('ReceiveMessage', (message) => {
-      console.log('Received message:', message);
+    connection.value.on("ReceiveMessage", (message) => {
+      console.log("Received message:", message);
       receivedMessageRef.value = message;
+    });
+
+    connection.value.on("StopMessage", (message) => {
+      console.log("Stop message:", message);
+      errorDialog.value = true;
+      disconnect();
     });
 
     try {
       await connection.value.start();
-      console.log('Connected to SignalR');
-      console.log('processId => ', processId);
-      await connection.value.invoke('TestWs');
-      await connection.value.invoke('JoinGroup', processId);
+      console.log("Connected to SignalR");
+      console.log("processId => ", processId);
+      await connection.value.invoke("TestWs");
+      await connection.value.invoke("JoinGroup", processId);
       isConnected.value = true;
     } catch (error) {
-      console.error('Error connecting to SignalR:', error);
+      console.error("Error connecting to SignalR:", error);
     }
-  }
-
-  function disconnect() {
-    if (!connection.value) {
-      return;
-    }
-    connection.value
-      .stop()
-      .then(() => {
-        console.log('Disconnected from SignalR');
-        isConnected.value = false;
-      })
-      .catch((error: Error) => console.error('Error disconnecting:', error));
   }
 
   return {
@@ -65,5 +67,6 @@ export function useSignalR(
     disconnect,
     isConnected,
     receivedMessageRef,
+    errorDialog,
   };
 }
