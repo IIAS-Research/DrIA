@@ -1,5 +1,5 @@
 import { api } from 'src/boot/axios';
-import { IPipeline, IRunPipelineForkDto } from 'src/components/models';
+import { ICreateProjectResponseDTO, IPipeline, IRunPipelineForkDto } from 'src/components/models';
 import { notify } from 'src/utils/notify';
 
 const processUrl = 'Processes';
@@ -16,11 +16,11 @@ export async function getProcessPipeline(projectId: number, processId: number): 
   }
 }
 
-export async function runNewProcessWithNewPipeline(runPipelineForkDto: IRunPipelineForkDto): Promise<{ isSuccess: boolean } | undefined> {
+export async function runNewProcessWithNewPipeline(runPipelineForkDto: IRunPipelineForkDto): Promise<ICreateProjectResponseDTO | undefined> {
   try {
     // TODO: set right url and type the promise return
     const response = (await api.post(`${processUrl}`, runPipelineForkDto))?.data;
-    return { isSuccess: true };
+    return response;
   } catch (error) {
     console.error('Error running process with fork pipeline:', error);
     notify('negative', String(error));

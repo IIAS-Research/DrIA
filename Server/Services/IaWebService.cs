@@ -8,6 +8,7 @@ using CsvHelper.Configuration;
 using Server.DTOs;
 using Server.Models;
 using static Server.Models.Model;
+using static Server.Models.Process;
 
 namespace Server.Services;
 
@@ -33,7 +34,7 @@ public class IaWebService : ApplicationService
             { new ByteArrayContent(trainFile.File), "train_dataset", trainFile.FileName },
             { new ByteArrayContent(testFile.File), "test_dataset", testFile.FileName },
             { new StringContent(project.CsvColumnToPredict), "dataset_target" },
-            { new StringContent(pipeline, Encoding.UTF8, "application/json"), "pipeline" }
+            { new StringContent(SerializeToSnakeLowerCase(pipeline), Encoding.UTF8, "application/json"), "pipeline" }
         };
         var httpResponse = await http.PostAsync($"{_ia_url}/pipeline/run", requestContent);
         httpResponse.EnsureSuccessStatusCode();
@@ -49,18 +50,23 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async public Task<ResponseService<GeneratePipelineWebServiceJsonDTO>> GeneratePipeline()
+  async public Task<ResponseService<ProcessPipeline?>> GeneratePipeline()
   {
-    var response = new ResponseService<GeneratePipelineWebServiceJsonDTO>();
+    var response = new ResponseService<ProcessPipeline?>();
     try
     {
       using (var http = new HttpClient())
       {
         var httpResponse = await http.GetAsync($"{_ia_url}/pipeline/generate");
+        var jsonOptions = new JsonSerializerOptions
+        {
+          PropertyNameCaseInsensitive = true,
+          PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        };
 
         httpResponse.EnsureSuccessStatusCode();
-        var responseBody = await httpResponse.Content.ReadFromJsonAsync<object>();
-        response.SetSuccessful(new GeneratePipelineWebServiceJsonDTO { Pipeline = responseBody! });
+        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
+        response.SetSuccessful(JsonSerializer.Deserialize<ProcessPipeline>(httpResponseBody, jsonOptions)!);
       }
       return response;
     }
@@ -363,6 +369,26 @@ public class IaWebService : ApplicationService
       response.AddError(exception.Message);
       return response;
     }
+  }
+
+  private static string SerializeToSnakeLowerCase(string pipeline)
+  {
+    var deserializeOptions = new JsonSerializerOptions
+    {
+      PropertyNameCaseInsensitive = true,
+      PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
+    };
+    var deserializedPipelineSnakeLowerCase = JsonSerializer.Deserialize<ProcessPipeline>(pipeline, deserializeOptions);
+
+    var serializeOptions = new JsonSerializerOptions
+    {
+      PropertyNameCaseInsensitive = true,
+      PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+      Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
+    };
+
+    return JsonSerializer.Serialize(deserializedPipelineSnakeLowerCase, serializeOptions);
   }
 
   private async static Task<byte[]> FormatFileForPipeline(IFormFile file, Project project)

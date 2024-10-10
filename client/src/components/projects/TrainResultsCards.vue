@@ -12,8 +12,11 @@ const props = defineProps<{
   projectId: number;
 }>();
 
-const lastRunningProcess = computed(() => props.processes
-  .map((p) => p).sort((a, b) => b.date.getTime() - a.date.getTime())[0]);
+const lastRunningProcess = computed(() => {
+  if (!props.processes) return null;
+  return props.processes
+    .map((p) => p).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+});
 
 const bestModel = computed(() => props.processes.map((p) => p.models[0])
   .sort((a, b) => {

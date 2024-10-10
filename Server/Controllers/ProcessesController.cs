@@ -31,7 +31,7 @@ public class ProcessesController : ApplicationController
   }
 
   [HttpPost]
-  public async Task<IActionResult> RunNewPipeline(RunNewProcessDTO runNewProcessDTO)
+  public async Task<IActionResult> RunNewPipeline([FromBody] RunNewProcessDTO runNewProcessDTO)
   {
     var responseGetProjectFiles = await _projectService.GetTrainAndTestFiles(runNewProcessDTO.ProjectId);
     if (!responseGetProjectFiles.IsSuccess) return BadRequest(responseGetProjectFiles.Errors);
@@ -39,10 +39,10 @@ public class ProcessesController : ApplicationController
     var responseGetProject = await _projectService.GetProjectById(runNewProcessDTO.ProjectId);
     if (!responseGetProject.IsSuccess) return BadRequest(responseGetProject.Errors);
 
-    var responseIaWeb = await _iaWebService.RunPipeline(responseGetProjectFiles.Data.TrainFile, responseGetProjectFiles.Data.TestFile, responseGetProject.Data, runNewProcessDTO.Pipeline);
+    var responseIaWeb = await _iaWebService.RunPipeline(responseGetProjectFiles.Data.TrainFile, responseGetProjectFiles.Data.TestFile, responseGetProject.Data, JsonSerializer.Serialize(runNewProcessDTO.Pipeline));
     if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
 
-    var responseProcess = await _processService.CreateProcess(responseIaWeb.Data, runNewProcessDTO.Pipeline, responseGetProject.Data);
+    var responseProcess = await _processService.CreateProcess(responseIaWeb.Data, JsonSerializer.Serialize(runNewProcessDTO.Pipeline), responseGetProject.Data);
     return Ok(new { responseIaWeb.Data.Id, responseIaWeb.Data.Socket, responseIaWeb.Data.Status, projectId = responseGetProject.Data.Id, responseProcess.MaxDuration });
   }
 

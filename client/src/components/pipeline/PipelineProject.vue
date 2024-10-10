@@ -2,7 +2,6 @@
 // import jsonImportedFile from 'src/../fake_file_sample/default_pipeline_sample.json';
 import { onMounted, ref } from 'vue';
 import { QSplitter, QTab, QTabPanel } from 'quasar';
-import { getDefaultPipeline } from 'src/api/ia-web-service.api';
 import { IPipeline } from '../models';
 
 const props = defineProps<{
@@ -34,13 +33,6 @@ function chooseRightInputType(valueToProceed: IPipeline['configuration'][0]) {
 }
 
 async function initPipeline() {
-  // if (props.pipeline) {
-  //   pipelineRefLocalComponent.value = { ...props.pipeline };
-  //   console.log('la props est la on fetch pas');
-  // } else {
-  //   console.log('dans le else');
-  //   pipelineRefLocalComponent.value = await getDefaultPipeline();
-  // }
   if (!pipelineRefLocalComponent.value) return;
   console.log(pipelineRefLocalComponent.value);
   emits('isPipelineLoading', false);
@@ -132,7 +124,7 @@ onMounted(async () => {
             >
               <q-toggle
                 v-model="step.enable"
-                :disable="!step.can_be_disable"
+                :disable="!step.canBeDisable"
                 :label="step.enable ? 'Activé' : 'Desactivé'"
                 class="q-pr-md"
               />

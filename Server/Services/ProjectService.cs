@@ -51,7 +51,7 @@ public class ProjectService : ApplicationService
     var responseWriteFile = await WriteProjectFile(projectData.File, ProjectFile.EProjectFileType.DEFAULT);
     if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
 
-    await _projectRepository.CreateProjectFile(project, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType);
+    await _projectRepository.CreateProjectFile(project, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType, ProjectFile.EProjectFileType.DEFAULT);
     response.SetSuccessful(project);
     return response;
   }
@@ -63,7 +63,7 @@ public class ProjectService : ApplicationService
     var responseWriteFile = await WriteProjectFile(file, type);
     if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
 
-    var projectFile = await _projectRepository.CreateProjectFile(project, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType);
+    var projectFile = await _projectRepository.CreateProjectFile(project, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType, type);
     response.SetSuccessful(projectFile);
     return response;
   }

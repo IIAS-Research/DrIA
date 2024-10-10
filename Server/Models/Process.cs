@@ -1,8 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Http.Json;
 
 namespace Server.Models;
 
@@ -12,7 +10,8 @@ public class Process : ApplicationRecord
   private readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions
   {
     PropertyNameCaseInsensitive = true,
-    WriteIndented = true
+    WriteIndented = true,
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
   };
 
   [Key]
@@ -86,6 +85,7 @@ public class Process : ApplicationRecord
     public bool? CanBeDisable { get; set; }
     public Dictionary<string, ProcessPipelineConfiguration>? Configuration { get; set; }
     public ProcessPipeline[]? Children { get; set; }
+    public ProcessPipeline? StepToMimic { get; set; }
 
     public record ProcessPipelineConfiguration
     {

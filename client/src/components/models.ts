@@ -41,7 +41,7 @@ export interface IPipeline {
   name: string;
   description: string;
   enable: boolean;
-  can_be_disable: boolean;
+  canBeDisable: boolean;
   configuration: {
     [key: string]: IConfigurationKey;
   };

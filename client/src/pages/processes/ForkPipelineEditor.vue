@@ -32,7 +32,7 @@ async function runForkedPipeline() {
     pipeline: { ...pipelineComponentRef.value.pipelineRefLocalComponent },
   };
   const runForkPipelineResponse = await runNewProcessWithNewPipeline(runNewProcessWithNewPipelineDto.value);
-  if (runForkPipelineResponse?.isSuccess) router.push({ name: 'project-show', params: { id: projectId } });
+  if (runForkPipelineResponse) router.push({ name: 'project-show', params: { id: projectId }, query: { jobId: runForkPipelineResponse.id } });
 }
 
 onMounted(async () => {
