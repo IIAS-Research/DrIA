@@ -1,23 +1,27 @@
 <script setup lang="ts">
+import { useSignalR } from "src/utils/useSignalR";
 import { QCarousel } from "quasar";
-import { ref, toRef } from "vue";
-import { getModeleExplanationById } from "src/api/models.api";
-import { IModel, IPlot } from "../models";
+import { ref, watchEffect, onUnmounted } from "vue";
+import { getModeleById, startModeleExplanationById } from "src/api/models.api";
+import { IExplanation, IModel, IPlot, ProcessStatus } from "../models";
 
 // props
 const propsComponent = defineProps<{
   model: IModel;
 }>();
 
+// consts
+const signalR = useSignalR("explainModel");
+
 // refs
 const slide = ref(1);
 const carousel = ref<InstanceType<typeof QCarousel>>();
 const currentExplainIndex = ref(0);
 const isLoadingExplanation = ref(false);
-const explanation = toRef(propsComponent.model.explanation);
 const currentExplain = ref<IPlot | undefined>(
   propsComponent.model.metrics.plots.at(currentExplainIndex.value)
 );
+const explanation = ref(propsComponent.model.explanation);
 
 // functions
 function changeExplain(index: number) {
@@ -27,10 +31,26 @@ function changeExplain(index: number) {
 }
 async function getExplanation() {
   isLoadingExplanation.value = true;
-  explanation.value =
-    (await getModeleExplanationById(propsComponent.model.id)) ?? [];
-  isLoadingExplanation.value = false;
+  const response = await startModeleExplanationById(propsComponent.model.id);
+  if (!response?.id) {
+    return;
+  }
+  signalR.connect(response.id);
 }
+
+// watchs
+watchEffect(async () => {
+  const messageReceived = signalR.receivedMessageRef.value as ProcessStatus;
+  if (messageReceived !== "FINISHED") return;
+  signalR.disconnect();
+  const responseExplain = await getModeleById(propsComponent.model.id);
+  explanation.value = responseExplain?.explanation as IExplanation;
+});
+
+// lifeCycle
+onUnmounted(() => {
+  signalR.disconnect();
+});
 </script>
 
 <template>
@@ -39,7 +59,7 @@ async function getExplanation() {
       <h4 class="no-margin q-pb-lg text-weight-medium">
         Importance des variables
       </h4>
-      <div v-if="propsComponent.model.explanation === null" class="flex">
+      <div v-if="!propsComponent.model.explanation" class="flex">
         <q-btn
           @click="getExplanation"
           :loading="isLoadingExplanation"
@@ -52,7 +72,7 @@ async function getExplanation() {
         <div class="flex column q-gutter-y-md col-2">
           <q-item
             v-for="item in Object.entries(
-              propsComponent.model.metrics.metrics_train
+              propsComponent.model.explanation.plots
             )"
             :key="item[0]"
             clickable
@@ -62,7 +82,7 @@ async function getExplanation() {
             <q-item-section>
               <div class="flex row items-center justify-between">
                 <div class="text-weight-medium">
-                  {{ propsComponent.model.metrics.metrics_info[item[0]].name }}
+                  {{ item[0] }}
                   :
                 </div>
                 <div class="text-weight-medium">

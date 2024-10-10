@@ -31,14 +31,17 @@ public class ModelsController : ApplicationController
   }
 
   [HttpGet("{id}/explanation")]
-  public async Task<IActionResult> GetModelExplanationById(long id)
+  public async Task<IActionResult> StartModelExplanationById(long id)
   {
-    var responseExplanation = await _modelService.GetModeleExplanationById(id);
+    var responseExplanation = await _modelService.GetModeleWithProcessById(id);
     if (!responseExplanation.IsSuccess) return NotFound(responseExplanation.Errors);
 
     var authorizationResult = await _authorizationService.AuthorizeAsync(User, responseExplanation.Data, Operations.Read);
-    if (authorizationResult.Succeeded == false) return Unauthorized();
+    if (!authorizationResult.Succeeded) return Unauthorized();
 
-    return Ok(responseExplanation.Data.TextExplanation);
+    var responseExplain = await _modelService.StartModelExplain(responseExplanation.Data);
+    if (!responseExplain.IsSuccess) return BadRequest(responseExplain.Errors);
+
+    return Ok();
   }
 }

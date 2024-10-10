@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Authorization;
 using Server.Authorization.Handlers;
 using Server.Hubs;
 using SwaggerThemes;
-using SignalRChat.Hubs;
 using System.Text.Json.Serialization;
 
 public partial class Program
@@ -50,8 +49,8 @@ public partial class Program
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers().RequireAuthorization();
-    app.MapHub<IaStatusHub>("/api/ws/status");
-    app.MapHub<IaMetricHub>("/api/ws/metrics");
+    app.MapHub<IaGenerateModelHub>("/api/ws/generateModel");
+    app.MapHub<IaExplainModelHub>("/api/ws/explainModel");
     app.Run();
   }
 
@@ -84,7 +83,8 @@ public partial class Program
     builder.Services.AddTransient<IaWebService>();
     builder.Services.AddTransient<ProcessService>();
     builder.Services.AddTransient<ModelService>();
-    builder.Services.AddSingleton<IaPullingService>();
+    builder.Services.AddSingleton<IaPullingModelService>();
+    builder.Services.AddSingleton<IaPullingExplainService>();
 
     builder.Services.AddSignalR();
 

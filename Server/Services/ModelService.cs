@@ -70,19 +70,47 @@ public class ModelService : ApplicationService
       return response;
     }
 
-    async public Task<ResponseService<Model>> GetModeleExplanationById(long id)
+    async public Task<ResponseService<ExplainModelOutDTO>> StartModelExplain(Model modelWithProcess)
     {
-      var response = new ResponseService<Model>();
+      var response = new ResponseService<ExplainModelOutDTO>();
 
-      var responseModele = await GetModeleWithProcessById(id);
-      if (!response.EnsureOtherServiceIsSuccess(responseModele)) return response;
+      var responseModelFile = await GetModelFileByModelId(modelWithProcess.Id);
+      if (!response.EnsureOtherServiceIsSuccess(responseModelFile)) return response;
+
+      var responseFile = await _fileStorageService.GetFileFromStorageAsync(responseModelFile.Data.StorageFilename);
+      if (!response.EnsureOtherServiceIsSuccess(responseFile)) return response;
       
-      var responseExplanation = await _iaWebService.GetTextExplanation(responseModele.Data.Process!.IaRemoteId, responseModele.Data.IaRemoteId);
+      var responseExplanation = await _iaWebService.ExplainModel(responseFile.Data.FileBytes!, modelWithProcess.Process!.IaRemoteId, modelWithProcess.IaRemoteId);
       if (!response.EnsureOtherServiceIsSuccess(responseExplanation)) return response;
 
-      var model = await _modelRepository.SaveTextExplanation(responseModele.Data, responseExplanation.Data.explanations);
+      response.SetSuccessful(responseExplanation.Data);
+      return response;
+    }
 
-      response.SetSuccessful(model);
+    async public Task<ResponseService> SaveModelTextExplanation(Model model, string[] explanations)
+    {
+      var response = new ResponseService();
+      await _modelRepository.SaveTextExplanation(model, explanations);
+      return response;
+    }
+
+    async public Task<ResponseService> SaveModelExplanation(Model model, ModelExplanation explanation)
+    {
+      var response = new ResponseService();
+      await _modelRepository.SaveExplanation(model, explanation);
+      return response;
+    }
+
+    async public Task<ResponseService<ModelFile>> GetModelFileByModelId(long modelId)
+    {
+      var response = new ResponseService<ModelFile>();
+      var modelFile = await _modelRepository.GetModelFileByModelId(modelId);
+      if (modelFile == null)
+      {
+        response.AddError("ModelFile not found.");
+        return response;
+      }
+      response.SetSuccessful(modelFile);
       return response;
     }
 

@@ -131,6 +131,11 @@ public record GetSplitStatusOutDTO
   }
 }
 
+public record GetModelFeaturesInDTO
+{
+  public required Model.ModelExplanation.ModelExplainFeature[] features { get; set;}
+}
+
 // public record StructuredBibliography
 // {
 //   public required string step { get; set; }

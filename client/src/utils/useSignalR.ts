@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { HubConnection, HubConnectionBuilder } from "@microsoft/signalr";
 
-export function useSignalR(hubName: "status" | "metrics", processId: string) {
+export function useSignalR(hubName: "generateModel" | "explainModel") {
   // refs
   const connection = ref<HubConnection | null>(null);
   const isConnected = ref(false);
@@ -22,7 +22,7 @@ export function useSignalR(hubName: "status" | "metrics", processId: string) {
       .catch((error: Error) => console.error("Error disconnecting:", error));
   }
 
-  async function connect() {
+  async function connect(...args: any[]) {
     const url = `${process.env.API}/ws/${hubName}`;
     connection.value = new HubConnectionBuilder()
       .withUrl(url)
@@ -52,10 +52,8 @@ export function useSignalR(hubName: "status" | "metrics", processId: string) {
 
     try {
       await connection.value.start();
-      console.log("Connected to SignalR");
-      console.log("processId => ", processId);
       await connection.value.invoke("TestWs");
-      await connection.value.invoke("JoinGroup", processId);
+      await connection.value.invoke("JoinGroup", ...args);
       isConnected.value = true;
     } catch (error) {
       console.error("Error connecting to SignalR:", error);

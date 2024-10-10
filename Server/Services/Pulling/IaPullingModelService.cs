@@ -3,89 +3,31 @@ using System.Timers;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Server.DAL.Db;
-using Server.DTOs;
 using Server.Hubs;
 using Server.Models;
 using Server.Repositories;
-using SignalRChat.Hubs;
-using static Server.Services.ApplicationService;
 
-namespace Server.Services
+namespace Server.Services;
+public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
 {
-  public class IaPullingService(IHubContext<IaStatusHub> iaStatusHub, IHubContext<IaMetricHub> iaMetricHub, IServiceScopeFactory scopeFactory) : ApplicationService
+  public IaPullingModelService(IServiceScopeFactory scopeFactory, IHubContext<IaGenerateModelHub> hub) : base(scopeFactory, hub)
+  { }
+
+  public IaConnectionModelPulling CreateIaConnection(string jobWebServiceId)
   {
-    public static readonly string _url = "http://rss00992:32845";
-    private readonly List<IaConnectionPulling> _connections = [];
-    private readonly IHubContext<IaStatusHub> _iaStatusHub = iaStatusHub;
-    private readonly IHubContext<IaMetricHub> _iaMetricHub = iaMetricHub;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-
-    public IaConnectionPulling? GetIaConnection(string jobWebServiceId) =>
-        _connections.FirstOrDefault(c => c.JobWebServiceId == jobWebServiceId);
-
-    public IaConnectionPulling CreateIaConnection(string jobWebServiceId, Type hubType)
-    {
-      IHubContext<ApplicationHub> hub;
-
-      if (hubType == typeof(IaMetricHub))
-      {
-        hub = _iaMetricHub;
-      }
-      else
-      {
-        hub = _iaStatusHub;
-      }
-
-      var newConnection = new IaConnectionPulling(jobWebServiceId, hub, _scopeFactory);
-      _connections.Add(newConnection);
-      return newConnection;
-    }
-
-    public List<IaConnectionPulling> SearchConnectionsByConnectionId(string connectionId) =>
-        _connections.FindAll(c => c.HasConnectionId(connectionId));
-
-    public void DeleteIaConnection(string uuid)
-    {
-      var connection = GetIaConnection(uuid);
-      if (connection != null)
-      {
-        connection.IsPulling = false;
-        _connections.Remove(connection);
-      }
-    }
-
-    public List<IaConnectionPulling> SearchForConnectionIdInConnection(string connectionId)
-    {
-      return _connections.FindAll(c => c.HasConnectionId(connectionId));
-    }
+    var newConnection = new IaConnectionModelPulling(jobWebServiceId, _hub, _scopeFactory);
+    _connections.Add(newConnection);
+    return newConnection;
   }
 
-  public class IaConnectionPulling(string jobWebServiceId, IHubContext<ApplicationHub> hub, IServiceScopeFactory scopeFactory)
+  public class IaConnectionModelPulling : IaConnectionPulling<IaGenerateModelHub>
   {
-    public IHubContext<ApplicationHub> Hub { get; } = hub;
-    public string JobWebServiceId { get; } = jobWebServiceId;
-    public bool IsPulling { get; set; } = false;
-    public Process.EProcessStatut Status { get; set; }
-    private readonly List<string> _connectionIds = [];
     private readonly System.Timers.Timer _timer = new System.Timers.Timer(1000 * 10);
-    public IServiceScopeFactory ScopeFactory = scopeFactory;
 
-    public async Task StartPulling()
-    {
-      IsPulling = true;
-      try
-      {
-        _timer.Enabled = true;
-        _timer.AutoReset = false;
-        _timer.Elapsed += async (sender, args) => await RunInterval(sender, args);
-      }
-      catch (Exception ex)
-      {
-        Console.WriteLine($"Connection failed: {ex.Message}");
-      }
-    }
+    public IaConnectionModelPulling(string jobWebServiceId, IHubContext<IaGenerateModelHub> hub, IServiceScopeFactory scopeFactory)
+    : base(jobWebServiceId, hub, scopeFactory) { }
 
-    private async Task RunInterval(object source, ElapsedEventArgs elapseArg)
+    protected override async Task RunInterval(object source, ElapsedEventArgs elapseArg)
     {
       using (var scope = ScopeFactory.CreateScope())
       {
@@ -97,7 +39,9 @@ namespace Server.Services
 
         if (!responseGetStatus.IsSuccess)
         {
-          await SendErrorsToWs(responseGetStatus);
+          var responseWs = new ResponseService();
+          responseWs.EnsureOtherServiceIsSuccess(responseGetStatus);
+          await SendErrorsToWs(responseWs);
           return;
         }
 
@@ -123,11 +67,13 @@ namespace Server.Services
             _timer.Enabled = true;
             break;
           case Process.EProcessStatut.FINISHED:
-            var onProcessFinishResponse = await OnProcessFinish(responseGetStatus.Data);
+            var onProcessFinishResponse = await OnProcessFinish();
 
             if (!onProcessFinishResponse.IsSuccess)
             {
-              await SendErrorsToWs(onProcessFinishResponse);
+              var responseWs = new ResponseService();
+              responseWs.EnsureOtherServiceIsSuccess(onProcessFinishResponse);
+              await SendErrorsToWs(responseWs);
               return;
             }
             StopPulling();
@@ -149,13 +95,7 @@ namespace Server.Services
       }
     }
 
-    private async Task SendErrorsToWs<T>(ResponseService<T> responseService)
-    {
-      await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", $"Une erreur est survenue : {responseService.Errors}");
-      StopPulling();
-    }
-
-    private async Task<ResponseService<List<Model>>> OnProcessFinish(JobStatusOutDTO jobStatusOutDTO)
+    protected override async Task<ResponseService> OnProcessFinish()
     {
       using (var scope = ScopeFactory.CreateScope())
       {
@@ -163,14 +103,14 @@ namespace Server.Services
         var modelService = scope.ServiceProvider.GetRequiredService<ModelService>();
         var iaWebService = scope.ServiceProvider.GetRequiredService<IaWebService>();
 
-        var responseOnProcessFinish = new ResponseService<List<Model>>();
+        var responseOnProcessFinish = new ResponseService();
         // Get metrics
         var responseGetMetric = await iaWebService.RetrieveJobMetric(JobWebServiceId);
         if (!responseGetMetric.IsSuccess)
         {
           Console.WriteLine("Erreur fetch metrics : " + responseGetMetric.Errors.ToString());
           return responseOnProcessFinish;
-        } 
+        }
 
         List<Model> modelList = new List<Model>();
 
@@ -181,22 +121,27 @@ namespace Server.Services
           var idValue = idModelProperty.GetValue(model);
 
           // Ensure the idValue is not null and can be parsed to an int
-          if (idValue != null && Int32.TryParse(idValue.ToString(), out int modelId))
+          if (idValue != null && Int32.TryParse(idValue.ToString(), out int remoteModelId))
           {
             if (idModelProperty != null)
             {
               // Download model file
-              var downloadModelFileResponse = await iaWebService.DownloadModelFile(responseGetMetric.Data.id, modelId);
+              var downloadModelFileResponse = await iaWebService.DownloadModelFile(responseGetMetric.Data.id, remoteModelId);
 
               // Generate bibliography of the model
-              var responseBibliography = await iaWebService.GetBibliography(responseGetMetric.Data.id, modelId);
+              var responseBibliography = await iaWebService.GetBibliography(responseGetMetric.Data.id, remoteModelId);
+
+              // Get text explanation
+              var responseTextExplanation = await iaWebService.GetTextExplanation(responseGetMetric.Data.id, remoteModelId);
 
               // Save all this previous stuff in DB
               var process = await processRepository.GetProcessByIaRemoteId(responseGetMetric.Data.id);
               if (process == null || !responseBibliography.IsSuccess) return responseOnProcessFinish;
 
-              var createModelResponse = await modelService.CreateModel(process.Id, model, responseBibliography.Data, model.id);
+              var createModelResponse = await modelService.CreateModel(process.Id, model, responseBibliography.Data, remoteModelId);
               if (!createModelResponse.IsSuccess) return responseOnProcessFinish;
+
+              await modelService.SaveModelTextExplanation(createModelResponse.Data, responseTextExplanation.Data.explanations);
 
               await modelService.CreateModelFile(downloadModelFileResponse.Data, createModelResponse.Data.Id);
 
@@ -207,24 +152,10 @@ namespace Server.Services
           }
         }
 
-        if (modelList.Count > 0) responseOnProcessFinish.SetSuccessful(modelList);
+        if (modelList.Count > 0) responseOnProcessFinish.SetSuccessful();
         return responseOnProcessFinish;
       }
     }
 
-    public void StopPulling()
-    {
-      _timer.Stop();
-      _timer.Enabled = false;
-      Console.WriteLine($"Stop pulling");
-    }
-
-    public void AddConnectionId(string connectionId) => _connectionIds.Add(connectionId);
-
-    public void RemoveConnectionId(string connectionId) => _connectionIds.RemoveAll(id => id == connectionId);
-
-    public bool HasConnectionId(string connectionId) => _connectionIds.Contains(connectionId);
-
-    public int GetConnectionIdsCount() => _connectionIds.Count;
   }
 }

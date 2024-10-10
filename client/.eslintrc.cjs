@@ -84,6 +84,8 @@ module.exports = {
     'consistent-return' : 'off',
     'comma-dangle' : 'off',
     'operator-linebreak' : 'off',
+    'object-curly-newline' : 'off',
+    'no-use-before-define' : 'off',
 
     'prefer-promise-reject-errors': 'off',
 

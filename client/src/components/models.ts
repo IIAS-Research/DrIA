@@ -130,7 +130,15 @@ export interface IModel {
 }
 
 export interface IExplanation {
-  
+  plots: { [keyPlot: string]: {
+    title: string;
+    description: string;
+    image: string;
+  }};
+  features: {
+    name: string;
+    value: number;
+  }[]
 }
 
 export interface IBibliography {

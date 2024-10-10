@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  computed, onMounted, ref, watch, watchEffect,
+  computed, onMounted, ref, watch, watchEffect, onUnmounted
 } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
@@ -14,8 +14,8 @@ import TrainResultsCards from 'src/components/projects/TrainResultsCards.vue';
 
 const route = useRoute();
 const router = useRouter();
+const signalR = useSignalR('generateModel');
 const { jobId } = route.query;
-const signalR = useSignalR('status', String(jobId));
 
 // eslint-disable-next-line no-undef
 let interval: NodeJS.Timeout;
@@ -76,12 +76,10 @@ function updateProgressVal() {
 }
 
 function connectWebSocketsIfNeeded() {
-  console.log('here connect web sockets');
-  signalR.connect();
+  signalR.connect(String(jobId));
   startProcessTime.value = new Date().getTime();
   if (interval) return;
   interval = setInterval(() => {
-    console.log('Interval triggered');
     updateProgressVal();
   }, 2000);
 }
@@ -90,6 +88,9 @@ onMounted(async () => {
   await getProjectById();
   projectFileDataSample.value = await getProjectDataSample();
   connectWebSocketsIfNeeded();
+});
+onUnmounted(() => {
+  signalR.disconnect();
 });
 
 const remainingFormatedTime = computed(() => {
@@ -113,6 +114,7 @@ const remainingFormatedTime = computed(() => {
 watchEffect(async () => {
   const messageReceived = signalR.receivedMessageRef.value as ProcessStatus;
   if (messageReceived !== 'FINISHED') return;
+  signalR.disconnect();
   router.replace({ name: 'project-show', params: { id: projectId.value } });
 });
 
