@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, toRef } from "vue";
-import { getModeleExplanationById } from "src/api/models.api";
+import { marked } from "marked";
 import { IModel } from "../models";
 
 // props
@@ -8,47 +7,88 @@ const propsComponent = defineProps<{
   model: IModel;
 }>();
 
-// refs
-const isLoadingExplanation = ref(false);
-const textExplanation = toRef(propsComponent.model.textExplanation);
-
-// functions
-async function getExplanation() {
-  isLoadingExplanation.value = true;
-  textExplanation.value =
-    (await getModeleExplanationById(propsComponent.model.id)) ?? [];
-  isLoadingExplanation.value = false;
-}
 </script>
 
 <template>
-  <div class="flex column">
-    <div class="flex row items-start">
-      <div class="flex column col-6 q-pr-xl q-mr-xl">
+  <div class="flex column flex-center">
+    <div class="flex row items-start justify-center">
+      <div class="flex-center column col-5 q-mr-md">
         <h4 class="no-margin q-py-lg text-weight-medium">
           Explication des traitements
         </h4>
-        <div v-if="!propsComponent.model.textExplanation" class="flex">
-          <q-btn
-            @click="getExplanation"
-            :loading="isLoadingExplanation"
-            label="Voir l'explication"
-            color="yellow-8"
-          />
-        </div>
-        <div v-else class="flex column q-gutter-y-md">
-          <div v-for="(text, index) in textExplanation" :key="index">
-            <div v-html="text" />
+
+        <q-card class="q-pa-md q-mt-xs flex column">
+          <div v-for="(text, index) in propsComponent.model.textExplanation" :key="index">
+            <div v-html="marked(text)" />
           </div>
-        </div>
+        </q-card>
       </div>
 
-      <div class="flex column col-4 q-pl-xl">
+      <div class="flex-center column col-5 q-ml-md">
         <h4 class="no-margin q-py-lg text-weight-medium">Bibliographie</h4>
-        <div>
-          {{ propsComponent.model.bibliography?.bibliography }}
-        </div>
+        <q-list class="q-gutter-y-md">
+          <q-item
+            v-for="(biblio, index) in propsComponent.model.bibliography
+              ?.structured_bibliography"
+            :key="index"
+            clickable
+            class="bg-grey-1 shadow-2"
+          >
+            <div class="flex column">
+              <div class="flex row items-center">
+                <div class="text-body1 text-weight-medium">Name :</div>
+                <div class="q-pl-sm">{{ biblio.name }}</div>
+              </div>
+              <div class="flex row items-center">
+                <div class="text-body1 text-weight-medium">Year :</div>
+                <div class="q-pl-sm">{{ biblio.year }}</div>
+              </div>
+              <div class="flex row items-center">
+                <div class="text-body1 text-weight-medium">Step :</div>
+                <div class="q-pl-sm">{{ biblio.step }}</div>
+              </div>
+              <div class="flex row items-center">
+                <div class="text-body1 text-weight-medium">DOI :</div>
+                <div class="q-pl-sm">{{ biblio.doi ?? "???" }}</div>
+              </div>
+              <div class="flex row items-center">
+                <div class="text-body1 text-weight-medium">Author :</div>
+                <div class="q-pl-sm">{{ biblio.author ?? "???" }}</div>
+              </div>
+              <div class="flex row items-center">
+                <div class="text-body1 text-weight-medium">Publisher :</div>
+                <div class="q-pl-sm">{{ biblio.publisher ?? "???" }}</div>
+              </div>
+            </div>
+          </q-item>
+        </q-list>
       </div>
     </div>
   </div>
 </template>
+
+<style>
+h2 {
+  font-size: 30px;
+  margin: 10px 0px !important;
+  font-weight: 400;
+}
+h3 {
+  font-size: 26px;
+  margin: 10px 0px !important;
+  font-weight: 400;
+}
+th {
+  border: 1px solid #000;
+  padding: 10px;
+  background-color: #c7f1ff;
+}
+td {
+  border: 1px solid #000;
+  padding: 10px;
+  vertical-align: top;
+}
+table {
+  border-spacing: 2px;
+}
+</style>

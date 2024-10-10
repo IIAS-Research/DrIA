@@ -8,7 +8,7 @@ export const particlesJSConfig = {
       },
     },
     color: {
-      value: '#9AD8DE',
+      value: '#799ed9',
     },
     shape: {
       type: 'circle',
@@ -49,7 +49,7 @@ export const particlesJSConfig = {
     },
     move: {
       enable: true,
-      speed: 0.5,
+      speed: 0.2,
       direction: 'none',
       random: false,
       straight: false,

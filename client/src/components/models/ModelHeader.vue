@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { formatToDDMMYYYHHmm } from 'src/utils/date';
-import { IModel } from '../models';
+import { formatToDDMMYYYHHmm } from "src/utils/date";
+import { IModel } from "../models";
 
 // props
 const propsComponent = defineProps<{
@@ -9,51 +9,56 @@ const propsComponent = defineProps<{
 </script>
 
 <template>
-  <div class="flex column">
-    <div class="flex row items-center full-width">
-      <div class="flex column col-6 q-pr-xl">
-        <h4 class="no-margin q-py-lg text-weight-medium">
+  <div class="flex-center column">
+    <div class="flex row items-start justify-center full-width">
+      <div class="flex column col-6 q-pr-xl q-mr-xl">
+        <h4 class="no-margin q-pb-lg text-weight-medium">
           {{ propsComponent.model.metrics.model }}
         </h4>
-        <div>
+        <q-card class="q-pa-md">
           Lorem Ipsum is simply dummy text of the printing and typesetting
           industry. Lorem Ipsum has been the industry's standard dummy text ever
           since the 1500s, when an unknown printer took a galley of type and
           scrambled it to make a type specimen book. It has survived not only
           five centuries, but also the leap into electronic typesetting,
           remaining essentially unchanged.
-        </div>
+        </q-card>
       </div>
 
-      <div class="flex column q-pl-xl">
-        <div class="flex row items-center">
-          <div
-            class="model-info-card model-info-card-left column justify-center text-center"
-            style="width: 110px;"
+      <div class="flex column q-pl-xl q-ml-xl col-2">
+        <div class="flex column q-gutter-y-md">
+          <q-item
+            clickable
+            class="bg-secondary text-white shadow-3 q-pa-md"
+            style="width: 300px"
           >
-            Date
-          </div>
-          <div
-            class="model-info-card model-info-card-right column justify-center text-center"
-            style="width: 200px;"
-          >
-            {{ formatToDDMMYYYHHmm(propsComponent.model.date) }}
-          </div>
-        </div>
+            <q-item-section>
+              <div class="flex row items-center justify-between">
+                <div class="text-weight-bolder text-body1">Date :</div>
+                <div class="text-weight-bolder text-body1">
+                  {{ formatToDDMMYYYHHmm(propsComponent.model.date) }}
+                </div>
+              </div>
+            </q-item-section>
+          </q-item>
 
-        <div class="flex row items-center q-pt-md">
-          <div
-            class="model-info-card model-info-card-left column justify-center text-center"
-            style="width: 110px;"
+          <q-item
+            clickable
+            class="bg-secondary text-white shadow-3 q-pa-md"
+            style="width: 300px"
           >
-            Précision
-          </div>
-          <div
-            class="model-info-card model-info-card-right column justify-center text-center"
-            style="width: 200px;"
-          >
-            {{ propsComponent.model.metrics.metrics_train["precision"] ?? "???" }}
-          </div>
+            <q-item-section>
+              <div class="flex row items-center justify-between">
+                <div class="text-weight-bolder text-body1">Précision :</div>
+                <div class="text-weight-bolder text-body1">
+                  {{
+                    propsComponent.model.metrics.metrics_train["precision"] ??
+                    "???"
+                  }}
+                </div>
+              </div>
+            </q-item-section>
+          </q-item>
         </div>
 
         <q-btn

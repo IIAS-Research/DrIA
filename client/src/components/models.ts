@@ -124,9 +124,13 @@ export interface IModel {
   id: number;
   date: string;
   metrics: IMetrics;
-  explanation: string;
+  explanation: IExplanation;
   textExplanation: string[];
   bibliography?: IBibliography;
+}
+
+export interface IExplanation {
+  
 }
 
 export interface IBibliography {
