@@ -65,6 +65,10 @@ public class ModelRepository(MainDbContext dbContext, IServiceScopeFactory servi
     return model;
   }
 
+  public async Task<ModelFile?> GetModelFileById(long id)
+  {
+    return await _dbContext.ModelFiles.FirstOrDefaultAsync(mf => mf.ModelId == id); 
+  }
   // Policies
   async public Task<bool> UserCanAccessModel(Model model, long userId)
   {

@@ -3,7 +3,9 @@ import { formatToDDMMYYYHHmm } from 'src/utils/date';
 import { IModel } from '../models';
 
 defineProps<{
-  model?: IModel
+  model: IModel;
+  projectId: number;
+  processId: number;
 }>();
 </script>
 
@@ -11,7 +13,7 @@ defineProps<{
   <q-item
     v-if="model"
     class="column"
-    :to="{ name: 'model-show', params: { id: model.id } }"
+    :to="{ name: 'model-show', params: { id: projectId, processId, modelId: model.id } }"
   >
     <q-item-label>
       <b>Date :</b> {{ formatToDDMMYYYHHmm(model.date) }}

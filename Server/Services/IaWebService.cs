@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net.Http.Headers;
+using System.Reflection.Emit;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -9,6 +10,8 @@ using Server.DTOs;
 using Server.Models;
 using static Server.Models.Model;
 using static Server.Models.Process;
+using static Server.Services.FileStorageService;
+using static Server.Services.ProjectService;
 
 namespace Server.Services;
 
@@ -370,6 +373,51 @@ public class IaWebService : ApplicationService
     }
   }
 
+  public async Task<ResponseService<string[]>> PredictValueUsingAiModel(FileStorageResponseGet modelFile, ProjectFileFormated dataTable)
+  {
+    var serviceResponse = new ResponseService<string[]>();
+    List<JsonRowToPredictDTO> jsonRowToPredict = new List<JsonRowToPredictDTO>();
+
+    foreach (var row in dataTable.Rows)
+    {
+      foreach (var keyValuePair in row)
+      {
+        var serializedKvp = new Dictionary<string, object>();
+        var key = keyValuePair.Key;
+        var value = keyValuePair.Value;
+        var initialColLabel = dataTable.Columns.FirstOrDefault(col => col.Name == key)?.Label;
+
+        if (initialColLabel != null)
+        {
+          serializedKvp[initialColLabel] = value;
+        }
+
+        var jsonRow = new JsonRowToPredictDTO
+        {
+          JsonRow = serializedKvp
+        };
+
+        jsonRowToPredict.Add(jsonRow);
+      }
+    }
+
+    using (var http = new HttpClient())
+    {
+      // TODO: Before sending the json_row, need to clean up and remove the target prediction col from the dataTable ?
+      var requestContent = new MultipartFormDataContent
+        {
+            { new ByteArrayContent(modelFile.FileBytes!), "pipeline" },
+            { new StringContent(JsonSerializer.Serialize(jsonRowToPredict)), "json_row" },
+        };
+      var httpResponse = await http.PostAsync($"{_ia_url}/predict", requestContent);
+      httpResponse.EnsureSuccessStatusCode();
+      string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
+      serviceResponse.SetSuccessful(JsonSerializer.Deserialize<string[]>(httpResponseBody)!);
+    }
+    // TODO: i only have a string array but need to fetch the csv col to predict on csv, then replace in the datatable received the result of the prediction and return it to the client
+    return serviceResponse;
+  }
+
   private static string SerializeToSnakeLowerCase(string pipeline)
   {
     var deserializeOptions = new JsonSerializerOptions
@@ -434,6 +482,5 @@ public class IaWebService : ApplicationService
     await file.CopyToAsync(memoryStream);
     return memoryStream.ToArray();
   }
-
 
 }

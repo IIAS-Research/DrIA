@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Server.Models;
 using Server.Services;
 using Server.Authorization;
+using static Server.Services.ProjectService;
 
 namespace Server.Controllers;
 
@@ -12,10 +13,14 @@ namespace Server.Controllers;
 public class ModelsController : ApplicationController
 {
   private readonly ModelService _modelService;
+  private readonly IaWebService _iaWebService;
+  private readonly ProjectService _projectService;
 
-  public ModelsController(UserManager<User> userManager, IAuthorizationService authorizationService, ModelService modelService) : base(userManager, authorizationService)
+  public ModelsController(UserManager<User> userManager, IAuthorizationService authorizationService, ModelService modelService, IaWebService iaWebService, ProjectService projectService) : base(userManager, authorizationService)
   {
     _modelService = modelService;
+    _iaWebService = iaWebService;
+    _projectService = projectService;
   }
 
   [HttpGet("{id}")]
@@ -40,5 +45,22 @@ public class ModelsController : ApplicationController
     if (authorizationResult.Succeeded == false) return Unauthorized();
 
     return Ok(responseExplanation.Data.TextExplanation);
+  }
+
+  [HttpPost("{modelId}/explanation")]
+  public async Task<ActionResult<ProjectFileFormated>> PredictValueUsingAiModel(long modelId, [FromBody] ProjectFileFormated dataTable)
+  {
+    // Get model file of the current model
+    var getModelFileResponse = await _modelService.GetModelFileById(modelId);
+    if (!getModelFileResponse.IsSuccess) return BadRequest(getModelFileResponse.Errors);
+
+    // Send request to web service to predict
+    var serviceResponse = await _iaWebService.PredictValueUsingAiModel(getModelFileResponse.Data!, dataTable);
+    if (!serviceResponse.IsSuccess) return BadRequest(getModelFileResponse.Errors);
+
+    return Ok(serviceResponse.Data);
+
+
+    // Return the response
   }
 }

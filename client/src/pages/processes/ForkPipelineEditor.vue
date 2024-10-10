@@ -8,7 +8,7 @@ import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
 const router = useRouter();
-const projectId = parseInt(route.params.projectId as string, 10);
+const projectId = parseInt(route.params.id as string, 10);
 const processId = parseInt(route.params.processId as string, 10);
 
 const pipelineComponentRef = ref<InstanceType<typeof PipelineProject>>();

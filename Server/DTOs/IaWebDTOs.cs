@@ -148,3 +148,8 @@ public record RunPipelineFileDTO
   public required byte[] File { get; set; }
   public required string FileName { get; set; }
 }
+
+public record JsonRowToPredictDTO
+{
+  public required IDictionary<string, object> JsonRow { get; set; }
+}

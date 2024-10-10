@@ -34,7 +34,7 @@ function forkPipeline() {
   console.log('Forking pipeline');
   const processId = getParentProcessOfModel(bestModel.value)?.id;
   if (!processId) return;
-  router.push({ name: 'pipeline-fork', params: { projectId: props.projectId, processId } });
+  router.push({ name: 'pipeline-fork', params: { id: props.projectId, processId } });
 }
 </script>
 
@@ -70,6 +70,8 @@ function forkPipeline() {
             </div>
 
             <ModelCardContent
+              :process-id="getParentProcessOfModel(bestModel).id"
+              :project-id="projectId"
               :model="bestModel"
               display-best-model-name
               class="text-white"
@@ -119,7 +121,11 @@ function forkPipeline() {
               <div class="q-pl-md text-subtitle2 text-italic">
                 Model n° {{ index + 1 }} {{ index === 0 ? '(meilleur model de ce process)' : '' }}
               </div>
-              <ModelCardContent :model="model" />
+              <ModelCardContent
+                :process-id="process.id"
+                :project-id="projectId"
+                :model="model"
+              />
             </q-card-section>
             <q-separator />
           </template>

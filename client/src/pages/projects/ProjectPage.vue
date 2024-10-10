@@ -4,12 +4,12 @@ import {
 } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
-  ICsvProject, IProject,
+  IProject,
   ProcessStatus,
 } from 'components/models';
 import { useSignalR } from 'src/utils/useSignalR';
 import TableShowDataSample from 'components/projects/TableShowDataSample.vue';
-import { GetProjectWithNestedDataById, getProjectDataSampleAsync } from 'src/api/projects.api';
+import { GetProjectWithNestedDataById } from 'src/api/projects.api';
 import TrainResultsCards from 'src/components/projects/TrainResultsCards.vue';
 
 const route = useRoute();
@@ -26,14 +26,6 @@ const progress = ref(0);
 const startProcessTime = ref<number>();
 const approximativeRemainingTime = ref<number>();
 const project = ref<IProject>();
-
-const projectFileDataSample = ref<ICsvProject>();
-
-async function getProjectDataSample() {
-  if (!projectId.value) return undefined;
-  const responseDataSample = await getProjectDataSampleAsync(projectId.value);
-  return responseDataSample;
-}
 
 async function getProjectById() {
   if (!projectId.value) return undefined;
@@ -88,7 +80,6 @@ function connectWebSocketsIfNeeded() {
 
 onMounted(async () => {
   await getProjectById();
-  projectFileDataSample.value = await getProjectDataSample();
   connectWebSocketsIfNeeded();
 });
 
@@ -164,7 +155,7 @@ watch(route, async () => {
         </q-linear-progress>
       </div>
 
-      <TableShowDataSample :project-file-data-sample="projectFileDataSample" />
+      <TableShowDataSample />
 
       <TrainResultsCards
         v-if="project.processes?.length"

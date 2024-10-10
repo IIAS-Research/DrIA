@@ -96,6 +96,11 @@ export interface IMetricInfo {
   desc: string;
 }
 
+export interface IPlot {
+  title: string;
+  description: string;
+  image: string;
+}
 export interface IMetrics {
   id: number;
   model: string;
@@ -106,12 +111,6 @@ export interface IMetrics {
   plots: IPlot[];
 }
 
-export interface IPlot {
-  title: string;
-  description: string;
-  image: string;
-}
-
 export interface IStructuredBibliography {
   step: string;
   year: number;
@@ -120,17 +119,9 @@ export interface IStructuredBibliography {
   doi: string | null;
   publisher: string | null;
 }
-export interface IModel {
-  id: number;
-  date: string;
-  metrics: IMetrics;
-  explanation: IExplanation;
-  textExplanation: string[];
-  bibliography?: IBibliography;
-}
 
 export interface IExplanation {
-  
+
 }
 
 export interface IBibliography {
@@ -138,6 +129,15 @@ export interface IBibliography {
   rid: number;
   bibliography: string;
   structured_bibliography: IStructuredBibliography[];
+}
+
+export interface IModel {
+  id: number;
+  date: string;
+  metrics: IMetrics;
+  explanation: IExplanation;
+  textExplanation: string[];
+  bibliography?: IBibliography;
 }
 
 export interface IProcess {
