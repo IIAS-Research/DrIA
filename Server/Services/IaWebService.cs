@@ -46,7 +46,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Run Pipeline route : " + exception.Message);
       return response;
     }
   }
@@ -73,7 +73,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Generate Pipeline route : " + exception.Message);
       return response;
     }
   }
@@ -96,7 +96,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Job Status route : " + exception.Message);
       return response;
     }
   }
@@ -115,7 +115,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Cancel Job route : " +exception.Message);
       return response;
     }
   }
@@ -134,7 +134,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Retrieve Job route : " + exception.Message);
       return response;
     }
   }
@@ -155,7 +155,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Bibliography route : " + exception.Message);
       return response;
     }
   }
@@ -179,7 +179,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Download Model route : " +exception.Message);
       return response;
     }
   }
@@ -204,7 +204,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Explain Model route : " +exception.Message);
       return response;
     }
   }
@@ -225,7 +225,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Text Explanation route : " +exception.Message);
       return response;
     }
   }
@@ -260,7 +260,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Split route : " + exception.Message);
       return response;
     }
   }
@@ -281,7 +281,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Split Status route : " + exception.Message);
       return response;
     }
   }
@@ -309,7 +309,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Split Train File route : " + exception.Message);
       return response;
     }
   }
@@ -337,7 +337,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Split Test File route : " + exception.Message);
       return response;
     }
   }
@@ -365,7 +365,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Download Model File route : " + exception.Message);
       return response;
     }
   }
@@ -386,7 +386,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Explain ShapPlots route : " + exception.Message);
       return response;
     }
   }
@@ -407,7 +407,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Explain Features route : " + exception.Message);
       return response;
     }
   }

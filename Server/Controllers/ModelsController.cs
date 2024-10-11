@@ -47,7 +47,7 @@ public class ModelsController : ApplicationController
     var responseExplain = await _modelService.StartModelExplain(responseExplanation.Data);
     if (!responseExplain.IsSuccess) return BadRequest(responseExplain.Errors);
 
-    return Ok();
+    return Ok(responseExplain.Data);
   }
 
   [HttpPost("{modelId}/explanation")]

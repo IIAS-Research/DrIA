@@ -93,7 +93,7 @@ public record ExplainModelOutDTO
 {
   public required string id { get; init; }
   public required string socket { get; init; }
-  public required Process.EProcessStatut status { get; init; }
+  public required EProcessStatut status { get; init; }
 }
 
 public record GetModelTextExplanationOutDTO

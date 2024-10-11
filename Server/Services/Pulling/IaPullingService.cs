@@ -9,7 +9,6 @@ namespace Server.Services
 {
   public abstract class IaPullingService<T> : ApplicationService where T : ApplicationHub
   {
-    public static readonly string _url = "http://rss00992:32845";
     protected readonly List<IaConnectionPulling<T>> _connections = [];
     protected readonly IServiceScopeFactory _scopeFactory;
     protected readonly IHubContext<T> _hub;
@@ -79,9 +78,13 @@ namespace Server.Services
 
     public void StopPulling()
     {
+      Console.WriteLine($"Stop pulling");
       _timer.Stop();
       _timer.Enabled = false;
-      Console.WriteLine($"Stop pulling");
+      if (_connectionIds.Count == 0)
+      {
+        // TODO delete instance otherwise leak
+      }
     }
 
     public void AddConnectionId(string connectionId) => _connectionIds.Add(connectionId);

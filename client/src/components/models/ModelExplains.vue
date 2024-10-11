@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useSignalR } from "src/utils/useSignalR";
-import { QCarousel } from "quasar";
+import { QCarousel, useQuasar } from "quasar";
 import { ref, watchEffect, onUnmounted } from "vue";
 import { getModeleById, startModeleExplanationById } from "src/api/models.api";
 import { IExplanation, IModel, IPlot, ProcessStatus } from "../models";
@@ -12,6 +12,7 @@ const propsComponent = defineProps<{
 
 // consts
 const signalR = useSignalR("explainModel");
+const $q = useQuasar();
 
 // refs
 const slide = ref(1);
@@ -19,7 +20,7 @@ const carousel = ref<InstanceType<typeof QCarousel>>();
 const currentExplainIndex = ref(0);
 const isLoadingExplanation = ref(false);
 const currentExplain = ref<IPlot | undefined>(
-  propsComponent.model.metrics.plots.at(currentExplainIndex.value),
+  propsComponent.model.metrics.plots.at(currentExplainIndex.value)
 );
 const explanation = ref(propsComponent.model.explanation);
 
@@ -31,12 +32,21 @@ function changeExplain(index: number) {
 }
 async function getExplanation() {
   isLoadingExplanation.value = true;
-  const response = await startModeleExplanationById(propsComponent.model.id);
-  if (!response?.id) {
-    return;
+  try {
+    const response = await startModeleExplanationById(propsComponent.model.id);
+    if (!response?.id) {
+      return;
+    }
+    signalR.connect(response.id, propsComponent.model.id);
+  } catch (error) {
+    console.error(error);
+    $q.notify({
+      type: "negative",
+      message: "Une erreur est survenue",
+    });
+  } finally {
+    isLoadingExplanation.value = false;
   }
-  signalR.connect(response.id);
-  isLoadingExplanation.value = false;
 }
 
 // watchs
@@ -69,10 +79,7 @@ onUnmounted(() => {
         />
       </div>
 
-      <div
-        v-else
-        class="flex row items-start justify-center"
-      >
+      <div v-else class="flex row items-start justify-center">
         <div class="flex column q-gutter-y-md col-2">
           <q-item
             v-for="item in Object.entries(
@@ -95,17 +102,9 @@ onUnmounted(() => {
               </div>
             </q-item-section>
             <q-item-section side>
-              <q-icon
-                name="info"
-                color="info"
-              >
-                <q-tooltip
-                  anchor="center right"
-                  self="center left"
-                >
-                  {{
-                    propsComponent.model.metrics.metrics_info[item[0]].desc
-                  }}
+              <q-icon name="info" color="info">
+                <q-tooltip anchor="center right" self="center left">
+                  {{ propsComponent.model.metrics.metrics_info[item[0]].desc }}
                 </q-tooltip>
               </q-icon>
             </q-item-section>
@@ -132,9 +131,9 @@ onUnmounted(() => {
                 class="full-height"
                 :src="
                   'data:image/png;base64,' +
-                    propsComponent.model.metrics.plots[index].image
+                  propsComponent.model.metrics.plots[index].image
                 "
-              >
+              />
             </q-carousel-slide>
           </q-carousel>
           <q-card class="flex column carousel-card rounded-borders q-pa-md">
@@ -168,11 +167,7 @@ onUnmounted(() => {
                   <span
                     class="q-btn__content text-center col items-center q-anchor--skip justify-center row"
                   >
-                    <i
-                      class="q-icon"
-                      aria-hidden="true"
-                      role="img"
-                    >
+                    <i class="q-icon" aria-hidden="true" role="img">
                       <svg viewBox="0 0 24 24">
                         <path
                           d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"

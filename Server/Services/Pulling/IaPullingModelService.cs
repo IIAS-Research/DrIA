@@ -34,7 +34,6 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
         var iaWebService = scope.ServiceProvider.GetRequiredService<IaWebService>();
         var dbContext = scope.ServiceProvider.GetRequiredService<MainDbContext>();
 
-        Console.WriteLine("Interval elapsed so RunInterval method has been triggered");
         var responseGetStatus = await iaWebService.GetJobStatus(JobWebServiceId);
 
         if (!responseGetStatus.IsSuccess)
@@ -42,6 +41,7 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
           var responseWs = new ResponseService();
           responseWs.EnsureOtherServiceIsSuccess(responseGetStatus);
           await SendErrorsToWs(responseWs);
+          StopPulling();
           return;
         }
 
@@ -57,7 +57,6 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
         }
 
         Console.WriteLine($"PULLING => Job status: {Status}");
-
         switch (Status)
         {
           case Process.EProcessStatut.QUEUED:
@@ -108,7 +107,6 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
         var responseGetMetric = await iaWebService.RetrieveJobMetric(JobWebServiceId);
         if (!responseGetMetric.IsSuccess)
         {
-          Console.WriteLine("Erreur fetch metrics : " + responseGetMetric.Errors.ToString());
           return responseOnProcessFinish;
         }
 
