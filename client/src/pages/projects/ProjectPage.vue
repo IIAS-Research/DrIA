@@ -68,6 +68,8 @@ function updateProgressVal() {
 }
 
 function connectWebSocketsIfNeeded() {
+  if (jobId && project.value?.processes.some((p) => p.status === 'RUNNING')) return;
+
   signalR.connect(String(jobId));
   startProcessTime.value = new Date().getTime();
   if (interval) return;
