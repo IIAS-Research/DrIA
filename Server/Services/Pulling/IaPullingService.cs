@@ -48,7 +48,7 @@ namespace Server.Services
     public bool IsPulling { get; set; } = false;
     public Process.EProcessStatut Status { get; set; }
     private readonly List<string> _connectionIds = [];
-    private System.Timers.Timer _timer = new System.Timers.Timer(1000 * 10);
+    protected System.Timers.Timer _timer = new System.Timers.Timer(1000 * 10);
     public IServiceScopeFactory ScopeFactory = scopeFactory;
 
     public async Task StartPulling()

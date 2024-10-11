@@ -23,7 +23,6 @@ public class IaPullingExplainService : IaPullingService<IaExplainModelHub>
 
 public class IaConnectionExplainPulling : IaConnectionPulling<IaExplainModelHub>
 {
-  private readonly System.Timers.Timer _timer = new System.Timers.Timer(1000 * 10);
   private readonly long _localModelId;
 
   public IaConnectionExplainPulling(string jobWebServiceId, IHubContext<IaExplainModelHub> hub, IServiceScopeFactory scopeFactory, long localModelId)
@@ -31,7 +30,6 @@ public class IaConnectionExplainPulling : IaConnectionPulling<IaExplainModelHub>
   {
     _localModelId = localModelId;
   }
-
 
   protected override async Task RunInterval(object source, ElapsedEventArgs elapseArg)
   {

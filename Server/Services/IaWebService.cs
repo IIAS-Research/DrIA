@@ -195,7 +195,7 @@ public class IaWebService : ApplicationService
         {
             { new ByteArrayContent(projectTestFile), "dataset" },
         };
-        var httpResponse = await http.PostAsync($"{_ia_url}/job/{processRemoteId}/model/{modelRemoteId}/explain", requestContent);
+        var httpResponse = await http.PostAsync($"{_ia_url}/jobs/{processRemoteId}/model/{modelRemoteId}/explain", requestContent);
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
         response.SetSuccessful(JsonSerializer.Deserialize<ExplainModelOutDTO>(httpResponseBody, _serializeOptions)!);
