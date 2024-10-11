@@ -40,7 +40,7 @@ public class ModelService : ApplicationService
     return response;
   }
 
-  async public Task<ResponseService<FileStorageService.FileStorageResponseWrite>> WriteModelFile(IFormFile file)
+  async public Task<ResponseService<FileStorageResponseWrite>> WriteModelFile(IFormFile file)
   {
     return await _fileStorageService.WriteModelBinaryToStorageAsync(file);
   }
@@ -71,7 +71,7 @@ public class ModelService : ApplicationService
     return response;
   }
 
-  async public Task<ResponseService<ExplainModelOutDTO>> StartModelExplain(Model modelWithProcess)
+  async public Task<ResponseService<ExplainModelOutDTO>> StartModelExplain(Model modelWithProcess, byte[] projectTestFile)
   {
     var response = new ResponseService<ExplainModelOutDTO>();
 
@@ -81,7 +81,7 @@ public class ModelService : ApplicationService
     var responseFile = await _fileStorageService.GetFileFromStorageAsync(responseModelFile.Data.StorageFilename);
     if (!response.EnsureOtherServiceIsSuccess(responseFile)) return response;
 
-    var responseExplanation = await _iaWebService.ExplainModel(responseFile.Data.FileBytes!, modelWithProcess.Process!.IaRemoteId, modelWithProcess.IaRemoteId);
+    var responseExplanation = await _iaWebService.ExplainModel(projectTestFile, responseFile.Data.FileBytes!);
     if (!response.EnsureOtherServiceIsSuccess(responseExplanation)) return response;
 
     response.SetSuccessful(responseExplanation.Data);
@@ -99,6 +99,7 @@ public class ModelService : ApplicationService
   {
     var response = new ResponseService();
     await _modelRepository.SaveExplanation(model, explanation);
+    response.SetSuccessful();
     return response;
   }
 

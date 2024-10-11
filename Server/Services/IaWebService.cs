@@ -82,7 +82,6 @@ public class IaWebService : ApplicationService
   async public Task<ResponseService<JobStatusOutDTO>> GetJobStatus(string processRemoteId)
   {
     var response = new ResponseService<JobStatusOutDTO>();
-    Console.WriteLine("IA Web service getting job status via api route from ia web service");
     try
     {
       using (var http = new HttpClient())
@@ -91,7 +90,6 @@ public class IaWebService : ApplicationService
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
         response.SetSuccessful(JsonSerializer.Deserialize<JobStatusOutDTO>(httpResponseBody, _serializeOptions)!);
-        Console.WriteLine($"Response get job status: {JsonSerializer.Deserialize<JobStatusOutDTO>(httpResponseBody, _serializeOptions)}");
       }
       return response;
     }
@@ -184,7 +182,7 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async public Task<ResponseService<ExplainModelOutDTO>> ExplainModel(byte[] projectTestFile, string processRemoteId, int modelRemoteId)
+  async public Task<ResponseService<ExplainModelOutDTO>> ExplainModel(byte[] projectFile, byte[] modelFile)
   {
     var response = new ResponseService<ExplainModelOutDTO>();
     try
@@ -193,9 +191,10 @@ public class IaWebService : ApplicationService
       {
         var requestContent = new MultipartFormDataContent
         {
-            { new ByteArrayContent(projectTestFile), "dataset" },
+            { new ByteArrayContent(projectFile), "dataset", "filedataset" },
+            { new ByteArrayContent(modelFile), "pipeline", "filepipeline" }
         };
-        var httpResponse = await http.PostAsync($"{_ia_url}/jobs/{processRemoteId}/model/{modelRemoteId}/explain", requestContent);
+        var httpResponse = await http.PostAsync($"{_ia_url}/explain", requestContent);
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
         response.SetSuccessful(JsonSerializer.Deserialize<ExplainModelOutDTO>(httpResponseBody, _serializeOptions)!);
@@ -408,6 +407,27 @@ public class IaWebService : ApplicationService
     catch (Exception exception)
     {
       response.AddError("Get Explain Features route : " + exception.Message);
+      return response;
+    }
+  }
+
+  public async Task<ResponseService<ExplainStatusOutDTO>> GetExplainStatus(string explainProcessRemoteId)
+  {
+    var response = new ResponseService<ExplainStatusOutDTO>();
+    try
+    {
+      using (var http = new HttpClient())
+      {
+        var httpResponse = await http.GetAsync($"{_ia_url}/explain/{explainProcessRemoteId}/status");
+        httpResponse.EnsureSuccessStatusCode();
+        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
+        response.SetSuccessful(JsonSerializer.Deserialize<ExplainStatusOutDTO>(httpResponseBody, _serializeOptions)!);
+      }
+      return response;
+    }
+    catch (Exception exception)
+    {
+      response.AddError("Get Explain Status route : " + exception.Message);
       return response;
     }
   }

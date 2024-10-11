@@ -37,7 +37,8 @@ public class IaConnectionExplainPulling : IaConnectionPulling<IaExplainModelHub>
     {
       var iaWebService = scope.ServiceProvider.GetRequiredService<IaWebService>();
       var dbContext = scope.ServiceProvider.GetRequiredService<MainDbContext>();
-      var responseGetStatus = await iaWebService.GetJobStatus(JobWebServiceId);
+
+      var responseGetStatus = await iaWebService.GetExplainStatus(JobWebServiceId);
 
       if (!responseGetStatus.IsSuccess)
       {
@@ -105,6 +106,7 @@ public class IaConnectionExplainPulling : IaConnectionPulling<IaExplainModelHub>
         plots = responseShapPlot.Data,
         features = responseFeatures.Data.features
       };
+      
       var responseSaveModel = await modelService.SaveModelExplanation(responseModele.Data, explanation);
       if (!response.EnsureOtherServiceIsSuccess(responseSaveModel)) return response;
 

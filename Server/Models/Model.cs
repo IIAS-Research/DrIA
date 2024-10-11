@@ -45,7 +45,7 @@ public class Model
   }
 
   [Column(TypeName = "jsonb")]
-  public ModelExplanation? Explanation { get; set; }
+  public string? Explanation { get; set; }
 
   public string[] TextExplanation { get; set;} = [];
 

@@ -24,7 +24,7 @@ public class ProjectService : ApplicationService
     return await _projectRepository.GetProjectByUser(user);
   }
 
-  async public Task<ResponseService<FileStorageService.FileStorageResponseWrite>> WriteProjectFile(IFormFile file, ProjectFile.EProjectFileType type)
+  async public Task<ResponseService<FileStorageResponseWrite>> WriteProjectFile(IFormFile file, ProjectFile.EProjectFileType type)
   {
     return await _fileStorageService.WriteProjectFileToStorageAsync(file, type);
   }
@@ -94,10 +94,10 @@ public class ProjectService : ApplicationService
     return response;
   }
 
-  async public Task<ResponseService<ProjectResponseGetDefaultFile>> GetProjectDefaultFile(long id)
+  async public Task<ResponseService<ProjectResponseGetFile>> GetProjectFile(long projectId, ProjectFile.EProjectFileType fileType)
   {
-    var response = new ResponseService<ProjectResponseGetDefaultFile>();
-    var projectFile = await _projectRepository.GetProjectFileByProjectId(id);
+    var response = new ResponseService<ProjectResponseGetFile>();
+    var projectFile = await _projectRepository.GetProjectFileByProjectId(projectId, fileType);
     if (projectFile == null)
     {
       response.AddError("ProjectFile not found");
@@ -109,7 +109,7 @@ public class ProjectService : ApplicationService
       response.Errors = responseFile.Errors;
       return response;
     }
-    var responseData = new ProjectResponseGetDefaultFile()
+    var responseData = new ProjectResponseGetFile()
     {
       Data = responseFile.Data.FileBytes!,
       MimeType = projectFile.MimeType
@@ -122,7 +122,7 @@ public class ProjectService : ApplicationService
   {
     var response = new ResponseService<ProjectFileFormated>();
 
-    var responseGetFile = await GetProjectDefaultFile(projectId);
+    var responseGetFile = await GetProjectFile(projectId, ProjectFile.EProjectFileType.DEFAULT);
     if (!responseGetFile.IsSuccess)
     {
       response.Errors = responseGetFile.Errors;
@@ -226,7 +226,7 @@ public class ProjectService : ApplicationService
   }
 
   // Service responses
-  public class ProjectResponseGetDefaultFile
+  public class ProjectResponseGetFile
   {
     public byte[] Data = [];
     public string MimeType = string.Empty;

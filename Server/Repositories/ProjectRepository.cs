@@ -60,9 +60,10 @@ public class ProjectRepository(MainDbContext dbContext)
     return projectFile;
   }
 
-  public async Task<ProjectFile?> GetProjectFileByProjectId(long id)
+  public async Task<ProjectFile?> GetProjectFileByProjectId(long id, EProjectFileType fileType)
   {
-    return await _dbContext.ProjectFiles.Where(pj => pj.ProjectId == id).FirstOrDefaultAsync();
+    return await _dbContext.ProjectFiles.Where(pj => pj.ProjectId == id && pj.FileType == fileType)
+      .FirstOrDefaultAsync();
   }
 
   public async Task<Project?> GetProjectNestedDataById(long id)

@@ -1,7 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Server.Models;
 
 #nullable disable
 
@@ -249,9 +248,11 @@ namespace server.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    IaRemoteId = table.Column<int>(type: "integer", nullable: false),
                     Date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     BibliographyJson = table.Column<string>(type: "jsonb", nullable: false),
-                    Explanation = table.Column<Model.ModelExplanation>(type: "jsonb", nullable: true),
+                    Explanation = table.Column<string>(type: "jsonb", nullable: true),
+                    TextExplanation = table.Column<string[]>(type: "text[]", nullable: false),
                     MetricsJson = table.Column<string>(type: "jsonb", nullable: false),
                     ProcessId = table.Column<long>(type: "bigint", nullable: false)
                 },

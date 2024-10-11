@@ -150,7 +150,7 @@ export interface IModel {
   id: number;
   date: string;
   metrics: IMetrics;
-  explanation: IExplanation;
+  explanation: string;
   textExplanation: string[];
   bibliography?: IBibliography;
 }

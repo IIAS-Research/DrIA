@@ -2,22 +2,18 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Server.DAL.Db;
-using Server.Models;
 
 #nullable disable
 
 namespace server.Migrations
 {
     [DbContext(typeof(MainDbContext))]
-    [Migration("20241009132544_AddTextExplanationToModel")]
-    partial class AddTextExplanationToModel
+    partial class MainDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -144,12 +140,11 @@ namespace server.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<Model.ModelExplanation>("Explanation")
+                    b.Property<string>("Explanation")
                         .HasColumnType("jsonb");
 
-                    b.Property<string>("IaRemoteId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("IaRemoteId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("MetricsJson")
                         .IsRequired()

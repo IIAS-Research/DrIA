@@ -67,7 +67,7 @@ public class ModelRepository(MainDbContext dbContext, IServiceScopeFactory servi
 
   public async Task<Model> SaveExplanation(Model model, ModelExplanation explanation)
   {
-    model.Explanation = explanation; 
+    model.Explanation = JsonSerializer.Serialize(explanation); 
     await _dbContext.SaveChangesAsync();
     return model;
   }

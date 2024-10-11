@@ -6,15 +6,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Server.DAL.Db;
-using Server.Models;
 
 #nullable disable
 
 namespace server.Migrations
 {
     [DbContext(typeof(MainDbContext))]
-    [Migration("20241009130657_AddIaRemoteIdToModel")]
-    partial class AddIaRemoteIdToModel
+    [Migration("20241011140734_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -144,11 +143,10 @@ namespace server.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<Model.ModelExplanation>("Explanation")
+                    b.Property<string>("Explanation")
                         .HasColumnType("jsonb");
 
-                    b.Property<string>("IaRemoteId")
-                        .IsRequired()
+                    b.Property<int>("IaRemoteId")
                         .HasColumnType("integer");
 
                     b.Property<string>("MetricsJson")
@@ -157,6 +155,10 @@ namespace server.Migrations
 
                     b.Property<long>("ProcessId")
                         .HasColumnType("bigint");
+
+                    b.Property<string[]>("TextExplanation")
+                        .IsRequired()
+                        .HasColumnType("text[]");
 
                     b.HasKey("Id");
 

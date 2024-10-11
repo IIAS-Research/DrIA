@@ -44,7 +44,10 @@ public class ModelsController : ApplicationController
     var authorizationResult = await _authorizationService.AuthorizeAsync(User, responseExplanation.Data, Operations.Read);
     if (!authorizationResult.Succeeded) return Unauthorized();
 
-    var responseExplain = await _modelService.StartModelExplain(responseExplanation.Data);
+    var responseProjectTestFile = await _projectService.GetProjectFile(responseExplanation.Data.Process!.ProjectId, ProjectFile.EProjectFileType.TEST);
+    if (!responseProjectTestFile.IsSuccess) return NotFound();
+
+    var responseExplain = await _modelService.StartModelExplain(responseExplanation.Data, responseProjectTestFile.Data.Data);
     if (!responseExplain.IsSuccess) return BadRequest(responseExplain.Errors);
 
     return Ok(responseExplain.Data);

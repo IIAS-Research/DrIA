@@ -129,7 +129,7 @@ public class ProjectsController : ApplicationController
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, projectResponseGetOne.Data, Operations.ReadOnlyOwn);
         if (authorizationResult.Succeeded == false) return Unauthorized();
 
-        var responseFile = await _projectService.GetProjectDefaultFile(projectId);
+        var responseFile = await _projectService.GetProjectFile(projectId, ProjectFile.EProjectFileType.DEFAULT);
         if (responseFile.IsSuccess == false) return BadRequest(responseFile.Errors);
 
         return File(responseFile.Data.Data, responseFile.Data.MimeType);
