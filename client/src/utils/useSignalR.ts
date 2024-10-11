@@ -1,7 +1,7 @@
-import { ref } from "vue";
-import { HubConnection, HubConnectionBuilder } from "@microsoft/signalr";
+import { ref } from 'vue';
+import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 
-export function useSignalR(hubName: "generateModel" | "explainModel") {
+export function useSignalR(hubName: 'generateModel' | 'explainModel') {
   // refs
   const connection = ref<HubConnection | null>(null);
   const isConnected = ref(false);
@@ -16,10 +16,10 @@ export function useSignalR(hubName: "generateModel" | "explainModel") {
     connection.value
       .stop()
       .then(() => {
-        console.log("Disconnected from SignalR");
+        console.log('Disconnected from SignalR');
         isConnected.value = false;
       })
-      .catch((error: Error) => console.error("Error disconnecting:", error));
+      .catch((error: Error) => console.error('Error disconnecting:', error));
   }
 
   async function connect(...args: any[]) {
@@ -39,24 +39,23 @@ export function useSignalR(hubName: "generateModel" | "explainModel") {
     //   isConnected.value = true;
     // });
 
-    connection.value.on("ReceiveMessage", (message) => {
-      console.log("Received message:", message);
+    connection.value.on('ReceiveMessage', (message) => {
+      console.log('Received message:', message);
       receivedMessageRef.value = message;
     });
 
-    connection.value.on("StopMessage", (message) => {
-      console.log("Stop message:", message);
+    connection.value.on('StopMessage', (message) => {
+      console.log('Stop message:', message);
       errorDialog.value = true;
       disconnect();
     });
 
     try {
       await connection.value.start();
-      await connection.value.invoke("TestWs");
-      await connection.value.invoke("JoinGroup", ...args);
+      await connection.value.invoke('JoinGroup', ...args);
       isConnected.value = true;
     } catch (error) {
-      console.error("Error connecting to SignalR:", error);
+      console.error('Error connecting to SignalR:', error);
     }
   }
 
