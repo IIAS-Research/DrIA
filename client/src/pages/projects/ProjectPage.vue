@@ -67,9 +67,10 @@ function updateProgressVal() {
   approximativeRemainingTime.value = Math.max(0, Math.ceil(remainingTime / 1000)); // Convert to seconds and prevent negative values
 }
 
-function connectWebSocketsIfNeeded() {
-  if (jobId && project.value?.processes.some((p) => p.status === 'RUNNING')) return;
+const isProcessing = computed(() => String(jobId) && project.value?.processes.some((p) => p.status === 'RUNNING'));
 
+function connectWebSocketsIfNeeded() {
+  if (!isProcessing.value) return;
   signalR.connect(String(jobId));
   startProcessTime.value = new Date().getTime();
   if (interval) return;
@@ -135,7 +136,7 @@ watch(route, async () => {
         {{ project.description }}
       </div>
 
-      <div v-if="project.processes.some(p => p.status === 'RUNNING')">
+      <div v-if="isProcessing">
         <div
           class="text-h6 text-primary"
         >

@@ -4,7 +4,7 @@ import { QTableColumn } from 'quasar';
 import { useRoute } from 'vue-router';
 import { getProjectDataSampleAsync } from 'src/api/projects.api';
 import { predictValueUsingAiModel } from 'src/api/models.api';
-import { ICsvProject, IRow } from '../models';
+import { IColumn, ICsvProject, IRow } from '../models';
 
 const route = useRoute();
 defineProps<{
@@ -24,7 +24,7 @@ async function getProjectDataSample() {
 
 const cols = computed(() => projectFileDataSample.value?.columns.map((col) => ({
   ...col, field: col.name, required: true, align: 'left',
-} as QTableColumn)));
+} as IColumn & QTableColumn)));
 
 const rows = computed(() => projectFileDataSample.value?.rows);
 
@@ -46,6 +46,7 @@ async function predict() {
 function addRowToTable() {
   if (!projectFileDataSample.value) return;
   const rowToAdd = cols.value?.map((col) => col).reduce((acc, col) => {
+    if (col.isColToPredict) return acc;
     acc[col.name] = 0;
     return acc;
   }, {} as IRow);

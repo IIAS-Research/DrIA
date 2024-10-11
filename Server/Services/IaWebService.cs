@@ -116,7 +116,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError("Cancel Job route : " +exception.Message);
+      response.AddError("Cancel Job route : " + exception.Message);
       return response;
     }
   }
@@ -179,7 +179,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError("Download Model route : " +exception.Message);
+      response.AddError("Download Model route : " + exception.Message);
       return response;
     }
   }
@@ -204,7 +204,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError("Explain Model route : " +exception.Message);
+      response.AddError("Explain Model route : " + exception.Message);
       return response;
     }
   }
@@ -225,7 +225,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError("Get Text Explanation route : " +exception.Message);
+      response.AddError("Get Text Explanation route : " + exception.Message);
       return response;
     }
   }
@@ -412,12 +412,12 @@ public class IaWebService : ApplicationService
     }
   }
 
-  public async Task<ResponseService<string[]>> PredictValueUsingAiModel(FileStorageResponseGet modelFile, ProjectFileFormated dataTable, string columnToPredict)
+  public async Task<ResponseService<ProjectFileFormated>> PredictValueUsingAiModel(FileStorageResponseGet modelFile, ProjectFileFormated dataTable, string columnToPredict)
   {
-    var serviceResponse = new ResponseService<string[]>();
+    var serviceResponse = new ResponseService<ProjectFileFormated>();
     var jsonRowToPredict = new List<Dictionary<string, object>>();
 
-    dataTable.Columns = dataTable.Columns.Where(col => col.Label != columnToPredict).ToList(); // Remove the column to predict
+    var columnsWithoutTheOneToPredict = dataTable.Columns.Where(col => col.Label != columnToPredict).ToList(); // Remove the column to predict
 
     foreach (var row in dataTable.Rows)
     {
@@ -427,7 +427,7 @@ public class IaWebService : ApplicationService
       {
         var key = keyValuePair.Key;
         var value = keyValuePair.Value;
-        var initialColLabel = dataTable.Columns.FirstOrDefault(col => col.Name == key)?.Label;
+        var initialColLabel = columnsWithoutTheOneToPredict.FirstOrDefault(col => col.Name == key)?.Label;
 
         if (initialColLabel != null)
         {
@@ -442,13 +442,30 @@ public class IaWebService : ApplicationService
     {
       var requestContent = new MultipartFormDataContent
         {
-          { new ByteArrayContent(modelFile.FileBytes!), "pipeline" },
+          { new ByteArrayContent(modelFile.FileBytes!), "pipeline", "model" },
           { new StringContent(JsonSerializer.Serialize(jsonRowToPredict), Encoding.UTF8, "application/json"), "json_row" }
         };
       var httpResponse = await http.PostAsync($"{_ia_url}/predict", requestContent);
       httpResponse.EnsureSuccessStatusCode();
       string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-      serviceResponse.SetSuccessful(JsonSerializer.Deserialize<string[]>(httpResponseBody)!);
+      var predictResponse = JsonSerializer.Deserialize<PredictWithModelAiResponseDTO>(httpResponseBody);
+
+      if (predictResponse == null)
+      {
+        serviceResponse.AddError("Prediction response is null.");
+        return serviceResponse;
+      }
+
+      ProjectFileFormated dataTableWithPrediction;
+
+      int index = 0;
+      foreach (var predictionRowValue in predictResponse.prediction)
+      {
+        dataTable.Rows[index][columnToPredict.Replace(" ", "")] = predictionRowValue;
+        index++;
+      }
+
+      serviceResponse.SetSuccessful(dataTable);
     }
 
     // Return the service response
