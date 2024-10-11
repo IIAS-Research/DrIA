@@ -22,8 +22,6 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
 
   public class IaConnectionModelPulling : IaConnectionPulling<IaGenerateModelHub>
   {
-    private readonly System.Timers.Timer _timer = new System.Timers.Timer(1000 * 10);
-
     public IaConnectionModelPulling(string jobWebServiceId, IHubContext<IaGenerateModelHub> hub, IServiceScopeFactory scopeFactory)
     : base(jobWebServiceId, hub, scopeFactory) { }
 
