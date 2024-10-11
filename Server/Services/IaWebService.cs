@@ -17,7 +17,8 @@ namespace Server.Services;
 
 public class IaWebService : ApplicationService
 {
-  private readonly string _ia_url = "http://rss00992:32845";
+  // private readonly string _ia_url = "http://rss00992:32845";
+  private readonly string _ia_url = "http://tmp-iias:32845";
   private readonly JsonSerializerOptions _serializeOptions = new JsonSerializerOptions
   {
     PropertyNameCaseInsensitive = true,
@@ -129,7 +130,6 @@ public class IaWebService : ApplicationService
     {
       using var http = new HttpClient();
       var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{processRemoteId}/metrics");
-      httpResponse.EnsureSuccessStatusCode();
       string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
       response.SetSuccessful(JsonSerializer.Deserialize<GetJobMetricsOutDTO>(httpResponseBody, _serializeOptions)!);
       return response;
@@ -373,16 +373,19 @@ public class IaWebService : ApplicationService
     }
   }
 
-  public async Task<ResponseService<string[]>> PredictValueUsingAiModel(FileStorageResponseGet modelFile, ProjectFileFormated dataTable)
+  public async Task<ResponseService<string[]>> PredictValueUsingAiModel(FileStorageResponseGet modelFile, ProjectFileFormated dataTable, string columnToPredict)
   {
     var serviceResponse = new ResponseService<string[]>();
-    List<JsonRowToPredictDTO> jsonRowToPredict = new List<JsonRowToPredictDTO>();
+    var jsonRowToPredict = new List<Dictionary<string, object>>();
+
+    dataTable.Columns = dataTable.Columns.Where(col => col.Label != columnToPredict).ToList(); // Remove the column to predict
 
     foreach (var row in dataTable.Rows)
     {
+      var serializedKvp = new Dictionary<string, object>();
+
       foreach (var keyValuePair in row)
       {
-        var serializedKvp = new Dictionary<string, object>();
         var key = keyValuePair.Key;
         var value = keyValuePair.Value;
         var initialColLabel = dataTable.Columns.FirstOrDefault(col => col.Name == key)?.Label;
@@ -391,32 +394,28 @@ public class IaWebService : ApplicationService
         {
           serializedKvp[initialColLabel] = value;
         }
-
-        var jsonRow = new JsonRowToPredictDTO
-        {
-          JsonRow = serializedKvp
-        };
-
-        jsonRowToPredict.Add(jsonRow);
       }
+
+      jsonRowToPredict.Add(serializedKvp);
     }
 
     using (var http = new HttpClient())
     {
-      // TODO: Before sending the json_row, need to clean up and remove the target prediction col from the dataTable ?
       var requestContent = new MultipartFormDataContent
         {
-            { new ByteArrayContent(modelFile.FileBytes!), "pipeline" },
-            { new StringContent(JsonSerializer.Serialize(jsonRowToPredict)), "json_row" },
+          { new ByteArrayContent(modelFile.FileBytes!), "pipeline" },
+          { new StringContent(JsonSerializer.Serialize(jsonRowToPredict), Encoding.UTF8, "application/json"), "json_row" }
         };
       var httpResponse = await http.PostAsync($"{_ia_url}/predict", requestContent);
       httpResponse.EnsureSuccessStatusCode();
       string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
       serviceResponse.SetSuccessful(JsonSerializer.Deserialize<string[]>(httpResponseBody)!);
     }
-    // TODO: i only have a string array but need to fetch the csv col to predict on csv, then replace in the datatable received the result of the prediction and return it to the client
+
+    // Return the service response
     return serviceResponse;
   }
+
 
   private static string SerializeToSnakeLowerCase(string pipeline)
   {

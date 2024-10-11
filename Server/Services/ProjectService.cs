@@ -129,7 +129,14 @@ public class ProjectService : ApplicationService
       return response;
     }
 
-    var responseFormated = GetNFirstLineOfFile(responseGetFile.Data.Data, rowCount);
+    var GetColumnToPredictByProjectId = await _projectRepository.GetColumnToPredictByProjectId(projectId);
+    if (GetColumnToPredictByProjectId == null)
+    {
+      response.AddError("No project found for this id.");
+      return response;
+    }
+
+    var responseFormated = GetNFirstLineOfFile(responseGetFile.Data.Data, rowCount, GetColumnToPredictByProjectId);
     if (!responseFormated.IsSuccess)
     {
       response.Errors = responseFormated.Errors;
@@ -166,7 +173,21 @@ public class ProjectService : ApplicationService
     return responseService;
   }
 
-  private static ResponseService<ProjectFileFormated> GetNFirstLineOfFile(byte[] dataFile, int rowCount)
+  public async Task<ResponseService<string?>> GetColumnToPredictByModelId(long modelId)
+  {
+    var serviceResponse = new ResponseService<string?>();
+    var columnToPredict = await _projectRepository.GetColumnToPredictByModelId(modelId);
+    if (columnToPredict == null)
+    {
+      serviceResponse.AddError("No project found containing this model id.");
+    }
+    else
+    {
+      serviceResponse.SetSuccessful(columnToPredict);
+    }
+    return serviceResponse;
+  }
+  private static ResponseService<ProjectFileFormated> GetNFirstLineOfFile(byte[] dataFile, int rowCount, string colToPredict)
   {
     var response = new ResponseService<ProjectFileFormated>();
     var fileFormated = new ProjectFileFormated() { };
@@ -185,7 +206,8 @@ public class ProjectService : ApplicationService
       var newColumn = new ProjectFileFormated.ProjectFileFormatedColumn
       {
         Label = headerCell,
-        Name = headerCell.Replace(" ", "")
+        Name = headerCell.Replace(" ", ""),
+        IsColToPredict = headerCell == colToPredict ? true : false
       };
       fileFormated.Columns.Add(newColumn);
     }
@@ -230,6 +252,7 @@ public class ProjectService : ApplicationService
     {
       public string Label { get; set; } = string.Empty;
       public string Name { get; set; } = string.Empty;
+      public required bool IsColToPredict { get; set; } = false;
     }
   }
 

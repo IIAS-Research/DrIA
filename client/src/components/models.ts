@@ -78,6 +78,7 @@ export interface IProject {
 export interface IColumn {
   label: string;
   name: string; // -> Label parameterized
+  isColToPredict: boolean;
 }
 export interface IRow {
   [key: string]: any;
@@ -96,6 +97,12 @@ export interface IMetricInfo {
   desc: string;
 }
 
+export interface IModelInfo {
+  name: string;
+  description: string;
+  description_long: string;
+}
+
 export interface IPlot {
   title: string;
   description: string;
@@ -103,8 +110,8 @@ export interface IPlot {
 }
 export interface IMetrics {
   id: number;
-  model: string;
   metrics_info: { [name: string]: IMetricInfo };
+  model_info: { [name:string]: IModelInfo };
   main_metrics: string;
   metrics_train: { [name: string]: number };
   metrics_test: { [name: string]: number } | undefined;

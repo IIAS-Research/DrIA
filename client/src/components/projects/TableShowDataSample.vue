@@ -4,7 +4,7 @@ import { QTableColumn } from 'quasar';
 import { useRoute } from 'vue-router';
 import { getProjectDataSampleAsync } from 'src/api/projects.api';
 import { predictValueUsingAiModel } from 'src/api/models.api';
-import { ICsvProject } from '../models';
+import { ICsvProject, IRow } from '../models';
 
 const route = useRoute();
 defineProps<{
@@ -43,6 +43,17 @@ async function predict() {
   projectFileDataSample.value = responsePrediction;
 }
 
+function addRowToTable() {
+  if (!projectFileDataSample.value) return;
+  const rowToAdd = cols.value?.map((col) => col).reduce((acc, col) => {
+    acc[col.name] = 0;
+    return acc;
+  }, {} as IRow);
+
+  if (!rowToAdd) return;
+  projectFileDataSample.value.rows = [...projectFileDataSample.value.rows, rowToAdd];
+}
+
 onMounted(async () => {
   projectFileDataSample.value = await getProjectDataSample();
 });
@@ -50,7 +61,6 @@ onMounted(async () => {
 
 <template>
   <div>
-    <pre> {{ editedDataTable }}</pre>
     <q-table
       title="Input data sample"
       virtual-scroll
@@ -85,9 +95,21 @@ onMounted(async () => {
             v-model.number="row[ col.name ]"
             type="number"
             dense
+            :disable="col.isColToPredict"
             borderless
           />
         </q-td>
+      </template>
+
+      <template
+        v-if="editableRows"
+        #bottom
+      >
+        <q-btn
+          label="Ajouter un rang"
+          color="primary"
+          @click="addRowToTable"
+        />
       </template>
     </q-table>
   </div>

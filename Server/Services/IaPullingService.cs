@@ -14,7 +14,6 @@ namespace Server.Services
 {
   public class IaPullingService(IHubContext<IaStatusHub> iaStatusHub, IHubContext<IaMetricHub> iaMetricHub, IServiceScopeFactory scopeFactory) : ApplicationService
   {
-    public static readonly string _url = "http://rss00992:32845";
     private readonly List<IaConnectionPulling> _connections = [];
     private readonly IHubContext<IaStatusHub> _iaStatusHub = iaStatusHub;
     private readonly IHubContext<IaMetricHub> _iaMetricHub = iaMetricHub;
@@ -170,7 +169,7 @@ namespace Server.Services
         {
           Console.WriteLine("Erreur fetch metrics : " + responseGetMetric.Errors.ToString());
           return responseOnProcessFinish;
-        } 
+        }
 
         List<Model> modelList = new List<Model>();
 

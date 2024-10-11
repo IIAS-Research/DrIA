@@ -47,20 +47,20 @@ public class ModelsController : ApplicationController
     return Ok(responseExplanation.Data.TextExplanation);
   }
 
-  [HttpPost("{modelId}/explanation")]
+  [HttpPost("{modelId}/predict")]
   public async Task<ActionResult<ProjectFileFormated>> PredictValueUsingAiModel(long modelId, [FromBody] ProjectFileFormated dataTable)
   {
     // Get model file of the current model
     var getModelFileResponse = await _modelService.GetModelFileById(modelId);
     if (!getModelFileResponse.IsSuccess) return BadRequest(getModelFileResponse.Errors);
 
+    var getProjectColumnToPredictResponse = await _projectService.GetColumnToPredictByModelId(modelId);
+    if (!getProjectColumnToPredictResponse.IsSuccess) return BadRequest(getProjectColumnToPredictResponse.Errors);
+
     // Send request to web service to predict
-    var serviceResponse = await _iaWebService.PredictValueUsingAiModel(getModelFileResponse.Data!, dataTable);
+    var serviceResponse = await _iaWebService.PredictValueUsingAiModel(getModelFileResponse.Data!, dataTable, getProjectColumnToPredictResponse.Data!);
     if (!serviceResponse.IsSuccess) return BadRequest(getModelFileResponse.Errors);
 
     return Ok(serviceResponse.Data);
-
-
-    // Return the response
   }
 }

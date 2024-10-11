@@ -104,6 +104,7 @@ const remainingFormatedTime = computed(() => {
 watchEffect(async () => {
   const messageReceived = signalR.receivedMessageRef.value as ProcessStatus;
   if (messageReceived !== 'FINISHED') return;
+  console.log('Finished');
   router.replace({ name: 'project-show', params: { id: projectId.value } });
 });
 

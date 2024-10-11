@@ -63,8 +63,8 @@ public record GetJobMetricsOutDTO
 public record Metrics
 {
   public required int id { get; init; }
-  public required string model { get; init; }
   public required Dictionary<string, MetricInfo> metrics_info { get; init; }
+  public required ModelInfo model_info { get; init; }
   public required string main_metrics { get; init; }
   public required Dictionary<string, float> metrics_train { get; init; }
   public required Dictionary<string, float>? metrics_test { get; init; }
@@ -75,6 +75,13 @@ public record MetricInfo
 {
   public required string name { get; init; }
   public required string desc { get; init; }
+}
+
+public record ModelInfo
+{
+  public required string name { get; init; }
+  public required string description { get; init; }
+  public required string description_long { get; init; }
 }
 
 public record Plot
@@ -147,9 +154,4 @@ public record RunPipelineFileDTO
 {
   public required byte[] File { get; set; }
   public required string FileName { get; set; }
-}
-
-public record JsonRowToPredictDTO
-{
-  public required IDictionary<string, object> JsonRow { get; set; }
 }

@@ -70,6 +70,7 @@ function forkPipeline() {
             </div>
 
             <ModelCardContent
+              v-if="bestModel"
               :process-id="getParentProcessOfModel(bestModel).id"
               :project-id="projectId"
               :model="bestModel"
