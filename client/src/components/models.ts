@@ -41,7 +41,7 @@ export interface IPipeline {
   name: string;
   description: string;
   enable: boolean;
-  can_be_disable: boolean;
+  canBeDisable: boolean;
   configuration: {
     [key: string]: IConfigurationKey;
   };
@@ -96,6 +96,11 @@ export interface IMetricInfo {
   desc: string;
 }
 
+export interface IPlot {
+  title: string;
+  description: string;
+  image: string;
+}
 export interface IMetrics {
   id: number;
   model: string;
@@ -106,12 +111,6 @@ export interface IMetrics {
   plots: IPlot[];
 }
 
-export interface IPlot {
-  title: string;
-  description: string;
-  image: string;
-}
-
 export interface IStructuredBibliography {
   step: string;
   year: number;
@@ -119,14 +118,6 @@ export interface IStructuredBibliography {
   author: string[];
   doi: string | null;
   publisher: string | null;
-}
-export interface IModel {
-  id: number;
-  date: string;
-  metrics: IMetrics;
-  explanation: IExplanation;
-  textExplanation: string[];
-  bibliography?: IBibliography;
 }
 
 export interface IExplanation {
@@ -148,6 +139,15 @@ export interface IBibliography {
   structured_bibliography: IStructuredBibliography[];
 }
 
+export interface IModel {
+  id: number;
+  date: string;
+  metrics: IMetrics;
+  explanation: IExplanation;
+  textExplanation: string[];
+  bibliography?: IBibliography;
+}
+
 export interface IProcess {
   iaRemoteId: number;
   id: number;
@@ -161,4 +161,9 @@ export interface IProcess {
   // mainMetricsName?: string;
   models: IModel[];
   projectId: IProject['id'];
+}
+
+export interface IRunPipelineForkDto {
+  projectId: number;
+  pipeline: IPipeline;
 }

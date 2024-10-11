@@ -4,6 +4,7 @@ using CsvHelper.Configuration;
 using Server.DTOs;
 using Server.Models;
 using Server.Repositories;
+using static Server.Services.FileStorageService;
 
 namespace Server.Services;
 
@@ -50,7 +51,7 @@ public class ProjectService : ApplicationService
     var responseWriteFile = await WriteProjectFile(projectData.File, ProjectFile.EProjectFileType.DEFAULT);
     if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
 
-    await _projectRepository.CreateProjectFile(project, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType);
+    await _projectRepository.CreateProjectFile(project, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType, ProjectFile.EProjectFileType.DEFAULT);
     response.SetSuccessful(project);
     return response;
   }
@@ -62,22 +63,21 @@ public class ProjectService : ApplicationService
     var responseWriteFile = await WriteProjectFile(file, type);
     if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
 
-    var projectFile = await _projectRepository.CreateProjectFile(project, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType);
+    var projectFile = await _projectRepository.CreateProjectFile(project, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType, type);
     response.SetSuccessful(projectFile);
     return response;
   }
 
-  async public Task<ProjectResponseGetOne> GetProjectById(long id)
+  async public Task<ResponseService<Project>> GetProjectById(long id)
   {
-    ProjectResponseGetOne projectResponseGetOne = new();
+    ResponseService<Project> projectResponseGetOne = new();
     Project? project = await _projectRepository.GetProjectById(id);
     if (project == null)
     {
       projectResponseGetOne.AddError("Project not found for this id");
       return projectResponseGetOne;
     }
-    projectResponseGetOne.IsSuccess = true;
-    projectResponseGetOne.Project = project;
+    projectResponseGetOne.SetSuccessful(project);
     return projectResponseGetOne;
   }
 
@@ -138,6 +138,32 @@ public class ProjectService : ApplicationService
 
     response.SetSuccessful(responseFormated.Data);
     return response;
+  }
+
+  public async Task<ResponseService<GetTrainAndTestFilesOutDTO>> GetTrainAndTestFiles(long projectId)
+  {
+    var responseService = new ResponseService<GetTrainAndTestFilesOutDTO>();
+    var projectFileTrain = await _projectRepository.GetProjectFileAsync(projectId, ProjectFile.EProjectFileType.TRAIN);
+    var projectFileTest = await _projectRepository.GetProjectFileAsync(projectId, ProjectFile.EProjectFileType.TEST);
+    if (projectFileTrain == null || projectFileTest == null)
+    {
+      responseService.AddError("Couldn't find either Test or Train File in DB, both are required for this method.");
+      return responseService;
+    }
+    var getTrainFileResponse = await _fileStorageService.GetFileFromStorageAsync(projectFileTrain.StorageFilename);
+    var getTestFileResponse = await _fileStorageService.GetFileFromStorageAsync(projectFileTest.StorageFilename);
+
+    // Handle potential errors
+    if (!getTrainFileResponse.IsSuccess) responseService.Errors.AddRange(getTrainFileResponse.Errors);
+    if (!getTestFileResponse.IsSuccess) responseService.Errors.AddRange(getTestFileResponse.Errors);
+    if (!getTrainFileResponse.IsSuccess || !getTestFileResponse.IsSuccess) return responseService;
+
+    RunPipelineFileDTO trainFile = new() { File = getTrainFileResponse.Data.FileBytes!, FileName = projectFileTrain.Filename };
+    RunPipelineFileDTO testFile = new() { File = getTestFileResponse.Data.FileBytes!, FileName = projectFileTest.Filename };
+
+    responseService.SetSuccessful(new GetTrainAndTestFilesOutDTO { TrainFile = trainFile, TestFile = testFile });
+
+    return responseService;
   }
 
   private static ResponseService<ProjectFileFormated> GetNFirstLineOfFile(byte[] dataFile, int rowCount)

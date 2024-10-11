@@ -2,17 +2,20 @@
 // import jsonImportedFile from 'src/../fake_file_sample/default_pipeline_sample.json';
 import { onMounted, ref } from 'vue';
 import { QSplitter, QTab, QTabPanel } from 'quasar';
-import { getDefaultPipeline } from 'src/api/ia-web-service.api';
 import { IPipeline } from '../models';
 
-const pipeline = ref<IPipeline>();
+const props = defineProps<{
+  pipeline: IPipeline;
+}>();
+
+const pipelineRefLocalComponent = ref<IPipeline>({ ...props.pipeline });
 const tab = ref<QTabPanel['name']>('');
 const innerTab = ref<QTabPanel['name']>('');
 const splitterModel = ref<QSplitter['modelValue']>(50);
 const tabsSplitterModel = ref<QSplitter['modelValue']>(50);
 
 defineExpose({
-  pipeline,
+  pipelineRefLocalComponent,
 });
 
 const emits = defineEmits<{
@@ -30,18 +33,18 @@ function chooseRightInputType(valueToProceed: IPipeline['configuration'][0]) {
 }
 
 async function initPipeline() {
-  pipeline.value = await getDefaultPipeline();
-  if (!pipeline.value) return;
+  if (!pipelineRefLocalComponent.value) return;
+  console.log(pipelineRefLocalComponent.value);
   emits('isPipelineLoading', false);
-  tab.value = `${pipeline.value.children[0].step}-0`;
+  tab.value = `${pipelineRefLocalComponent.value.children[0].step}-0`;
 }
 
 function resetValueWithDefault(stepConf: IPipeline['configuration'][0]) {
   stepConf.value = stepConf.default;
 }
 
-function autoSelectFirstChildOnChange(val: QTabPanel['name'] = `${pipeline.value?.children[0].step}-0`) {
-  innerTab.value = `${pipeline.value?.children.find((s, i) => `${s.step}-${i}` === val)?.children[0].step}-0`;
+function autoSelectFirstChildOnChange(val: QTabPanel['name'] = `${pipelineRefLocalComponent.value?.children[0].step}-0`) {
+  innerTab.value = `${pipelineRefLocalComponent.value?.children.find((s, i) => `${s.step}-${i}` === val)?.children[0].step}-0`;
 }
 
 onMounted(async () => {
@@ -52,7 +55,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <q-card v-if="pipeline">
+  <q-card v-if="pipelineRefLocalComponent">
     <q-splitter v-model="splitterModel">
       <template #before>
         <q-splitter
@@ -68,11 +71,11 @@ onMounted(async () => {
               @update:model-value="autoSelectFirstChildOnChange"
             >
               <q-tab
-                v-for="(metaStep, metaIndex) in pipeline.children"
+                v-for="(metaStep, metaIndex) in pipelineRefLocalComponent.children"
                 :key="metaIndex"
                 :name="`${metaStep.step}-${metaIndex}`"
                 :label="metaStep.name"
-                :style="{ height: `${(500 / pipeline.children.length)}px` }"
+                :style="{ height: `${(500 / pipelineRefLocalComponent.children.length)}px` }"
               />
             </q-tabs>
           </template>
@@ -85,12 +88,12 @@ onMounted(async () => {
               active-bg-color="teal-3"
             >
               <q-tab
-                v-for="(step, stepIndex) in pipeline?.children
+                v-for="(step, stepIndex) in pipelineRefLocalComponent?.children
                   ?.filter((s, i) => `${s.step}-${i}` === tab)?.[0]?.children || []"
                 :key="stepIndex"
                 :name="`${step.step}-${stepIndex}`"
                 :label="step.name"
-                :style="{ height: `${(500 / pipeline.children.length)}px` }"
+                :style="{ height: `${(500 / pipelineRefLocalComponent.children.length)}px` }"
               />
             </q-tabs>
           </template>
@@ -108,7 +111,7 @@ onMounted(async () => {
           class="q-mr-md"
         >
           <q-tab-panel
-            v-for="(step, stepIndex) in pipeline?.children
+            v-for="(step, stepIndex) in pipelineRefLocalComponent?.children
               ?.filter((s, i) => `${s.step}-${i}` === tab)?.[0]?.children || []"
             :key="stepIndex"
             :name="`${step.step}-${stepIndex}`"
@@ -121,7 +124,7 @@ onMounted(async () => {
             >
               <q-toggle
                 v-model="step.enable"
-                :disable="!step.can_be_disable"
+                :disable="!step.canBeDisable"
                 :label="step.enable ? 'Activé' : 'Desactivé'"
                 class="q-pr-md"
               />
@@ -181,6 +184,6 @@ onMounted(async () => {
     class="text-caption text-italic"
     v-else
   >
-    Aucune pipeline disponible
+    Aucune pipelineRefLocalComponent disponible
   </div>
 </template>

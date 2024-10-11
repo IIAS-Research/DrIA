@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { QCarousel } from "quasar";
-import { ref } from "vue";
-import { IModel, IPlot } from "../models";
+import { QCarousel } from 'quasar';
+import { ref } from 'vue';
+import { IModel, IPlot } from '../models';
 
 // props
 const propsComponent = defineProps<{
@@ -13,7 +13,7 @@ const slide = ref(1);
 const carousel = ref<InstanceType<typeof QCarousel>>();
 const currentPlotIndex = ref(0);
 const currentPlot = ref<IPlot | undefined>(
-  propsComponent.model.metrics.plots.at(currentPlotIndex.value)
+  propsComponent.model.metrics.plots.at(currentPlotIndex.value),
 );
 
 // functions
@@ -27,7 +27,9 @@ function changePlot(index: number) {
 <template>
   <div class="flex column flex-center">
     <div class="flex-center column">
-      <h4 class="no-margin q-pb-lg text-weight-medium">Performances</h4>
+      <h4 class="no-margin q-pb-lg text-weight-medium">
+        Performances
+      </h4>
       <div class="flex row items-start justify-center">
         <div class="flex column q-gutter-y-md col-2">
           <q-item
@@ -53,10 +55,18 @@ function changePlot(index: number) {
               </div>
             </q-item-section>
             <q-item-section side>
-              <q-icon name="info" color="info">
-                <q-tooltip anchor="center right" self="center left">{{
-                  propsComponent.model.metrics.metrics_info[item[0]].desc
-                }}</q-tooltip>
+              <q-icon
+                name="info"
+                color="info"
+              >
+                <q-tooltip
+                  anchor="center right"
+                  self="center left"
+                >
+                  {{
+                    propsComponent.model.metrics.metrics_info[item[0]].desc
+                  }}
+                </q-tooltip>
               </q-icon>
             </q-item-section>
           </q-item>
@@ -82,9 +92,9 @@ function changePlot(index: number) {
                 class="full-height"
                 :src="
                   'data:image/png;base64,' +
-                  propsComponent.model.metrics.plots[currentPlotIndex].image
+                    propsComponent.model.metrics.plots[currentPlotIndex].image
                 "
-              />
+              >
             </q-carousel-slide>
           </q-carousel>
           <q-card class="flex column carousel-card rounded-borders q-pa-md">
@@ -118,7 +128,11 @@ function changePlot(index: number) {
                   <span
                     class="q-btn__content text-center col items-center q-anchor--skip justify-center row"
                   >
-                    <i class="q-icon" aria-hidden="true" role="img">
+                    <i
+                      class="q-icon"
+                      aria-hidden="true"
+                      role="img"
+                    >
                       <svg viewBox="0 0 24 24">
                         <path
                           d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"

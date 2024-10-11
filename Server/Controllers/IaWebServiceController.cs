@@ -18,6 +18,6 @@ public class IaWebServiceController(UserManager<User> userManager, IaWebService 
     {
         var response = await _iaWebService.GeneratePipeline();
         if (response.IsSuccess == false) return NotFound();
-        return Ok(response.Data.Pipeline);
+        return Ok(response.Data);
     }
 }

@@ -66,8 +66,13 @@ watchEffect(async () => {
         </q-btn>
       </div>
 
-      <div class="text-weight-medium text-body1 q-pt-md q-pb-sm q-pl-md">Mes projets</div>
-      <q-list separator bordered>
+      <div class="text-weight-medium text-body1 q-pt-md q-pb-sm q-pl-md">
+        Mes projets
+      </div>
+      <q-list
+        separator
+        bordered
+      >
         <q-item
           v-for="project in userProjects"
           :key="project.id"

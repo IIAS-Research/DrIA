@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { marked } from "marked";
-import { IModel } from "../models";
+import { marked } from 'marked';
+import { IModel } from '../models';
 
 // props
 const propsComponent = defineProps<{
@@ -18,14 +18,19 @@ const propsComponent = defineProps<{
         </h4>
 
         <q-card class="q-pa-md q-mt-xs flex column">
-          <div v-for="(text, index) in propsComponent.model.textExplanation" :key="index">
+          <div
+            v-for="(text, index) in propsComponent.model.textExplanation"
+            :key="index"
+          >
             <div v-html="marked(text)" />
           </div>
         </q-card>
       </div>
 
       <div class="flex-center column col-5 q-ml-md">
-        <h4 class="no-margin q-py-lg text-weight-medium">Bibliographie</h4>
+        <h4 class="no-margin q-py-lg text-weight-medium">
+          Bibliographie
+        </h4>
         <q-list class="q-gutter-y-md">
           <q-item
             v-for="(biblio, index) in propsComponent.model.bibliography
@@ -36,28 +41,52 @@ const propsComponent = defineProps<{
           >
             <div class="flex column">
               <div class="flex row items-center">
-                <div class="text-body1 text-weight-medium">Name :</div>
-                <div class="q-pl-sm">{{ biblio.name }}</div>
+                <div class="text-body1 text-weight-medium">
+                  Name :
+                </div>
+                <div class="q-pl-sm">
+                  {{ biblio.name }}
+                </div>
               </div>
               <div class="flex row items-center">
-                <div class="text-body1 text-weight-medium">Year :</div>
-                <div class="q-pl-sm">{{ biblio.year }}</div>
+                <div class="text-body1 text-weight-medium">
+                  Year :
+                </div>
+                <div class="q-pl-sm">
+                  {{ biblio.year }}
+                </div>
               </div>
               <div class="flex row items-center">
-                <div class="text-body1 text-weight-medium">Step :</div>
-                <div class="q-pl-sm">{{ biblio.step }}</div>
+                <div class="text-body1 text-weight-medium">
+                  Step :
+                </div>
+                <div class="q-pl-sm">
+                  {{ biblio.step }}
+                </div>
               </div>
               <div class="flex row items-center">
-                <div class="text-body1 text-weight-medium">DOI :</div>
-                <div class="q-pl-sm">{{ biblio.doi ?? "???" }}</div>
+                <div class="text-body1 text-weight-medium">
+                  DOI :
+                </div>
+                <div class="q-pl-sm">
+                  {{ biblio.doi ?? "???" }}
+                </div>
               </div>
               <div class="flex row items-center">
-                <div class="text-body1 text-weight-medium">Author :</div>
-                <div class="q-pl-sm">{{ biblio.author ?? "???" }}</div>
+                <div class="text-body1 text-weight-medium">
+                  Author :
+                </div>
+                <div class="q-pl-sm">
+                  {{ biblio.author ?? "???" }}
+                </div>
               </div>
               <div class="flex row items-center">
-                <div class="text-body1 text-weight-medium">Publisher :</div>
-                <div class="q-pl-sm">{{ biblio.publisher ?? "???" }}</div>
+                <div class="text-body1 text-weight-medium">
+                  Publisher :
+                </div>
+                <div class="q-pl-sm">
+                  {{ biblio.publisher ?? "???" }}
+                </div>
               </div>
             </div>
           </q-item>

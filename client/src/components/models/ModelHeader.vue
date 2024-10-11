@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { formatToDDMMYYYHHmm } from "src/utils/date";
-import { IModel } from "../models";
+import { formatToDDMMYYYHHmm } from 'src/utils/date';
+import { IModel } from '../models';
 
 // props
 const propsComponent = defineProps<{
   model: IModel;
+  routeParams: {
+    projectId: number;
+    processId: number;
+    modelId: number;
+  }
 }>();
 </script>
 
@@ -34,7 +39,9 @@ const propsComponent = defineProps<{
           >
             <q-item-section>
               <div class="flex row items-center justify-between">
-                <div class="text-weight-bolder text-body1">Date :</div>
+                <div class="text-weight-bolder text-body1">
+                  Date :
+                </div>
                 <div class="text-weight-bolder text-body1">
                   {{ formatToDDMMYYYHHmm(propsComponent.model.date) }}
                 </div>
@@ -49,11 +56,13 @@ const propsComponent = defineProps<{
           >
             <q-item-section>
               <div class="flex row items-center justify-between">
-                <div class="text-weight-bolder text-body1">Précision :</div>
+                <div class="text-weight-bolder text-body1">
+                  Précision :
+                </div>
                 <div class="text-weight-bolder text-body1">
                   {{
                     propsComponent.model.metrics.metrics_train["precision"] ??
-                    "???"
+                      "???"
                   }}
                 </div>
               </div>
@@ -62,10 +71,10 @@ const propsComponent = defineProps<{
         </div>
 
         <q-btn
-          @click="console.log('ma bite')"
           color="blue-8"
           label="Tester le modèle"
           class="q-mt-md"
+          :to="{ name: 'model-test', params: { id: routeParams.projectId, processId: routeParams.processId, modelId: routeParams.modelId } }"
         />
 
         <q-btn

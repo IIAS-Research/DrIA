@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Server.DAL.Db;
 using Server.DTOs;
 using Server.Models;
+using static Server.Models.ProjectFile;
 
 namespace Server.Repositories;
 public class ProjectRepository(MainDbContext dbContext)
@@ -43,7 +44,7 @@ public class ProjectRepository(MainDbContext dbContext)
         return project;
     }
 
-    public async Task<ProjectFile> CreateProjectFile(Project project, string filename, string filePath, string mimeType)
+    public async Task<ProjectFile> CreateProjectFile(Project project, string filename, string filePath, string mimeType, EProjectFileType type)
     {
       ProjectFile projectFile = new ProjectFile
       {
@@ -51,7 +52,7 @@ public class ProjectRepository(MainDbContext dbContext)
         StorageFilename = filePath,
         ProjectId = project.Id,
         MimeType = mimeType,
-        FileType = ProjectFile.EProjectFileType.DEFAULT
+        FileType = type
       };
       await _dbContext.ProjectFiles.AddRangeAsync(projectFile);
       await _dbContext.SaveChangesAsync();
@@ -69,6 +70,11 @@ public class ProjectRepository(MainDbContext dbContext)
         .Include(proj => proj.Processes)
         .ThenInclude(proc => proc.Models)
         .FirstOrDefaultAsync(proj => proj.Id == id);
+    }
+
+    public async Task<ProjectFile?> GetProjectFileAsync(long projectId, ProjectFile.EProjectFileType type)
+    {
+      return await _dbContext.ProjectFiles.FirstOrDefaultAsync(p => p.ProjectId == projectId && p.FileType == type);
     }
 
 }

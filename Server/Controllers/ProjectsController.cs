@@ -49,10 +49,10 @@ public class ProjectsController : ApplicationController
         var projectResponseGetOne = await _projectService.GetProjectById(id);
         if (projectResponseGetOne.IsSuccess == false) return NotFound(projectResponseGetOne.Errors);
 
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User, projectResponseGetOne.Project, Operations.ReadOnlyOwn);
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, projectResponseGetOne.Data, Operations.ReadOnlyOwn);
         if (authorizationResult.Succeeded == false) return Unauthorized();
 
-        return Ok(projectResponseGetOne.Project);
+        return Ok(projectResponseGetOne.Data);
     }
 
     [HttpGet("{id}/nested-data")]
@@ -90,8 +90,10 @@ public class ProjectsController : ApplicationController
         var responseCreateProjectFileTest = await _projectService.CreateProjectFile(responseGetTestFile.Data, responseProject.Data, ProjectFile.EProjectFileType.TEST);
         if (!responseCreateProjectFileTest.IsSuccess) return BadRequest(responseCreateProjectFileTest.Errors);
 
+        RunPipelineFileDTO runPipelineTrainFileDTO = new() { File = await IaWebService.IFormFileToByteArray(responseGetTrainFile.Data), FileName = responseGetTrainFile.Data.FileName };
+        RunPipelineFileDTO runPipelineTestFileDTO = new() { File = await IaWebService.IFormFileToByteArray(responseGetTestFile.Data), FileName = responseGetTestFile.Data.FileName };
 
-        var responseIaWeb = await _iaWebService.RunPipeline(responseGetTrainFile.Data, responseGetTestFile.Data, responseProject.Data, projectData.Pipeline);
+        var responseIaWeb = await _iaWebService.RunPipeline(runPipelineTrainFileDTO, runPipelineTestFileDTO, responseProject.Data, projectData.Pipeline);
         if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
 
         var responseProcess = await _processService.CreateProcess(responseIaWeb.Data, projectData.Pipeline, responseProject.Data);
@@ -105,7 +107,7 @@ public class ProjectsController : ApplicationController
         var projectResponseGetOne = await _projectService.GetProjectById(projectId);
         if (projectResponseGetOne.IsSuccess == false) return NotFound(projectResponseGetOne.Errors);
 
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User, projectResponseGetOne.Project, Operations.ReadOnlyOwn);
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, projectResponseGetOne.Data, Operations.ReadOnlyOwn);
         if (authorizationResult.Succeeded == false) return Unauthorized();
 
         if (rowCount > 50 || rowCount < 1)
@@ -124,7 +126,7 @@ public class ProjectsController : ApplicationController
         var projectResponseGetOne = await _projectService.GetProjectById(projectId);
         if (projectResponseGetOne.IsSuccess == false) return NotFound(projectResponseGetOne.Errors);
 
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User, projectResponseGetOne.Project, Operations.ReadOnlyOwn);
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, projectResponseGetOne.Data, Operations.ReadOnlyOwn);
         if (authorizationResult.Succeeded == false) return Unauthorized();
 
         var responseFile = await _projectService.GetProjectDefaultFile(projectId);

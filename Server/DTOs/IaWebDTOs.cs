@@ -1,4 +1,5 @@
 using Server.Models;
+using static Server.Models.Process;
 
 namespace Server.DTOs;
 
@@ -13,13 +14,13 @@ public record RunPipelineOutDTO
 {
   public required string Id { get; set; }
   public required string Socket { get; set; }
-  public required Process.EProcessStatut Status { get; set; }
+  public required EProcessStatut Status { get; set; }
   public required int MaxDuration { get; set; }
 }
 
 public record GeneratePipelineOutDTO
 {
-  public required Process.ProcessPipeline pipeline;
+  public required ProcessPipeline pipeline;
 }
 
 public record GeneratePipelineWebServiceJsonDTO
@@ -38,7 +39,7 @@ public record JobStatusOutDTO
 
 public record JobStatusOut
 {
-  public required Process.EProcessStatut current { get; init; } // Change to string for deserialization
+  public required EProcessStatut current { get; init; } // Change to string for deserialization
   public required List<JobStatusHistory> history { get; init; } // Change to List
 }
 
@@ -50,7 +51,7 @@ public record JobStatusHistory
 public record CancelJobOutDTO
 {
   public required string Id;
-  public required Process.EProcessStatut status;
+  public required EProcessStatut status;
 }
 
 public record GetJobMetricsOutDTO
@@ -84,15 +85,6 @@ public record Plot
 }
 
 
-// public record GetJobBibliographyOutDTO
-// {
-//   public required string id { get; set; }
-//   public required int rid { get; set; }
-//   public required string bibliography { get; set; }
-//   public required StructuredBibliography[] structured_bibliography { get; set; }
-// }
-
-
 public record ExplainModelInDTO
 {
   public required IFormFile dataset;
@@ -115,7 +107,7 @@ public record SplitOutDTO
 {
   public required string id { get; set; }
   public required string socket { get; set; }
-  public required Process.EProcessStatut status { get; set; }
+  public required EProcessStatut status { get; set; }
 }
 
 public record GetSplitStatusOutDTO
@@ -126,7 +118,7 @@ public record GetSplitStatusOutDTO
 
   public record SplitStatus
   {
-    public required Process.EProcessStatut current;
+    public required EProcessStatut current;
     public object? history;
   }
 }
@@ -136,12 +128,33 @@ public record GetModelFeaturesInDTO
   public required Model.ModelExplanation.ModelExplainFeature[] features { get; set;}
 }
 
-// public record StructuredBibliography
-// {
-//   public required string step { get; set; }
-//   public required int year { get; set; }
-//   public required string name { get; set; }
-//   public required string[] authors { get; set; }
-//   public required string doi { get; set; }
-//   public required string publisher { get; set; }
-// }
+public record RunNewProcessDTO
+{
+  public required long ProjectId { get; set; }
+  public required ProcessPipeline Pipeline { get; set; } // JSON
+}
+
+public record RunNewPipelineDTO
+{
+  public required Project Project { get; set; }
+  public required ProcessPipeline PipelineToRun { get; set; }
+  public required byte[] TrainFile { get; set; }
+  public required byte[] TestFile { get; set; }
+}
+
+public record GetTrainAndTestFilesOutDTO
+{
+  public required RunPipelineFileDTO TrainFile { get; set; }
+  public required RunPipelineFileDTO TestFile { get; set; }
+}
+
+public record RunPipelineFileDTO
+{
+  public required byte[] File { get; set; }
+  public required string FileName { get; set; }
+}
+
+public record JsonRowToPredictDTO
+{
+  public required IDictionary<string, object> JsonRow { get; set; }
+}

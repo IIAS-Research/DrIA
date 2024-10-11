@@ -34,13 +34,30 @@ const routes: RouteRecordRaw[] = [
             name: 'project-show',
             component: () => import('pages/projects/ProjectPage.vue'),
           },
+          {
+            path: 'processes/:processId/pipeline-fork',
+            name: 'pipeline-fork',
+            component: () => import('pages/processes/ForkPipelineEditor.vue'),
+            beforeEnter: mustBeAuth,
+          },
+          {
+            path: 'processes/:processId/models/:modelId',
+            beforeEnter: mustBeAuth,
+            children: [
+              {
+                path: '',
+                name: 'model-show',
+                component: () => import('pages/models/ModelPage.vue'),
+              },
+              {
+                path: 'test',
+                name: 'model-test',
+                component: () => import('pages/models/ModelTestPage.vue'),
+                beforeEnter: mustBeAuth,
+              },
+            ],
+          },
         ],
-      },
-      {
-        path: 'models/:id',
-        name: 'model-show',
-        component: () => import('pages/models/ModelPage.vue'),
-        beforeEnter: mustBeAuth,
       },
     ],
   },

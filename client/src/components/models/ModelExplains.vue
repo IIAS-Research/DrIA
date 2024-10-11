@@ -19,7 +19,7 @@ const carousel = ref<InstanceType<typeof QCarousel>>();
 const currentExplainIndex = ref(0);
 const isLoadingExplanation = ref(false);
 const currentExplain = ref<IPlot | undefined>(
-  propsComponent.model.metrics.plots.at(currentExplainIndex.value)
+  propsComponent.model.metrics.plots.at(currentExplainIndex.value),
 );
 const explanation = ref(propsComponent.model.explanation);
 
@@ -36,6 +36,7 @@ async function getExplanation() {
     return;
   }
   signalR.connect(response.id);
+  isLoadingExplanation.value = false;
 }
 
 // watchs
@@ -68,7 +69,10 @@ onUnmounted(() => {
         />
       </div>
 
-      <div v-else class="flex row items-start justify-center">
+      <div
+        v-else
+        class="flex row items-start justify-center"
+      >
         <div class="flex column q-gutter-y-md col-2">
           <q-item
             v-for="item in Object.entries(
@@ -91,10 +95,18 @@ onUnmounted(() => {
               </div>
             </q-item-section>
             <q-item-section side>
-              <q-icon name="info" color="info">
-                <q-tooltip anchor="center right" self="center left">{{
-                  propsComponent.model.metrics.metrics_info[item[0]].desc
-                }}</q-tooltip>
+              <q-icon
+                name="info"
+                color="info"
+              >
+                <q-tooltip
+                  anchor="center right"
+                  self="center left"
+                >
+                  {{
+                    propsComponent.model.metrics.metrics_info[item[0]].desc
+                  }}
+                </q-tooltip>
               </q-icon>
             </q-item-section>
           </q-item>
@@ -120,9 +132,9 @@ onUnmounted(() => {
                 class="full-height"
                 :src="
                   'data:image/png;base64,' +
-                  propsComponent.model.metrics.plots[index].image
+                    propsComponent.model.metrics.plots[index].image
                 "
-              />
+              >
             </q-carousel-slide>
           </q-carousel>
           <q-card class="flex column carousel-card rounded-borders q-pa-md">
@@ -156,7 +168,11 @@ onUnmounted(() => {
                   <span
                     class="q-btn__content text-center col items-center q-anchor--skip justify-center row"
                   >
-                    <i class="q-icon" aria-hidden="true" role="img">
+                    <i
+                      class="q-icon"
+                      aria-hidden="true"
+                      role="img"
+                    >
                       <svg viewBox="0 0 24 24">
                         <path
                           d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"

@@ -7,6 +7,12 @@ namespace Server.Models;
 public class Process : ApplicationRecord
 {
   private string _pipelineJson = "";
+  private readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions
+  {
+    PropertyNameCaseInsensitive = true,
+    WriteIndented = true,
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+  };
 
   [Key]
   public long Id { get; set; }
@@ -23,7 +29,7 @@ public class Process : ApplicationRecord
     {
       return string.IsNullOrWhiteSpace(_pipelineJson)
           ? null
-          : JsonSerializer.Deserialize<ProcessPipeline>(_pipelineJson);
+          : JsonSerializer.Deserialize<ProcessPipeline>(_pipelineJson, jsonOptions);
     }
     set
     {
@@ -79,6 +85,7 @@ public class Process : ApplicationRecord
     public bool? CanBeDisable { get; set; }
     public Dictionary<string, ProcessPipelineConfiguration>? Configuration { get; set; }
     public ProcessPipeline[]? Children { get; set; }
+    public ProcessPipeline? StepToMimic { get; set; }
 
     public record ProcessPipelineConfiguration
     {

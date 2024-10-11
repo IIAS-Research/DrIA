@@ -7,6 +7,9 @@ using CsvHelper.Configuration;
 using Server.DTOs;
 using Server.Models;
 using static Server.Models.Model;
+using static Server.Models.Process;
+using static Server.Services.FileStorageService;
+using static Server.Services.ProjectService;
 
 namespace Server.Services;
 
@@ -20,7 +23,7 @@ public class IaWebService : ApplicationService
     Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
   };
 
-  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(IFormFile trainFile, IFormFile testFile, Project project, string pipeline)
+  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(RunPipelineFileDTO trainFile, RunPipelineFileDTO testFile, Project project, string pipeline)
   {
     var response = new ResponseService<RunPipelineOutDTO>();
     try
@@ -29,10 +32,10 @@ public class IaWebService : ApplicationService
       {
         var requestContent = new MultipartFormDataContent
         {
-            { new ByteArrayContent(await IFormFileToByteArray(trainFile)), "train_dataset", trainFile.FileName },
-            { new ByteArrayContent(await IFormFileToByteArray(testFile)), "test_dataset", testFile.FileName },
+            { new ByteArrayContent(trainFile.File), "train_dataset", trainFile.FileName },
+            { new ByteArrayContent(testFile.File), "test_dataset", testFile.FileName },
             { new StringContent(project.CsvColumnToPredict), "dataset_target" },
-            { new StringContent(pipeline, Encoding.UTF8, "application/json"), "pipeline" }
+            { new StringContent(SerializeToSnakeLowerCase(pipeline), Encoding.UTF8, "application/json"), "pipeline" }
         };
         var httpResponse = await http.PostAsync($"{_ia_url}/pipeline/run", requestContent);
         httpResponse.EnsureSuccessStatusCode();
@@ -48,18 +51,23 @@ public class IaWebService : ApplicationService
     }
   }
 
-  async public Task<ResponseService<GeneratePipelineWebServiceJsonDTO>> GeneratePipeline()
+  async public Task<ResponseService<ProcessPipeline?>> GeneratePipeline()
   {
-    var response = new ResponseService<GeneratePipelineWebServiceJsonDTO>();
+    var response = new ResponseService<ProcessPipeline?>();
     try
     {
       using (var http = new HttpClient())
       {
         var httpResponse = await http.GetAsync($"{_ia_url}/pipeline/generate");
+        var jsonOptions = new JsonSerializerOptions
+        {
+          PropertyNameCaseInsensitive = true,
+          PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        };
 
         httpResponse.EnsureSuccessStatusCode();
-        var responseBody = await httpResponse.Content.ReadFromJsonAsync<object>();
-        response.SetSuccessful(new GeneratePipelineWebServiceJsonDTO { Pipeline = responseBody! });
+        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
+        response.SetSuccessful(JsonSerializer.Deserialize<ProcessPipeline>(httpResponseBody, jsonOptions)!);
       }
       return response;
     }
@@ -404,6 +412,71 @@ public class IaWebService : ApplicationService
     }
   }
 
+  public async Task<ResponseService<string[]>> PredictValueUsingAiModel(FileStorageResponseGet modelFile, ProjectFileFormated dataTable)
+  {
+    var serviceResponse = new ResponseService<string[]>();
+    List<JsonRowToPredictDTO> jsonRowToPredict = new List<JsonRowToPredictDTO>();
+
+    foreach (var row in dataTable.Rows)
+    {
+      foreach (var keyValuePair in row)
+      {
+        var serializedKvp = new Dictionary<string, object>();
+        var key = keyValuePair.Key;
+        var value = keyValuePair.Value;
+        var initialColLabel = dataTable.Columns.FirstOrDefault(col => col.Name == key)?.Label;
+
+        if (initialColLabel != null)
+        {
+          serializedKvp[initialColLabel] = value;
+        }
+
+        var jsonRow = new JsonRowToPredictDTO
+        {
+          JsonRow = serializedKvp
+        };
+
+        jsonRowToPredict.Add(jsonRow);
+      }
+    }
+
+    using (var http = new HttpClient())
+    {
+      // TODO: Before sending the json_row, need to clean up and remove the target prediction col from the dataTable ?
+      var requestContent = new MultipartFormDataContent
+        {
+            { new ByteArrayContent(modelFile.FileBytes!), "pipeline" },
+            { new StringContent(JsonSerializer.Serialize(jsonRowToPredict)), "json_row" },
+        };
+      var httpResponse = await http.PostAsync($"{_ia_url}/predict", requestContent);
+      httpResponse.EnsureSuccessStatusCode();
+      string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
+      serviceResponse.SetSuccessful(JsonSerializer.Deserialize<string[]>(httpResponseBody)!);
+    }
+    // TODO: i only have a string array but need to fetch the csv col to predict on csv, then replace in the datatable received the result of the prediction and return it to the client
+    return serviceResponse;
+  }
+
+  private static string SerializeToSnakeLowerCase(string pipeline)
+  {
+    var deserializeOptions = new JsonSerializerOptions
+    {
+      PropertyNameCaseInsensitive = true,
+      PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
+    };
+    var deserializedPipelineSnakeLowerCase = JsonSerializer.Deserialize<ProcessPipeline>(pipeline, deserializeOptions);
+
+    var serializeOptions = new JsonSerializerOptions
+    {
+      PropertyNameCaseInsensitive = true,
+      PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+      Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
+    };
+
+    return JsonSerializer.Serialize(deserializedPipelineSnakeLowerCase, serializeOptions);
+  }
+
   private async static Task<byte[]> FormatFileForPipeline(IFormFile file, Project project)
   {
     var config = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -442,12 +515,11 @@ public class IaWebService : ApplicationService
     return memoryStream.ToArray();
   }
 
-  private async static Task<byte[]> IFormFileToByteArray(IFormFile file)
+  public async static Task<byte[]> IFormFileToByteArray(IFormFile file)
   {
     await using var memoryStream = new MemoryStream();
     await file.CopyToAsync(memoryStream);
     return memoryStream.ToArray();
   }
-
 
 }
