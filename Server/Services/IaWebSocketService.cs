@@ -1,17 +1,16 @@
 using System.Net.WebSockets;
 using Microsoft.AspNetCore.SignalR;
 using Server.Hubs;
-using SignalRChat.Hubs;
 using SocketIOClient;
 
 namespace Server.Services
 {
-  public class IAWebSocketService(IHubContext<IaStatusHub> iaStatusHub, IHubContext<IaMetricHub> iaMetricHub) : ApplicationService
+  public class IAWebSocketService(IHubContext<IaGenerateModelHub> iaStatusHub, IHubContext<IaExplainModelHub> iaMetricHub) : ApplicationService
   {
-    public static readonly string _url = "http://rss00992:32845";
+    public static readonly string _url = "http://tmp-iias:32845";
     private readonly List<IaConnection> _connections = [];
-    private readonly IHubContext<IaStatusHub> _iaStatusHub = iaStatusHub;
-    private readonly IHubContext<IaMetricHub> _iaMetricHub = iaMetricHub;
+    private readonly IHubContext<IaGenerateModelHub> _iaStatusHub = iaStatusHub;
+    private readonly IHubContext<IaExplainModelHub> _iaMetricHub = iaMetricHub;
 
     public IaConnection? GetIaConnection(string jobWebServiceId) =>
         _connections.FirstOrDefault(c => c.JobWebServiceId == jobWebServiceId);
@@ -20,7 +19,7 @@ namespace Server.Services
     {
       IHubContext<ApplicationHub> hub;
 
-      if (hubType == typeof(IaMetricHub))
+      if (hubType == typeof(IaExplainModelHub))
       {
         hub = _iaMetricHub;
       }

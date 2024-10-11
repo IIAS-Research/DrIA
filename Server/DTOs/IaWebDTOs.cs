@@ -100,7 +100,7 @@ public record ExplainModelOutDTO
 {
   public required string id { get; init; }
   public required string socket { get; init; }
-  public required Process.EProcessStatut status { get; init; }
+  public required EProcessStatut status { get; init; }
 }
 
 public record GetModelTextExplanationOutDTO
@@ -128,6 +128,11 @@ public record GetSplitStatusOutDTO
     public required EProcessStatut current;
     public object? history;
   }
+}
+
+public record GetModelFeaturesInDTO
+{
+  public required Model.ModelExplanation.ModelExplainFeature[] features { get; set;}
 }
 
 public record RunNewProcessDTO

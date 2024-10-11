@@ -71,6 +71,50 @@ public class ModelService : ApplicationService
     return response;
   }
 
+  async public Task<ResponseService<ExplainModelOutDTO>> StartModelExplain(Model modelWithProcess)
+  {
+    var response = new ResponseService<ExplainModelOutDTO>();
+
+    var responseModelFile = await GetModelFileByModelId(modelWithProcess.Id);
+    if (!response.EnsureOtherServiceIsSuccess(responseModelFile)) return response;
+
+    var responseFile = await _fileStorageService.GetFileFromStorageAsync(responseModelFile.Data.StorageFilename);
+    if (!response.EnsureOtherServiceIsSuccess(responseFile)) return response;
+
+    var responseExplanation = await _iaWebService.ExplainModel(responseFile.Data.FileBytes!, modelWithProcess.Process!.IaRemoteId, modelWithProcess.IaRemoteId);
+    if (!response.EnsureOtherServiceIsSuccess(responseExplanation)) return response;
+
+    response.SetSuccessful(responseExplanation.Data);
+    return response;
+  }
+
+  async public Task<ResponseService> SaveModelTextExplanation(Model model, string[] explanations)
+  {
+    var response = new ResponseService();
+    await _modelRepository.SaveTextExplanation(model, explanations);
+    return response;
+  }
+
+  async public Task<ResponseService> SaveModelExplanation(Model model, ModelExplanation explanation)
+  {
+    var response = new ResponseService();
+    await _modelRepository.SaveExplanation(model, explanation);
+    return response;
+  }
+
+  async public Task<ResponseService<ModelFile>> GetModelFileByModelId(long modelId)
+  {
+    var response = new ResponseService<ModelFile>();
+    var modelFile = await _modelRepository.GetModelFileByModelId(modelId);
+    if (modelFile == null)
+    {
+      response.AddError("ModelFile not found.");
+      return response;
+    }
+    response.SetSuccessful(modelFile);
+    return response;
+  }
+
   async public Task<ResponseService<Model>> GetModeleExplanationById(long id)
   {
     var response = new ResponseService<Model>();

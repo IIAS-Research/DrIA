@@ -1,5 +1,5 @@
 import { api } from 'src/boot/axios';
-import { ICsvProject, IModel } from 'src/components/models';
+import { IModel, ProcessStatus, ICsvProject } from 'src/components/models';
 import { notify } from 'src/utils/notify';
 
 const modelUrl = 'Models';
@@ -15,9 +15,15 @@ export async function getModeleById(id: number): Promise<IModel | undefined> {
   }
 }
 
-export async function getModeleExplanationById(
+interface ICreateProjectResponseDTO {
+  id: string;
+  status: ProcessStatus;
+  socket: string;
+}
+
+export async function startModeleExplanationById(
   id: number,
-): Promise<IModel['explanation'] | undefined> {
+): Promise<ICreateProjectResponseDTO | undefined> {
   try {
     const response = (await api.get(`${modelUrl}/${id}/explanation`))?.data;
     return response;
@@ -28,9 +34,14 @@ export async function getModeleExplanationById(
   }
 }
 
-export async function predictValueUsingAiModel(modelId: number, dataTable: ICsvProject): Promise<ICsvProject | undefined> {
+export async function predictValueUsingAiModel(
+  modelId: number,
+  dataTable: ICsvProject,
+): Promise<ICsvProject | undefined> {
   try {
-    const response = (await api.post(`${modelUrl}/${modelId}/predict`, dataTable))?.data;
+    const response = (
+      await api.post(`${modelUrl}/${modelId}/predict`, dataTable)
+    )?.data;
     return response;
   } catch (error) {
     console.error(error);

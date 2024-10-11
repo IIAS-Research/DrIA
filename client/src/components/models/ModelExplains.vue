@@ -1,23 +1,30 @@
 <script setup lang="ts">
-import { QCarousel } from 'quasar';
-import { ref, toRef } from 'vue';
-import { getModeleExplanationById } from 'src/api/models.api';
-import { IModel, IPlot } from '../models';
+import { useSignalR } from 'src/utils/useSignalR';
+import { QCarousel, useQuasar } from 'quasar';
+import { ref, watchEffect, onUnmounted } from 'vue';
+import { getModeleById, startModeleExplanationById } from 'src/api/models.api';
+import {
+  IExplanation, IModel, IPlot, ProcessStatus,
+} from '../models';
 
 // props
 const propsComponent = defineProps<{
   model: IModel;
 }>();
 
+// consts
+const signalR = useSignalR('explainModel');
+const $q = useQuasar();
+
 // refs
 const slide = ref(1);
 const carousel = ref<InstanceType<typeof QCarousel>>();
 const currentExplainIndex = ref(0);
 const isLoadingExplanation = ref(false);
-const explanation = toRef(propsComponent.model.explanation);
 const currentExplain = ref<IPlot | undefined>(
   propsComponent.model.metrics.plots.at(currentExplainIndex.value),
 );
+const explanation = ref(propsComponent.model.explanation);
 
 // functions
 function changeExplain(index: number) {
@@ -27,9 +34,36 @@ function changeExplain(index: number) {
 }
 async function getExplanation() {
   isLoadingExplanation.value = true;
-  explanation.value = (await getModeleExplanationById(propsComponent.model.id)) ?? [];
-  isLoadingExplanation.value = false;
+  try {
+    const response = await startModeleExplanationById(propsComponent.model.id);
+    if (!response?.id) {
+      return;
+    }
+    signalR.connect(response.id, propsComponent.model.id);
+  } catch (error) {
+    console.error(error);
+    $q.notify({
+      type: 'negative',
+      message: 'Une erreur est survenue',
+    });
+  } finally {
+    isLoadingExplanation.value = false;
+  }
 }
+
+// watchs
+watchEffect(async () => {
+  const messageReceived = signalR.receivedMessageRef.value as ProcessStatus;
+  if (messageReceived !== 'FINISHED') return;
+  signalR.disconnect();
+  const responseExplain = await getModeleById(propsComponent.model.id);
+  explanation.value = responseExplain?.explanation as IExplanation;
+});
+
+// lifeCycle
+onUnmounted(() => {
+  signalR.disconnect();
+});
 </script>
 
 <template>
@@ -39,7 +73,7 @@ async function getExplanation() {
         Importance des variables
       </h4>
       <div
-        v-if="propsComponent.model.explanation === null"
+        v-if="!propsComponent.model.explanation"
         class="flex"
       >
         <q-btn
@@ -57,7 +91,7 @@ async function getExplanation() {
         <div class="flex column q-gutter-y-md col-2">
           <q-item
             v-for="item in Object.entries(
-              propsComponent.model.metrics.metrics_train
+              propsComponent.model.explanation.plots
             )"
             :key="item[0]"
             clickable
@@ -67,7 +101,7 @@ async function getExplanation() {
             <q-item-section>
               <div class="flex row items-center justify-between">
                 <div class="text-weight-medium">
-                  {{ propsComponent.model.metrics.metrics_info[item[0]].name }}
+                  {{ item[0] }}
                   :
                 </div>
                 <div class="text-weight-medium">
@@ -84,9 +118,7 @@ async function getExplanation() {
                   anchor="center right"
                   self="center left"
                 >
-                  {{
-                    propsComponent.model.metrics.metrics_info[item[0]].desc
-                  }}
+                  {{ propsComponent.model.metrics.metrics_info[item[0]].desc }}
                 </q-tooltip>
               </q-icon>
             </q-item-section>

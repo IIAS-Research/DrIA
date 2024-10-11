@@ -65,12 +65,25 @@ public class ModelRepository(MainDbContext dbContext, IServiceScopeFactory servi
     return model;
   }
 
+  public async Task<Model> SaveExplanation(Model model, ModelExplanation explanation)
+  {
+    model.Explanation = explanation; 
+    await _dbContext.SaveChangesAsync();
+    return model;
+  }
+
+  public async Task<ModelFile?> GetModelFileByModelId(long modelId)
+  {
+    var modelFile = await _dbContext.ModelFiles.FirstAsync(mf => mf.ModelId == modelId);
+    return modelFile;
+  }
+
   public async Task<ModelFile?> GetModelFileById(long id)
   {
     return await _dbContext.ModelFiles.FirstOrDefaultAsync(mf => mf.ModelId == id); 
   }
   // Policies
-  async public Task<bool> UserCanAccessModel(Model model, long userId)
+  async public Task<bool> UserCanAccessModel(Model model, long userId) // TODO put the > 0 check in service
   {
     var modelProcess = await _dbContext.Projects
       .Include(proj => proj.Processes)

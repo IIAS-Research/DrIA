@@ -1,6 +1,4 @@
 using System.Globalization;
-using System.Net.Http.Headers;
-using System.Reflection.Emit;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -49,7 +47,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Run Pipeline route : " + exception.Message);
       return response;
     }
   }
@@ -76,7 +74,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Generate Pipeline route : " + exception.Message);
       return response;
     }
   }
@@ -99,7 +97,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Job Status route : " + exception.Message);
       return response;
     }
   }
@@ -118,7 +116,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Cancel Job route : " +exception.Message);
       return response;
     }
   }
@@ -136,7 +134,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Retrieve Job route : " + exception.Message);
       return response;
     }
   }
@@ -157,7 +155,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Bibliography route : " + exception.Message);
       return response;
     }
   }
@@ -181,24 +179,23 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Download Model route : " +exception.Message);
       return response;
     }
   }
 
-  async public Task<ResponseService<ExplainModelOutDTO>> Explain(IFormFile file)
+  async public Task<ResponseService<ExplainModelOutDTO>> ExplainModel(byte[] projectTestFile, string processRemoteId, int modelRemoteId)
   {
     var response = new ResponseService<ExplainModelOutDTO>();
     try
     {
-      using var http = new HttpClient();
-      using (var formData = new MultipartFormDataContent())
+      using (var http = new HttpClient())
       {
-        using var fileStream = file.OpenReadStream();
-        var fileContent = new StreamContent(fileStream);
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-        formData.Add(fileContent, "dataset", file.FileName);
-        var httpResponse = await http.PostAsync($"{_ia_url}/explain", formData);
+        var requestContent = new MultipartFormDataContent
+        {
+            { new ByteArrayContent(projectTestFile), "dataset" },
+        };
+        var httpResponse = await http.PostAsync($"{_ia_url}/job/{processRemoteId}/model/{modelRemoteId}/explain", requestContent);
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
         response.SetSuccessful(JsonSerializer.Deserialize<ExplainModelOutDTO>(httpResponseBody, _serializeOptions)!);
@@ -207,7 +204,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Explain Model route : " +exception.Message);
       return response;
     }
   }
@@ -228,7 +225,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Text Explanation route : " +exception.Message);
       return response;
     }
   }
@@ -263,7 +260,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Split route : " + exception.Message);
       return response;
     }
   }
@@ -284,7 +281,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Split Status route : " + exception.Message);
       return response;
     }
   }
@@ -312,7 +309,7 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Split Train File route : " + exception.Message);
       return response;
     }
   }
@@ -340,12 +337,12 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Get Split Test File route : " + exception.Message);
       return response;
     }
   }
 
-  public async Task<ResponseService<IFormFile>> DownloadModelFile(string jobId, int modelId)
+  public async Task<ResponseService<IFormFile>> DownloadModelFile(string jobId, int modelRemoteId)
   {
     var response = new ResponseService<IFormFile>();
     MemoryStream stream;
@@ -353,11 +350,11 @@ public class IaWebService : ApplicationService
     {
       using (var http = new HttpClient())
       {
-        var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{jobId}/model/{modelId}/download");
+        var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{jobId}/model/{modelRemoteId}/download");
         httpResponse.EnsureSuccessStatusCode();
         var content = await httpResponse.Content.ReadAsByteArrayAsync();
         stream = new MemoryStream(content);
-        var formFile = new FormFile(baseStream: stream, baseStreamOffset: 0, length: content.Length, name: "", fileName: $"{jobId}_{modelId}.pickle")
+        var formFile = new FormFile(baseStream: stream, baseStreamOffset: 0, length: content.Length, name: "", fileName: $"{jobId}_{modelRemoteId}.pickle")
         {
           Headers = new HeaderDictionary()
         };
@@ -368,7 +365,49 @@ public class IaWebService : ApplicationService
     }
     catch (Exception exception)
     {
-      response.AddError(exception.Message);
+      response.AddError("Download Model File route : " + exception.Message);
+      return response;
+    }
+  }
+
+  public async Task<ResponseService<Dictionary<string, Plot>>> GetExplainShapPlots(string explainProcessRemoteId)
+  {
+    var response = new ResponseService<Dictionary<string, Plot>>();
+    try
+    {
+      using (var http = new HttpClient())
+      {
+        var httpResponse = await http.GetAsync($"{_ia_url}/explain/{explainProcessRemoteId}/shap_plots?format=json");
+        httpResponse.EnsureSuccessStatusCode();
+        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
+        response.SetSuccessful(JsonSerializer.Deserialize<Dictionary<string, Plot>>(httpResponseBody, _serializeOptions)!);
+      }
+      return response;
+    }
+    catch (Exception exception)
+    {
+      response.AddError("Get Explain ShapPlots route : " + exception.Message);
+      return response;
+    }
+  }
+
+  public async Task<ResponseService<GetModelFeaturesInDTO>> GetExplainFeatures(string explainProcessRemoteId)
+  {
+    var response = new ResponseService<GetModelFeaturesInDTO>();
+    try
+    {
+      using (var http = new HttpClient())
+      {
+        var httpResponse = await http.GetAsync($"{_ia_url}/explain/{explainProcessRemoteId}/features");
+        httpResponse.EnsureSuccessStatusCode();
+        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
+        response.SetSuccessful(JsonSerializer.Deserialize<GetModelFeaturesInDTO>(httpResponseBody, _serializeOptions)!);
+      }
+      return response;
+    }
+    catch (Exception exception)
+    {
+      response.AddError("Get Explain Features route : " + exception.Message);
       return response;
     }
   }

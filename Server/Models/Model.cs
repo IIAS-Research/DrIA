@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
+using Server.DTOs;
 
 namespace Server.Models;
 
@@ -96,7 +97,14 @@ public class Model
 
   public record ModelExplanation
   {
+    public required Dictionary<string, Plot> plots { get; set;}
+    public required ModelExplainFeature[] features { get; set;}
 
+    public record ModelExplainFeature
+    {
+      public required string name { get; set;}
+      public required float value { get; set;}
+    }
   }
 
 }
