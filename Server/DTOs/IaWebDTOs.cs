@@ -139,7 +139,7 @@ public record GetSplitStatusOutDTO
 
 public record GetModelFeaturesInDTO
 {
-  public required Model.ModelExplanation.ModelExplainFeature[] features { get; set;}
+  public required Model.ModelExplanation.ModelExplainFeature[] features { get; set; }
 }
 
 public record RunNewProcessDTO
@@ -166,4 +166,10 @@ public record RunPipelineFileDTO
 {
   public required byte[] File { get; set; }
   public required string FileName { get; set; }
+}
+
+public record PredictWithModelAiResponseDTO
+{
+  public required string status { get; init; }
+  public required List<object> prediction { get; init; }
 }
