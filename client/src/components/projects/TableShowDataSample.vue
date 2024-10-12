@@ -93,8 +93,7 @@ onMounted(async () => {
           :props="{ row, col }"
         >
           <q-input
-            v-model.number="row[ col.name ]"
-            type="number"
+            v-model="row[ col.name ]"
             dense
             :disable="col.isColToPredict"
             borderless
