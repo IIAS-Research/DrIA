@@ -81,7 +81,6 @@ onMounted(async () => {
         <q-btn
           label="tester"
           color="primary"
-          glossy
           @click="predict"
         />
       </template>
