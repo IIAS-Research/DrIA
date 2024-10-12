@@ -126,6 +126,12 @@ watch(route, async () => {
       </q-card>
     </q-dialog>
     <template v-if="project">
+      <q-btn
+        icon="arrow_back"
+        label="Back to home page"
+        class="q-mb-xl"
+        :to="{ name: 'home' }"
+      />
       <div class="text-h5">
         {{ project.title }}
       </div>
