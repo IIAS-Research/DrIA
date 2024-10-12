@@ -167,14 +167,15 @@ watch(route, async () => {
         </q-linear-progress>
       </div>
 
-      <TableShowDataSample />
-
       <TrainResultsCards
         v-if="project.processes?.length"
         :project-id="project.id"
         :processes="project.processes"
-        class="q-mt-md"
+        class="q-my-md"
       />
+
+      <TableShowDataSample />
+
     </template>
   </q-page>
 </template>
