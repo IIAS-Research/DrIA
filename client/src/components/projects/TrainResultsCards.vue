@@ -49,44 +49,7 @@ function seeBest() {
   <div>
     <div class="row q-col-gutter-x-sm">
       <div
-        class="col-3"
-        style="align-self: stretch;"
-      >
-        <q-card class="full-height">
-          <q-card-section>
-            <div class="text-h6">
-              Last processing
-            </div>
-
-            <ProcessCardContent
-              v-if="lastRunningProcess"
-              :process="lastRunningProcess"
-            />
-          </q-card-section>
-        </q-card>
-      </div>
-      <div
-        class="col-4"
-        style="align-self: stretch;"
-      >
-        <q-card class="bg-grey-4 full-height">
-          <q-card-section>
-            <div class="text-h6 text-grey-8">
-              Baseline model
-            </div>
-
-            <ModelCardContent
-              v-if="bestModel"
-              :baseline="true"
-              :model="bestModel"
-              display-best-model-name
-              class="text-grey-8"
-            />
-          </q-card-section>
-        </q-card>
-      </div>
-      <div
-        class="col-5"
+        class="col-6"
         style="align-self: stretch;"
       >
         <q-card class="bg-teal-4 full-height">
@@ -121,6 +84,26 @@ function seeBest() {
           </q-card-actions>
         </q-card>
       </div>
+      <div
+        class="col-6"
+        style="align-self: stretch;"
+      >
+        <q-card class="bg-grey-4 full-height">
+          <q-card-section>
+            <div class="text-h6 text-grey-8">
+              Baseline model
+            </div>
+
+            <ModelCardContent
+              v-if="bestModel"
+              :baseline="true"
+              :model="bestModel"
+              display-best-model-name
+              class="text-grey-8"
+            />
+          </q-card-section>
+        </q-card>
+      </div>
     </div>
 
     <q-card
@@ -128,7 +111,7 @@ function seeBest() {
       class="q-mt-md"
     >
       <q-card-section class="text-h6">
-        All processing
+        All trainings
       </q-card-section>
 
       <q-list
@@ -136,7 +119,7 @@ function seeBest() {
         separator
       >
         <q-expansion-item
-          v-for="process in processes"
+          v-for="process in processes.slice().reverse()"
           :key="process.id"
           expand-separator
           header-class="bg-blue-2"

@@ -57,12 +57,11 @@ const propsComponent = defineProps<{
             <q-item-section>
               <div class="flex row items-center justify-between">
                 <div class="text-weight-bolder text-body1">
-                  Précision :
+                  {{ propsComponent.model.metrics.metrics_info[propsComponent.model.metrics.main_metrics].name }}
                 </div>
                 <div class="text-weight-bolder text-body1">
                   {{
-                    propsComponent.model.metrics.metrics_train["precision"] ??
-                      "???"
+                    propsComponent.model.metrics.metrics_test ? propsComponent.model.metrics.metrics_test[propsComponent.model.metrics.main_metrics] : "?"
                   }}
                 </div>
               </div>

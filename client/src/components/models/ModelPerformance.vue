@@ -34,7 +34,7 @@ function changePlot(index: number) {
         <div class="flex column q-gutter-y-md col-2">
           <q-item
             v-for="item in Object.entries(
-              propsComponent.model.metrics.metrics_train
+              propsComponent.model.metrics.metrics_test ?? propsComponent.model.metrics.metrics_train
             )"
             :key="item[0]"
             clickable

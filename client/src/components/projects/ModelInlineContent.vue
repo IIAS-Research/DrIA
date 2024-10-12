@@ -37,9 +37,7 @@ const mainMetricValue = ref<number | undefined>(
         class="col-4"
       >
         <q-icon name="rocket_launch" />
-        {{ mainMetricValue }}
-        &nbsp;
-        {{ mainMetricName }}
+        {{  mainMetricName }} : {{ mainMetricValue }}
       </div>
 
       <div

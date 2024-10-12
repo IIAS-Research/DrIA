@@ -55,25 +55,12 @@ defineProps<{
     >
       <q-item
         v-for="item in Object.entries(
-          model.metrics.metrics_train
+          model.metrics.metrics_test ?? model.metrics.metrics_train
         )"
         :key="item[0]"
         clickable
         class="row custom-q-item"
       >
-        <q-item-section>
-          <div class="flex row items-center justify-between">
-            <div class="text-weight-medium">
-              {{
-                model.metrics.metrics_info[item[0]].name
-              }}
-              :
-            </div>
-            <div class="text-weight-medium">
-              {{ item[1] }}
-            </div>
-          </div>
-        </q-item-section>
         <q-item-section
           side
           v-if="!baseline"
@@ -92,6 +79,21 @@ defineProps<{
               }}
             </q-tooltip>
           </q-icon>
+        </q-item-section>
+        <q-item-section>
+          <div
+            class="flex row items-center justify-between"
+            :class="{reverse: baseline}"
+          >
+            <div class="text-weight-medium">
+              {{
+                model.metrics.metrics_info[item[0]].name
+              }}
+            </div>
+            <div class="text-weight-medium">
+              {{ item[1] }}
+            </div>
+          </div>
         </q-item-section>
       </q-item>
     </div>
