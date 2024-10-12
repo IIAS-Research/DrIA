@@ -14,7 +14,7 @@ const propsComponent = defineProps<{
     <div class="flex row items-start justify-center">
       <div class="flex-center column col-5 q-mr-md">
         <h4 class="no-margin q-py-lg text-weight-medium">
-          Explication des traitements
+          Explication des pré-traitements
         </h4>
 
         <q-card class="q-pa-md q-mt-xs flex column">

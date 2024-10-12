@@ -140,7 +140,7 @@ watch(route, async () => {
         <div
           class="text-h6 text-primary"
         >
-          Traitement des process en cours
+          Recherche du meilleur modèle en cours...
         </div>
         <q-linear-progress
           :value="progress"
