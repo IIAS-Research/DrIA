@@ -91,8 +91,8 @@ onUnmounted(() => {
       >
         <div class="flex column q-gutter-y-md col-2">
           <q-item
-            v-for="item in Object.entries(explanation.plots)"
-            :key="item[0]"
+            v-for="item in explanation.features"
+            :key="item.name"
             clickable
             class="bg-secondary text-white shadow-3"
             style="width: 300px"
@@ -100,11 +100,11 @@ onUnmounted(() => {
             <q-item-section>
               <div class="flex row items-center justify-between">
                 <div class="text-weight-medium">
-                  {{ item[0] }}
+                  {{ item.name }}
                   :
                 </div>
                 <div class="text-weight-medium">
-                  {{ item[1].title }}
+                  {{ item.value }}
                 </div>
               </div>
             </q-item-section>
