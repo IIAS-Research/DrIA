@@ -18,6 +18,19 @@ export async function getUserProjects(): Promise<IProject[]> {
 export async function GetProjectWithNestedDataById(projectId: IProject['id']): Promise<IProject | undefined> {
   try {
     const response = (await api.get(`${projectUrl}/${projectId}/nested-data`))?.data;
+
+    // Sort processes models by main test metric
+    response.processes = response.processes.map((p) => {
+      p.models = p.models.sort((a, b) => {
+        if (!a.metrics.metrics_test || !b.metrics.metrics_test) {
+          return b.metrics.metrics_train[b.metrics.main_metrics] - a.metrics.metrics_train[a.metrics.main_metrics];
+        }
+        return b.metrics.metrics_test[b.metrics.main_metrics] - a.metrics.metrics_test[a.metrics.main_metrics];
+      });
+
+      return p;
+    });
+
     return response;
   } catch (error) {
     console.error('Error fetching project:', error);
