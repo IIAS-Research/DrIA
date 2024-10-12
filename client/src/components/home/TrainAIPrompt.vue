@@ -5,6 +5,7 @@ import { parse } from 'papaparse';
 import { getDefaultPipeline } from 'src/api/ia-web-service.api';
 import { IPipeline, IProjectForm } from '../models';
 import PipelineProject from '../pipeline/PipelineProject.vue';
+import ExplainWord from '../utils/ExplainWord.vue';
 
 const emitsComponent = defineEmits<{(e: 'submitProject', projectForm: IProjectForm, file: File): Promise<void>
 }>();
@@ -128,7 +129,7 @@ onMounted(async () => {
           class="flex column flex-center"
         >
           <div class="text-body1 text-grey-9 text-weight-medium q-pb-lg">
-            Laissez vous guider et créez une IA en quelques cliques !
+            Laissez-vous guider et créez une IA en quelques cliques !
           </div>
           <q-file
             v-model="uploadedFile"
@@ -210,7 +211,7 @@ onMounted(async () => {
           </div>
           <div class="explain">
             Vous trouverez ci-dessous toutes les informations contenues dans le fichier que vous avez sélectionné.
-            Laquelle souhaitez-vous prédire ? Dr IA analysera les relations statistiques entre cette information
+            Laquelle souhaitez-vous <ExplainWord word="prédire" /> ? Dr IA analysera les relations statistiques entre cette information
             et les autres données pour établir ses prédictions.
           </div>
 
@@ -244,8 +245,8 @@ onMounted(async () => {
             Existe-t-il une forte dépendance entre certaines lignes du fichier ?
           </div>
           <div class="explain">
-            Lors de l'entraînement d'un modèle d'intelligence artificielle, il est essentiel de prendre en compte les dépendances entre les lignes de données. Si ces dépendances ne sont pas identifiées, le modèle risque de se concentrer sur ces liens au lieu d'analyser les véritables éléments prédictifs.
-            Par exemple, si plusieurs lignes proviennent du dossier médical d'un même patient, le modèle pourrait apprendre à reconnaître le patient plutôt que de réaliser de véritables prédictions. Dans ce cas, les performances du modèle risqueraient de chuter lorsqu'il sera utilisé pour prédire des résultats pour des patients qu'il ne connaît pas.
+            Lors de l'<ExplainWord word="entraînement" /> d'un <ExplainWord word="modèle" /> d'intelligence artificielle, il est essentiel de prendre en compte les <ExplainWord word="dépendances" /> entre les lignes de données. Si ces <ExplainWord word="dépendances" /> ne sont pas identifiées, le <ExplainWord word="modèle" /> risque de se concentrer sur ces liens au lieu d'analyser les véritables éléments prédictifs.
+            Par exemple, si plusieurs lignes proviennent du dossier médical d'un même patient, le modèle pourrait apprendre à reconnaître le patient plutôt que de réaliser de véritables <ExplainWord word="prédictions" />. Dans ce cas, les <ExplainWord word="performances" /> du modèle risqueraient de chuter lorsqu'il sera utilisé pour <ExplainWord word="prédire" /> des résultats pour des patients qu'il ne connaît pas.
           </div>
 
           <q-toggle
@@ -259,7 +260,7 @@ onMounted(async () => {
               Comment reconnaître les lignes dépendantes ?
             </div>
             <div class="explain">
-              Aidez Dr IA à identifier les dépendances afin d'éviter un biais de fuite de données.
+              Aidez Dr IA à identifier les <ExplainWord word="dépendances" /> afin d'éviter un <ExplainWord word="biais de fuite de données" />.
               Pour ce faire, votre fichier doit contenir une colonne permettant de regrouper les lignes issues d'un même sujet. Par exemple, cela peut être un identifiant de patient ou de séjour.
               Veuillez sélectionner la ou les colonnes qui permettent d'identifier ces groupes.
             </div>
@@ -297,7 +298,7 @@ onMounted(async () => {
           </div>
           <div class="explain">
             Une colonne identifiante est une colonne qui permet d'indentifier une ligne de manière unique, comme un numéro de ligne, un IPP ou encore un IEP.
-            Pour les mêmes raisons que les dépendances, il est crucial d'informer Dr IA de la présence de ces colonnes afin qu'elles ne soient pas utilisées lors de l'apprentissage.
+            Pour les mêmes raisons que les dépendances, il est crucial d'informer Dr IA de la présence de ces colonnes afin qu'elles ne soient pas utilisées lors de l'<ExplainWord word="entraînement" />.
           </div>
           <q-toggle
             v-model="project.datasetHasIdColumn"
@@ -310,7 +311,7 @@ onMounted(async () => {
               Quelles colonnes ?
             </div>
             <div class="explain">
-              Aidez Dr IA à identifier les colonnes identifiantes afin d'améliorer sa capacité de généralisation.
+              Aidez Dr IA à identifier les colonnes identifiantes afin d'améliorer sa capacité de <ExplainWord word="généralisation" />.
               Veuillez sélectionner la ou les colonnes qui permettent d'identifier chaque ligne individuellement.
             </div>
             <div
