@@ -59,6 +59,7 @@ watchEffect(async () => {
   explanation.value = JSON.parse(
     responseExplain?.explanation ?? ""
   ) as IExplanation;
+  changeExplain(0);
 });
 
 // lifeCycle
