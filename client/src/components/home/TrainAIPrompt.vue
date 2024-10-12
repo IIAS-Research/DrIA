@@ -66,6 +66,8 @@ async function submitForAITrain() {
 
 async function handleNextStepValidation() {
   if (!formSteppers.value.length) return;
+  if (step.value > 2 && !project.value.csvColumnToPredict) return; // Stop here if no selection is made
+
   const currentStepIndex = step.value - 1;
   const currentStepperForm = formSteppers.value[currentStepIndex];
   const isFormValid = await currentStepperForm?.validate();
@@ -75,6 +77,24 @@ async function handleNextStepValidation() {
     } else {
       currentStepperForm?.submit();
     }
+  }
+}
+
+async function toggleDepedencies(option:string) {
+  const index = project.value.rowDepedenciesLinked.indexOf(option);
+  if (index === -1) {
+    project.value.rowDepedenciesLinked.push(option);
+  } else {
+    project.value.rowDepedenciesLinked.splice(index, 1);
+  }
+}
+
+async function toggleIdColumns(option:string) {
+  const index = project.value.datasetHasIdColumnList.indexOf(option);
+  if (index === -1) {
+    project.value.datasetHasIdColumnList.push(option);
+  } else {
+    project.value.datasetHasIdColumnList.splice(index, 1);
   }
 }
 
@@ -107,6 +127,9 @@ onMounted(async () => {
           :ref="(el: QForm) => formSteppers[0] = el"
           class="flex column flex-center"
         >
+          <div class="text-body1 text-grey-9 text-weight-medium q-pb-lg">
+            Laissez vous guider et créez une IA en quelques cliques !
+          </div>
           <q-file
             v-model="uploadedFile"
             class="q-mt-lg"
@@ -149,24 +172,25 @@ onMounted(async () => {
           class="q-gutter-y-sm flex-center column"
           @submit="submitForAITrain"
         >
-          <div class="text-body1 text-grey-9 text-weight-medium q-pb-lg">
-            Dites nous en plus sur votre projet
+          <div class="text-body1 text-grey-9 text-weight-bold q-pb-lg">
+            Dites-nous en plus sur votre projet
           </div>
           <q-input
             v-model="project.title"
             filled
             label="Titre"
             dense
-            style="width: 220px;"
+            style="width: 450px;"
             :rules="[(v) => v.length > 2 || 'Minimum 3 charactères requis']"
           />
           <q-input
             v-model="project.description"
             filled
             label="Description"
+            type="textarea"
             dense
-            style="width: 220px;"
-            :rules="[(v) => v.length > 2 || 'Minimum 3 charactères requis']"
+            style="width: 450px;"
+            :rules="[(v) => v.length > 30 || 'Minimum 30 charactères requis']"
           />
         </q-form>
       </q-step>
@@ -181,16 +205,28 @@ onMounted(async () => {
           :ref="(el: QForm) => formSteppers[2] = el"
           class="flex-center column"
         >
-          <div class="text-body1 text-grey-9 text-weight-medium q-pb-lg text-center">
-            Quelle colonne chercher vous à prédire ?
+          <div class="text-body1 text-grey-9 text-weight-bold question-title">
+            Quelle information souhaitez-vous prédire ?
           </div>
-          <q-select
-            v-model="project.csvColumnToPredict"
-            :options="csvFileHeaderColumns"
-            dense
-            filled
-            :rules="[(v) => Boolean(v) || 'Une séléction est requise']"
-          />
+          <div class="explain">
+            Vous trouverez ci-dessous toutes les informations contenues dans le fichier que vous avez sélectionné.
+            Laquelle souhaitez-vous prédire ? Dr IA analysera les relations statistiques entre cette information
+            et les autres données pour établir ses prédictions.
+          </div>
+
+          <div
+            class="row wrap button-container"
+            style="max-width: 500px;"
+          >
+            <q-btn
+              v-for="(option, index) in csvFileHeaderColumns"
+              :key="index"
+              :label="option"
+              :color="project.csvColumnToPredict === option ? 'primary' : 'grey'"
+              @click="project.csvColumnToPredict = option"
+              class="q-mb-sm"
+            />
+          </div>
         </q-form>
       </q-step>
 
@@ -204,28 +240,43 @@ onMounted(async () => {
           :ref="(el: QForm) => formSteppers[3] = el"
           class="flex-center column"
         >
-          <div class="text-body1 text-grey-9 text-weight-medium q-pb-lg text-center">
-            Est ce que certains lignes peuvent avoir des dépendances entre elle ?
+          <div class="text-body1 text-grey-9 text-weight-bold question-title">
+            Existe-t-il une forte dépendance entre certaines lignes du fichier ?
           </div>
+          <div class="explain">
+            Lors de l'entraînement d'un modèle d'intelligence artificielle, il est essentiel de prendre en compte les dépendances entre les lignes de données. Si ces dépendances ne sont pas identifiées, le modèle risque de se concentrer sur ces liens au lieu d'analyser les véritables éléments prédictifs.
+            Par exemple, si plusieurs lignes proviennent du dossier médical d'un même patient, le modèle pourrait apprendre à reconnaître le patient plutôt que de réaliser de véritables prédictions. Dans ce cas, les performances du modèle risqueraient de chuter lorsqu'il sera utilisé pour prédire des résultats pour des patients qu'il ne connaît pas.
+          </div>
+
           <q-toggle
             v-model="project.rowDepedencies"
-            :label="project.rowDepedencies === true ? 'Oui' : 'Non'"
-            :left-label="project.rowDepedencies"
+            :label="project.rowDepedencies === true ? 'Oui, il y a des dépendances !' : 'Non, aucune dépendance !'"
+            size="70px"
           />
 
           <template v-if="project.rowDepedencies">
-            <div class="text-body1 text-grey-9 text-weight-medium q-pb-lg text-center q-pt-xl">
-              Si oui, comment reconnaître les lignes dépendantes ?
+            <div class="text-body1 text-grey-9 text-weight-bold q-pb-lg q-pt-xl question-title">
+              Comment reconnaître les lignes dépendantes ?
             </div>
-            <q-select
-              v-model="project.rowDepedenciesLinked"
-              :options="csvFileHeaderColumns"
-              dense
-              multiple
-              use-chips
-              filled
-              :rules="[(v) => v.length > 0 || 'Une séléction est requise']"
-            />
+            <div class="explain">
+              Aidez Dr IA à identifier les dépendances afin d'éviter un biais de fuite de données.
+              Pour ce faire, votre fichier doit contenir une colonne permettant de regrouper les lignes issues d'un même sujet. Par exemple, cela peut être un identifiant de patient ou de séjour.
+              Veuillez sélectionner la ou les colonnes qui permettent d'identifier ces groupes.
+            </div>
+
+            <div
+              class="row wrap button-container"
+              style="max-width: 500px;"
+            >
+              <q-btn
+                v-for="(option, index) in csvFileHeaderColumns"
+                :key="index"
+                :label="option"
+                :color="project.rowDepedenciesLinked.includes(option) ? 'primary' : 'grey'"
+                @click="toggleDepedencies(option)"
+                class="q-mb-sm"
+              />
+            </div>
           </template>
         </q-form>
       </q-step>
@@ -241,27 +292,40 @@ onMounted(async () => {
           class="flex-center column"
           @submit="submitForAITrain"
         >
-          <div class="text-body1 text-grey-9 text-weight-medium q-pb-lg text-center">
-            Est ce que votre dataset contient des colonnes
-            d'identifiants (numéro permettant d'identifier un patient)
+          <div class="text-body1 text-grey-9 text-weight-bold q-pb-lg question-title">
+            Vos données contient-elle des colonnes d'identifiants ?
+          </div>
+          <div class="explain">
+            Une colonne identifiante est une colonne qui permet d'indentifier une ligne de manière unique, comme un numéro de ligne, un IPP ou encore un IEP.
+            Pour les mêmes raisons que les dépendances, il est crucial d'informer Dr IA de la présence de ces colonnes afin qu'elles ne soient pas utilisées lors de l'apprentissage.
           </div>
           <q-toggle
             v-model="project.datasetHasIdColumn"
-            :label="project.datasetHasIdColumn === true ? 'Oui' : 'Non'"
-            :left-label="project.datasetHasIdColumn"
+            :label="project.datasetHasIdColumn === true ? 'Oui, il existe des colonnes identifiants' : 'Non, j\'ai déjà tout supprimé !'"
+            size="70px"
           />
 
           <template v-if="project.datasetHasIdColumn">
-            <div class="text-body1 text-grey-9 text-weight-medium q-pb-lg text-center q-pt-xl">
-              Si oui, quelles colonnes ?
+            <div class="text-body1 text-grey-9 text-weight-bold q-pb-lg q-pt-xl question-title">
+              Quelles colonnes ?
             </div>
-            <q-select
-              v-model="project.datasetHasIdColumnList"
-              :options="csvFileHeaderColumns"
-              dense
-              filled
-              :rules="[(v) => v.length > 0 || 'Une séléction est requise']"
-            />
+            <div class="explain">
+              Aidez Dr IA à identifier les colonnes identifiantes afin d'améliorer sa capacité de généralisation.
+              Veuillez sélectionner la ou les colonnes qui permettent d'identifier chaque ligne individuellement.
+            </div>
+            <div
+              class="row wrap button-container"
+              style="max-width: 500px;"
+            >
+              <q-btn
+                v-for="(option, index) in csvFileHeaderColumns"
+                :key="index"
+                :label="option"
+                :color="project.datasetHasIdColumnList.includes(option) ? 'primary' : 'grey'"
+                @click="toggleIdColumns(option)"
+                class="q-mb-sm"
+              />
+            </div>
           </template>
 
           <q-expansion-item
@@ -305,4 +369,36 @@ onMounted(async () => {
 .header-stepper {
   display: none;
 }
+
+.q-stepper {
+  box-shadow: none;
+  background: transparent;
+  margin-top: 40px;
+}
+
+.q-stepper::before {
+  content: '';
+  display: block;
+  width: 200px;
+  border-top: 1px rgba(0,0,0,0.5) solid;
+  margin: auto;
+}
+
+.button-container {
+  justify-content: space-evenly;
+}
+
+.button-container .q-btn {
+  margin: 10px;
+}
+
+.explain {
+  width: 450px;
+  margin-bottom: 15px;
+}
+
+.question-title {
+  width: 450px;
+}
+
 </style>
