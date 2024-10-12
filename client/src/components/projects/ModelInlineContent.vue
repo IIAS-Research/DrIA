@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
 import { ref } from 'vue';
 import { formatToDDMMYYYHHmm } from 'src/utils/date';
 import { IModel, IProcess } from '../models';
 
+const router = useRouter();
+
 const propsComponent = defineProps<{
   model: IModel;
   projectId: number;
-  processId: IProcess;
+  processId: number;
 }>();
 
 const mainMetricName = ref<string | undefined>(
@@ -15,6 +18,11 @@ const mainMetricName = ref<string | undefined>(
 const mainMetricValue = ref<number | undefined>(
   propsComponent.model.metrics.metrics_test ? propsComponent.model.metrics.metrics_test[propsComponent.model.metrics.main_metrics] : undefined
 );
+
+function forkPipeline() {
+  if (!propsComponent.processId) return;
+  router.push({ name: 'pipeline-fork', params: { id: propsComponent.projectId, processId: propsComponent.processId } });
+}
 
 </script>
 
@@ -43,6 +51,13 @@ const mainMetricValue = ref<number | undefined>(
       <div
         class="col-2"
       >
+        <q-btn
+          icon="fork_right"
+          color="red-4"
+          class="q-mr-md"
+          title="Fork pipeline"
+          @click="forkPipeline"
+        />
         <q-btn
           icon="visibility"
           color="primary"

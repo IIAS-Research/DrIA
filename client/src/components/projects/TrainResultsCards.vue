@@ -72,12 +72,14 @@ function seeBest() {
             align="right"
           >
             <q-btn
+              icon="fork_right"
               label="Fork pipeline"
               color="red-4"
               @click="forkPipeline"
             />
             <q-btn
               icon="visibility"
+              label="See model details"
               color="primary"
               @click="seeBest"
             />
