@@ -91,7 +91,7 @@ onUnmounted(() => {
       >
         <div class="flex column q-gutter-y-md col-2">
           <q-item
-            v-for="item in explanation.features"
+            v-for="item in explanation.features.slice().sort((a,b) => b.value - a.value)"
             :key="item.name"
             clickable
             class="bg-secondary text-white shadow-3"
