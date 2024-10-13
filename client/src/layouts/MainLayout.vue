@@ -83,7 +83,19 @@ onMounted(async () => {
 
     <q-page-container>
       <ParticlesBackground />
-      <router-view />
+      <div
+        class="router-view"
+      >
+        <router-view />
+      </div>
     </q-page-container>
   </q-layout>
 </template>
+
+<style>
+.router-view {
+  max-width: 1400px;
+  margin: auto;
+  padding-bottom: 200px;
+}
+</style>

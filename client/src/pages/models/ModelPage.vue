@@ -40,6 +40,12 @@ onMounted(async () => {
 
 <template>
   <q-page class="q-pa-xl q-pt-md">
+    <q-btn
+      icon="arrow_back"
+      label="Back to project"
+      class="q-mb-xl"
+      :to="{ name: 'project-show', params: { id: routeParams.projectId } }"
+    />
     <div
       v-if="model !== undefined"
       class="flex justify-center column full-width q-gutter-y-xl"

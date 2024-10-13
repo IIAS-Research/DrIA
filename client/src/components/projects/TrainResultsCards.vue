@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import ModelCardContent from 'components/projects/ModelCardContent.vue';
+import ModelInlineContent from 'components/projects/ModelInlineContent.vue';
 import { useRouter } from 'vue-router';
 import { IModel, IProcess } from '../models';
 import ProcessCardContent from './ProcessCardContent.vue';
@@ -36,6 +37,12 @@ function forkPipeline() {
   if (!processId) return;
   router.push({ name: 'pipeline-fork', params: { id: props.projectId, processId } });
 }
+
+function seeBest() {
+  const processId = getParentProcessOfModel(bestModel.value)?.id;
+  if (!processId) return;
+  router.push({ name: 'model-show', params: { id: props.projectId, processId, modelId: bestModel.value.id } });
+}
 </script>
 
 <template>
@@ -45,33 +52,15 @@ function forkPipeline() {
         class="col-6"
         style="align-self: stretch;"
       >
-        <q-card class="full-height">
-          <q-card-section>
-            <div class="text-h6">
-              Last processing
-            </div>
-
-            <ProcessCardContent
-              v-if="lastRunningProcess"
-              :process="lastRunningProcess"
-            />
-          </q-card-section>
-        </q-card>
-      </div>
-
-      <div
-        class="col-6"
-        style="align-self: stretch;"
-      >
         <q-card class="bg-teal-4 full-height">
           <q-card-section>
             <div class="text-h6 text-white">
-              Best Model (de tous les processes confondus)
+              Best Dr IA Model
             </div>
 
             <ModelCardContent
               v-if="bestModel"
-              :process-id="getParentProcessOfModel(bestModel).id"
+              :process="getParentProcessOfModel(bestModel)"
               :project-id="projectId"
               :model="bestModel"
               display-best-model-name
@@ -83,11 +72,38 @@ function forkPipeline() {
             align="right"
           >
             <q-btn
+              icon="fork_right"
               label="Fork pipeline"
-              color="primary"
+              color="red-4"
               @click="forkPipeline"
             />
+            <q-btn
+              icon="visibility"
+              label="See model details"
+              color="primary"
+              @click="seeBest"
+            />
           </q-card-actions>
+        </q-card>
+      </div>
+      <div
+        class="col-6"
+        style="align-self: stretch;"
+      >
+        <q-card class="bg-grey-4 full-height">
+          <q-card-section>
+            <div class="text-h6 text-grey-8">
+              Baseline model
+            </div>
+
+            <ModelCardContent
+              v-if="bestModel"
+              :baseline="true"
+              :model="bestModel"
+              display-best-model-name
+              class="text-grey-8"
+            />
+          </q-card-section>
         </q-card>
       </div>
     </div>
@@ -97,7 +113,7 @@ function forkPipeline() {
       class="q-mt-md"
     >
       <q-card-section class="text-h6">
-        All processing
+        All trainings
       </q-card-section>
 
       <q-list
@@ -105,7 +121,7 @@ function forkPipeline() {
         separator
       >
         <q-expansion-item
-          v-for="process in processes"
+          v-for="process in processes.slice().reverse()"
           :key="process.id"
           expand-separator
           header-class="bg-blue-2"
@@ -119,10 +135,7 @@ function forkPipeline() {
             :key="model.id"
           >
             <q-card-section :class="index === 0 ? 'bg-green-2' : 'bg-blue-1'">
-              <div class="q-pl-md text-subtitle2 text-italic">
-                Model n° {{ index + 1 }} {{ index === 0 ? '(meilleur model de ce process)' : '' }}
-              </div>
-              <ModelCardContent
+              <ModelInlineContent
                 :process-id="process.id"
                 :project-id="projectId"
                 :model="model"

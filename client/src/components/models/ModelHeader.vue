@@ -18,15 +18,10 @@ const propsComponent = defineProps<{
     <div class="flex row items-start justify-center full-width">
       <div class="flex column col-6 q-pr-xl q-mr-xl">
         <h4 class="no-margin q-pb-lg text-weight-medium">
-          {{ propsComponent.model.metrics.model }}
+          {{ propsComponent.model.metrics.model_info.name }}
         </h4>
         <q-card class="q-pa-md">
-          Lorem Ipsum is simply dummy text of the printing and typesetting
-          industry. Lorem Ipsum has been the industry's standard dummy text ever
-          since the 1500s, when an unknown printer took a galley of type and
-          scrambled it to make a type specimen book. It has survived not only
-          five centuries, but also the leap into electronic typesetting,
-          remaining essentially unchanged.
+          {{ propsComponent.model.metrics.model_info.description }}
         </q-card>
       </div>
 
@@ -57,12 +52,11 @@ const propsComponent = defineProps<{
             <q-item-section>
               <div class="flex row items-center justify-between">
                 <div class="text-weight-bolder text-body1">
-                  Précision :
+                  {{ propsComponent.model.metrics.metrics_info[propsComponent.model.metrics.main_metrics].name }}
                 </div>
                 <div class="text-weight-bolder text-body1">
                   {{
-                    propsComponent.model.metrics.metrics_train["precision"] ??
-                      "???"
+                    propsComponent.model.metrics.metrics_test ? propsComponent.model.metrics.metrics_test[propsComponent.model.metrics.main_metrics] : "?"
                   }}
                 </div>
               </div>

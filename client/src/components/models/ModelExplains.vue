@@ -19,17 +19,19 @@ const slide = ref(1);
 const carousel = ref<InstanceType<typeof QCarousel>>();
 const currentExplainIndex = ref(0);
 const isLoadingExplanation = ref(false);
-const currentExplain = ref<IPlot | undefined>(
-  propsComponent.model.metrics.plots.at(currentExplainIndex.value)
-);
 const explanation = ref<IExplanation>();
+
+const currentExplain = ref<IPlot | undefined>(
+  explanation.value ? explanation.value?.plots[Object.keys(explanation.value.plots)[currentExplainIndex.value]] : undefined
+);
 
 // functions
 function changeExplain(index: number) {
-  currentExplain.value = propsComponent.model.metrics.plots[index];
   currentExplainIndex.value = index;
+  currentExplain.value = explanation.value?.plots[Object.keys(explanation.value.plots)[currentExplainIndex.value]];
   carousel.value?.goTo(currentExplainIndex.value);
 }
+
 async function getExplanation() {
   isLoadingExplanation.value = true;
   try {
@@ -57,6 +59,7 @@ watchEffect(async () => {
   explanation.value = JSON.parse(
     responseExplain?.explanation ?? ""
   ) as IExplanation;
+  changeExplain(0);
 });
 
 // lifeCycle
@@ -65,6 +68,7 @@ onMounted(() => {
     explanation.value = JSON.parse(
       propsComponent.model.explanation
     ) as IExplanation;
+    changeExplain(0);
   }
 });
 onUnmounted(() => {
@@ -82,18 +86,26 @@ onUnmounted(() => {
         <q-btn @click="getExplanation" :loading="isLoadingExplanation" label="Voir l'explication" color="yellow-8" />
       </div>
 
-      <div v-else class="flex row items-start justify-center">
+      <div
+        v-else
+        class="flex row items-start justify-evenly"
+      >
         <div class="flex column q-gutter-y-md col-2">
-          <q-item v-for="item in Object.entries(explanation.plots)" :key="item[0]" clickable
-            class="bg-secondary text-white shadow-3" style="width: 300px">
+          <q-item
+            v-for="item in explanation.features.slice().sort((a,b) => b.value - a.value)"
+            :key="item.name"
+            clickable
+            class="bg-secondary text-white shadow-3"
+            style="width: 300px"
+          >
             <q-item-section>
               <div class="flex row items-center justify-between">
                 <div class="text-weight-medium">
-                  {{ item[0] }}
+                  {{ item.name }}
                   :
                 </div>
                 <div class="text-weight-medium">
-                  {{ item[1].title }}
+                  {{ item.value }}
                 </div>
               </div>
             </q-item-section>
@@ -101,13 +113,25 @@ onUnmounted(() => {
         </div>
 
         <div class="q-pl-lg col-7">
-          <q-carousel v-model="slide" :autoplay="false" ref="carousel" swipeable animated infinite
-            class="carousel-slide rounded-borders q-card">
-            <q-carousel-slide v-for="(_, index) in propsComponent.model.metrics.plots" :key="index" :name="index"
-              class="flex flex-center">
-              <img class="full-height" :src="'data:image/png;base64,' +
-        propsComponent.model.metrics.plots[currentExplainIndex].image
-        " />
+          <q-carousel
+            v-model="slide"
+            :autoplay="false"
+            ref="carousel"
+            swipeable
+            animated
+            infinite
+            class="carousel-slide rounded-borders q-card"
+          >
+            <q-carousel-slide
+              v-for="(_, index) in Object.entries(explanation.plots)"
+              :key="index"
+              :name="index"
+              class="flex flex-center"
+            >
+              <img
+                class="full-width"
+                :src="'data:image/png;base64,' + currentExplain?.image"
+              >
             </q-carousel-slide>
           </q-carousel>
           <q-card class="flex column carousel-card rounded-borders q-pa-md">
@@ -119,13 +143,16 @@ onUnmounted(() => {
             </div>
             <div class="flex row items-center q-pt-md">
               <div class="q-carousel__navigation-inner flex flex-center no-wrap">
-                <button v-for="(_, index) in propsComponent.model.metrics.plots" :key="index"
+                <button
+                  v-for="(_, index) in Object.entries(explanation.plots)"
+                  :key="index"
                   @click="changeExplain(index)"
                   class="q-btn q-btn-item non-selectable no-outline q-btn--flat q-btn--round q-btn--actionable q-focusable q-hoverable q-btn--dense q-carousel__navigation-icon"
-                  :class="index == currentExplainIndex
-        ? 'q-carousel__navigation-icon--inactive text-grey-7'
-        : 'q-carousel__navigation-icon--active text-grey-4'
-        " tabindex="0" type="button" style="font-size: 10px">
+                  :class="index == currentExplainIndex ? 'q-carousel__navigation-icon--inactive text-grey-7' : 'q-carousel__navigation-icon--active text-grey-4'"
+                  tabindex="0"
+                  type="button"
+                  style="font-size: 10px"
+                >
                   <span class="q-focus-helper" />
                   <span class="q-btn__content text-center col items-center q-anchor--skip justify-center row">
                     <i class="q-icon" aria-hidden="true" role="img">
@@ -153,5 +180,6 @@ onUnmounted(() => {
   border-left: 1px solid #bbb;
   border-right: 1px solid #bbb;
   border-top: 1px solid #bbb;
+  height: auto;
 }
 </style>

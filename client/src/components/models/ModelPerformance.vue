@@ -30,11 +30,11 @@ function changePlot(index: number) {
       <h4 class="no-margin q-pb-lg text-weight-medium">
         Performances
       </h4>
-      <div class="flex row items-start justify-center">
+      <div class="flex row items-start justify-evenly">
         <div class="flex column q-gutter-y-md col-2">
           <q-item
             v-for="item in Object.entries(
-              propsComponent.model.metrics.metrics_train
+              propsComponent.model.metrics.metrics_test ?? propsComponent.model.metrics.metrics_train
             )"
             :key="item[0]"
             clickable
@@ -60,6 +60,7 @@ function changePlot(index: number) {
                 color="info"
               >
                 <q-tooltip
+                  class="text-body2"
                   anchor="center right"
                   self="center left"
                 >
@@ -159,4 +160,5 @@ function changePlot(index: number) {
   border-right: 1px solid #bbb;
   border-top: 1px solid #bbb;
 }
+
 </style>

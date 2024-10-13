@@ -126,6 +126,12 @@ watch(route, async () => {
       </q-card>
     </q-dialog>
     <template v-if="project">
+      <q-btn
+        icon="arrow_back"
+        label="Back to home page"
+        class="q-mb-xl"
+        :to="{ name: 'home' }"
+      />
       <div class="text-h5">
         {{ project.title }}
       </div>
@@ -140,7 +146,7 @@ watch(route, async () => {
         <div
           class="text-h6 text-primary"
         >
-          Traitement des process en cours
+          Recherche du meilleur modèle en cours...
         </div>
         <q-linear-progress
           :value="progress"
@@ -161,14 +167,15 @@ watch(route, async () => {
         </q-linear-progress>
       </div>
 
-      <TableShowDataSample />
-
       <TrainResultsCards
         v-if="project.processes?.length"
         :project-id="project.id"
         :processes="project.processes"
-        class="q-mt-md"
+        class="q-my-md"
       />
+
+      <TableShowDataSample />
+
     </template>
   </q-page>
 </template>

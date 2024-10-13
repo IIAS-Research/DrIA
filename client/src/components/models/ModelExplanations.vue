@@ -14,7 +14,7 @@ const propsComponent = defineProps<{
     <div class="flex row items-start justify-center">
       <div class="flex-center column col-5 q-mr-md">
         <h4 class="no-margin q-py-lg text-weight-medium">
-          Explication des traitements
+          Explication des pré-traitements
         </h4>
 
         <q-card class="q-pa-md q-mt-xs flex column">
@@ -38,55 +38,26 @@ const propsComponent = defineProps<{
             :key="index"
             clickable
             class="bg-grey-1 shadow-2"
+            tag="a"
+            :href="biblio.doi"
+            target="_blank"
           >
-            <div class="flex column">
-              <div class="flex row items-center">
-                <div class="text-body1 text-weight-medium">
-                  Name :
-                </div>
-                <div class="q-pl-sm">
-                  {{ biblio.name }}
-                </div>
+            <div>
+              {{ biblio.year }}&nbsp;
+              <span class="text-body1 text-weight-medium">
+                {{ biblio.name }}&nbsp;
+              </span>
+              <div class="text-weight-tigh">
+                <q-icon name="person" />
+                {{ biblio.author ?? "Undefined authors" }}
               </div>
-              <div class="flex row items-center">
-                <div class="text-body1 text-weight-medium">
-                  Year :
-                </div>
-                <div class="q-pl-sm">
-                  {{ biblio.year }}
-                </div>
+              <div class="text-weight-tigh">
+                <q-icon name="feed" />
+                {{ biblio.publisher ?? "Undefined publisher" }}
               </div>
-              <div class="flex row items-center">
-                <div class="text-body1 text-weight-medium">
-                  Step :
-                </div>
-                <div class="q-pl-sm">
-                  {{ biblio.step }}
-                </div>
-              </div>
-              <div class="flex row items-center">
-                <div class="text-body1 text-weight-medium">
-                  DOI :
-                </div>
-                <div class="q-pl-sm">
-                  {{ biblio.doi ?? "???" }}
-                </div>
-              </div>
-              <div class="flex row items-center">
-                <div class="text-body1 text-weight-medium">
-                  Author :
-                </div>
-                <div class="q-pl-sm">
-                  {{ biblio.author ?? "???" }}
-                </div>
-              </div>
-              <div class="flex row items-center">
-                <div class="text-body1 text-weight-medium">
-                  Publisher :
-                </div>
-                <div class="q-pl-sm">
-                  {{ biblio.publisher ?? "???" }}
-                </div>
+              <div class="text-weight-tigh">
+                <q-icon name="link" />
+                {{ biblio.doi ?? "Undefined DOI" }}
               </div>
             </div>
           </q-item>
