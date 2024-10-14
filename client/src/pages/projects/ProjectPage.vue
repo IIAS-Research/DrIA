@@ -30,7 +30,6 @@ const project = ref<IProject>();
 async function getProjectById() {
   if (!projectId.value) return undefined;
   const responseProject = await GetProjectWithNestedDataById(projectId.value);
-  console.log('response project => ', responseProject);
   if (responseProject) project.value = responseProject;
   return undefined;
 }
@@ -40,7 +39,6 @@ function updateProgressVal() {
 
   const process = project.value.processes.find((p) => p.status === 'RUNNING');
   if (!process) {
-    console.log('No running process found, clearing interval.');
     clearInterval(interval);
     return;
   }
@@ -67,7 +65,7 @@ function updateProgressVal() {
   approximativeRemainingTime.value = Math.max(0, Math.ceil(remainingTime / 1000)); // Convert to seconds and prevent negative values
 }
 
-const isProcessing = computed(() => String(jobId) && project.value?.processes.some((p) => p.status === 'RUNNING'));
+const isProcessing = computed(() => project.value?.processes.some((p) => p.status === 'RUNNING') ?? false);
 
 function connectWebSocketsIfNeeded() {
   if (!isProcessing.value) return;
@@ -108,7 +106,6 @@ const remainingFormatedTime = computed(() => {
 watchEffect(async () => {
   const messageReceived = signalR.receivedMessageRef.value as ProcessStatus;
   if (messageReceived !== 'FINISHED') return;
-  console.log('Finished');
   signalR.disconnect();
   router.replace({ name: 'project-show', params: { id: projectId.value } });
 });
@@ -171,6 +168,7 @@ watch(route, async () => {
         v-if="project.processes?.length"
         :project-id="project.id"
         :processes="project.processes"
+        :is-loading="isProcessing"
         class="q-my-md"
       />
 

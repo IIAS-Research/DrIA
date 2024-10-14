@@ -23,9 +23,10 @@ const explanation = {
   >
     {{ propsComponent.word }}
     <q-tooltip
+      style="width: 300px;"
       class="text-body2"
-      anchor="center right"
-      self="center left"
+      anchor="bottom middle"
+      self="top middle"
     >
       {{ explanation }}
     </q-tooltip>

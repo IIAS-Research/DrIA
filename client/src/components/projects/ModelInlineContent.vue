@@ -57,12 +57,16 @@ function forkPipeline() {
           class="q-mr-md"
           title="Fork pipeline"
           @click="forkPipeline"
-        />
+        >
+          <q-tooltip>Fork</q-tooltip>
+        </q-btn>
         <q-btn
           icon="visibility"
           color="primary"
           :to="{ name: 'model-show', params: { id: projectId, processId, modelId: model.id } }"
-        />
+        >
+          <q-tooltip>See</q-tooltip>
+        </q-btn>
       </div>
     </div>
   </div>

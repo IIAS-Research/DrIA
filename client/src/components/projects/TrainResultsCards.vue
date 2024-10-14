@@ -9,8 +9,9 @@ import ProcessCardContent from './ProcessCardContent.vue';
 const router = useRouter();
 
 const props = defineProps<{
-  processes: IProcess[]
+  processes: IProcess[];
   projectId: number;
+  isLoading: boolean;
 }>();
 
 const lastRunningProcess = computed(() => {
@@ -32,7 +33,6 @@ function getParentProcessOfModel(model: IModel) {
 }
 
 function forkPipeline() {
-  console.log('Forking pipeline');
   const processId = getParentProcessOfModel(bestModel.value)?.id;
   if (!processId) return;
   router.push({ name: 'pipeline-fork', params: { id: props.projectId, processId } });
@@ -63,6 +63,7 @@ function seeBest() {
               :process="getParentProcessOfModel(bestModel)"
               :project-id="projectId"
               :model="bestModel"
+              :baseline="false"
               display-best-model-name
               class="text-white"
             />
@@ -72,12 +73,14 @@ function seeBest() {
             align="right"
           >
             <q-btn
+              :loading="isLoading"
               icon="fork_right"
               label="Fork pipeline"
               color="red-4"
               @click="forkPipeline"
             />
             <q-btn
+              :loading="isLoading"
               icon="visibility"
               label="See model details"
               color="primary"
@@ -100,6 +103,8 @@ function seeBest() {
               v-if="bestModel"
               :baseline="true"
               :model="bestModel"
+              :projectId="projectId"
+              :process="(lastRunningProcess as IProcess)"
               display-best-model-name
               class="text-grey-8"
             />

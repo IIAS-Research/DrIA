@@ -12,6 +12,7 @@ using Server.Authorization.Handlers;
 using Server.Hubs;
 using SwaggerThemes;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
 
 public partial class Program
 {
@@ -46,6 +47,10 @@ public partial class Program
 
     // app.UseHttpsRedirection();
     app.UseCors(app.Environment.EnvironmentName);
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+      ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    });
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers().RequireAuthorization();
