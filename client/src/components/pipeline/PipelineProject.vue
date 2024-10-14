@@ -34,7 +34,6 @@ function chooseRightInputType(valueToProceed: IPipeline['configuration'][0]) {
 
 async function initPipeline() {
   if (!pipelineRefLocalComponent.value) return;
-  console.log(pipelineRefLocalComponent.value);
   emits('isPipelineLoading', false);
   tab.value = `${pipelineRefLocalComponent.value.children[0].step}-0`;
 }

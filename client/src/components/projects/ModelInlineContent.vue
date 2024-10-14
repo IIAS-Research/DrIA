@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import { ref } from 'vue';
-import { formatToDDMMYYYHHmm } from 'src/utils/date';
-import { IModel, IProcess } from '../models';
+import { IModel } from '../models';
 
 const router = useRouter();
 
@@ -57,12 +56,16 @@ function forkPipeline() {
           class="q-mr-md"
           title="Fork pipeline"
           @click="forkPipeline"
-        />
+        >
+          <q-tooltip>Fork</q-tooltip>
+        </q-btn>
         <q-btn
           icon="visibility"
           color="primary"
           :to="{ name: 'model-show', params: { id: projectId, processId, modelId: model.id } }"
-        />
+        >
+          <q-tooltip>See</q-tooltip>
+        </q-btn>
       </div>
     </div>
   </div>
