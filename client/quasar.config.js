@@ -13,6 +13,7 @@
 
 const configTargetApi = {
   development: 'http://localhost:3000/api',
+  production: 'http://rss01185.domchurs.ad/api'
 };
 
 const API = process.env.NODE_ENV ? configTargetApi[process.env.NODE_ENV] : 'http://localhost:3000/api';
