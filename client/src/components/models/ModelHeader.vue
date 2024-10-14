@@ -56,7 +56,8 @@ const propsComponent = defineProps<{
                 </div>
                 <div class="text-weight-bolder text-body1">
                   {{
-                    propsComponent.model.metrics.metrics_test ? propsComponent.model.metrics.metrics_test[propsComponent.model.metrics.main_metrics] : "?"
+                    propsComponent.model.metrics.metrics_test ? 
+                    propsComponent.model.metrics.metrics_test[propsComponent.model.metrics.main_metrics] : "?"
                   }}
                 </div>
               </div>
@@ -68,7 +69,8 @@ const propsComponent = defineProps<{
           color="blue-8"
           label="Tester le modèle"
           class="q-mt-md"
-          :to="{ name: 'model-test', params: { id: routeParams.projectId, processId: routeParams.processId, modelId: routeParams.modelId } }"
+          :to="{ name: 'model-test', params: { 
+            id: routeParams.projectId, processId: routeParams.processId, modelId: routeParams.modelId } }"
         />
 
         <q-btn
