@@ -28,7 +28,7 @@ const baiddySubtitles: Array<string> = [
   'Revolutionary AI for Personalized Healthcare Solutions',
   'Innovate, Analyze, Revolutionize with Dr IA',
   'Dr IA: Your Gateway to Advanced Medical Insights',
-  "Reimagine Healthcare with Dr IA’s Data-Driven Approach",
+  'Reimagine Healthcare with Dr IA’s Data-Driven Approach',
   'Pioneering a New Era in Medical AI Science',
   'Empowering Healthcare Professionals with Intelligent AI Tools',
   'AI-Driven Diagnostics for Superior Patient Outcomes',

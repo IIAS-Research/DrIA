@@ -42,8 +42,11 @@ function resetValueWithDefault(stepConf: IPipeline['configuration'][0]) {
   stepConf.value = stepConf.default;
 }
 
-function autoSelectFirstChildOnChange(val: QTabPanel['name'] = `${pipelineRefLocalComponent.value?.children[0].step}-0`) {
-  innerTab.value = `${pipelineRefLocalComponent.value?.children.find((s, i) => `${s.step}-${i}` === val)?.children[0].step}-0`;
+function autoSelectFirstChildOnChange(
+  val: QTabPanel['name'] = `${pipelineRefLocalComponent.value?.children[0].step}-0`,
+) {
+  innerTab.value = `${pipelineRefLocalComponent.value?.children
+    .find((s, i) => `${s.step}-${i}` === val)?.children[0].step}-0`;
 }
 
 onMounted(async () => {
