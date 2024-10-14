@@ -12,10 +12,11 @@ const propsComponent = defineProps<{
 }>();
 
 const mainMetricName = ref<string | undefined>(
-  propsComponent.model.metrics.metrics_info[propsComponent.model.metrics.main_metrics].name
+  propsComponent.model.metrics.metrics_info[propsComponent.model.metrics.main_metrics].name,
 );
 const mainMetricValue = ref<number | undefined>(
-  propsComponent.model.metrics.metrics_test ? propsComponent.model.metrics.metrics_test[propsComponent.model.metrics.main_metrics] : undefined
+  propsComponent.model.metrics.metrics_test
+    ? propsComponent.model.metrics.metrics_test[propsComponent.model.metrics.main_metrics] : undefined,
 );
 
 function forkPipeline() {
@@ -44,7 +45,7 @@ function forkPipeline() {
         class="col-4"
       >
         <q-icon name="rocket_launch" />
-        {{  mainMetricName }} : {{ mainMetricValue }}
+        {{ mainMetricName }} : {{ mainMetricValue }}
       </div>
 
       <div

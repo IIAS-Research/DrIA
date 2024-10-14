@@ -1,18 +1,36 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { formatToDDMMYYYHHmm } from 'src/utils/date';
+import { restartProcessAsync } from 'src/api/processes.api';
+import { useRouter } from 'vue-router';
 import { IProcess } from '../models';
+
+const router = useRouter();
 
 const propsComponent = defineProps<{
   process?: IProcess
+  isLoading: boolean;
 }>();
 
 const mainMetricName = ref<string | undefined>(
-  propsComponent.process?.models[0]?.metrics.metrics_info[propsComponent.process?.models[0]?.metrics.main_metrics].name
+  propsComponent.process?.models[0]?.metrics.metrics_info[propsComponent.process?.models[0]?.metrics.main_metrics].name,
 );
 const mainMetricValue = ref<number | undefined>(
-  propsComponent.process?.models[0]?.metrics.metrics_test ? propsComponent.process?.models[0]?.metrics.metrics_test[propsComponent.process?.models[0]?.metrics.main_metrics] : undefined
+  propsComponent.process?.models[0]?.metrics.metrics_test
+    ? propsComponent.process?.models[0]?.metrics.metrics_test[propsComponent.process?.models[0]?.metrics.main_metrics]
+    : undefined,
 );
+
+async function restartProcess() {
+  if (!propsComponent.process) return;
+  console.log('propsComponent.process.id => ', propsComponent.process.id);
+  const response = await restartProcessAsync(propsComponent.process.id);
+  if (!response) return;
+
+  router.push(
+    { name: 'project-show', params: { id: response.projectId }, query: { jobId: response.id } },
+  );
+}
 </script>
 
 <template>
@@ -30,18 +48,44 @@ const mainMetricValue = ref<number | undefined>(
     </div>
     <div class="col-5">
       <q-icon name="rocket_launch" />
-      Best {{  mainMetricName }} : {{ mainMetricValue }}
+      Best {{ mainMetricName }} : {{ mainMetricValue }}
     </div>
     <div class="col-2">
       <q-chip
         v-if="process"
         square
-        :color="{'FINISHED': 'green', 'CANCELED': 'red', 'CRASHED': 'red', 'QUEUED': 'blue', 'RUNNING': 'orange', 'TIMEOUT': 'grey'}[process.status]"
+        :color="{
+          'FINISHED': 'green',
+          'CANCELED': 'red',
+          'CRASHED': 'red',
+          'QUEUED': 'blue',
+          'RUNNING': 'orange',
+          'TIMEOUT': 'grey'
+        }[process.status]"
         text-color="white"
-        :icon="{'FINISHED': 'check', 'CANCELED': 'close', 'CRASHED': 'error', 'QUEUED': 'hourglass_top', 'RUNNING': 'rocket_launch', 'TIMEOUT': 'hourglass_disabled'}[process.status]"
+        :icon="{
+          'FINISHED': 'check',
+          'CANCELED': 'close',
+          'CRASHED': 'error',
+          'QUEUED': 'hourglass_top',
+          'RUNNING': 'rocket_launch',
+          'TIMEOUT': 'hourglass_disabled'
+
+        }[process.status]"
         :label="process?.status"
       />
     </div>
+
+    <q-space />
+
+    <q-btn
+      @click.prevent="restartProcess"
+      icon="refresh"
+      color="primary"
+      :loading="isLoading"
+    >
+      <q-tooltip>Relancer le process</q-tooltip>
+    </q-btn>
   </q-item>
 
   <q-item v-else>
