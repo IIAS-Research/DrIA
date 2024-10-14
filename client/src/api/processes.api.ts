@@ -36,7 +36,7 @@ Promise<ICreateProjectResponseDTO | undefined> {
     const response = (await api.get(`${processUrl}/${processId}/restart`))?.data;
     return response;
   } catch (error) {
-    console.error('Error running process with fork pipeline:', error);
+    console.error('Error restarting process:', error);
     notify('negative', String(error));
     return undefined;
   }

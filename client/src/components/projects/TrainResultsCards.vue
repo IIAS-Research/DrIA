@@ -103,7 +103,7 @@ function seeBest() {
               v-if="bestModel"
               :baseline="true"
               :model="bestModel"
-              :projectId="projectId"
+              :project-id="projectId"
               :process="(lastRunningProcess as IProcess)"
               display-best-model-name
               class="text-grey-8"
@@ -132,7 +132,10 @@ function seeBest() {
           header-class="bg-blue-2"
         >
           <template #header>
-            <ProcessCardContent :process="process" />
+            <ProcessCardContent
+              :process="process"
+              :is-loading="isLoading"
+            />
           </template>
 
           <template

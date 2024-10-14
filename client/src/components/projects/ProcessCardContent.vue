@@ -9,6 +9,7 @@ const router = useRouter();
 
 const propsComponent = defineProps<{
   process?: IProcess
+  isLoading: boolean;
 }>();
 
 const mainMetricName = ref<string | undefined>(
@@ -22,6 +23,7 @@ const mainMetricValue = ref<number | undefined>(
 
 async function restartProcess() {
   if (!propsComponent.process) return;
+  console.log('propsComponent.process.id => ', propsComponent.process.id);
   const response = await restartProcessAsync(propsComponent.process.id);
   if (!response) return;
 
@@ -77,9 +79,10 @@ async function restartProcess() {
     <q-space />
 
     <q-btn
-      @click="restartProcess"
+      @click.prevent="restartProcess"
       icon="refresh"
       color="primary"
+      :loading="isLoading"
     >
       <q-tooltip>Relancer le process</q-tooltip>
     </q-btn>

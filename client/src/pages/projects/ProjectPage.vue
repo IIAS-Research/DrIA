@@ -2,7 +2,7 @@
 import {
   computed, onMounted, ref, watch, watchEffect, onUnmounted,
 } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter, useRoute, LocationQueryValue } from 'vue-router';
 import {
   IProject,
   ProcessStatus,
@@ -15,12 +15,11 @@ import TrainResultsCards from 'src/components/projects/TrainResultsCards.vue';
 const route = useRoute();
 const router = useRouter();
 const signalR = useSignalR('generateModel');
-const { jobId } = route.query;
+const jobId = ref<LocationQueryValue>(route.query.jobId as LocationQueryValue);
+const projectId = ref(parseInt(route.params.id as string, 10));
 
 // eslint-disable-next-line no-undef
 let interval: NodeJS.Timeout;
-
-const projectId = computed(() => parseInt(route.params.id as string, 10));
 
 const progress = ref(0);
 const startProcessTime = ref<number>();
@@ -65,11 +64,13 @@ function updateProgressVal() {
   approximativeRemainingTime.value = Math.max(0, Math.ceil(remainingTime / 1000)); // Convert to seconds and prevent negative values
 }
 
-const isProcessing = computed(() => project.value?.processes.some((p) => p.status === 'RUNNING') ?? false);
+const isProcessing = computed(() => Boolean(
+  (project.value?.processes.some((p) => p.status === 'RUNNING') && jobId.value) ?? false,
+));
 
 function connectWebSocketsIfNeeded() {
   if (!isProcessing.value) return;
-  signalR.connect(String(jobId));
+  signalR.connect(jobId.value);
   startProcessTime.value = new Date().getTime();
   if (interval) return;
   interval = setInterval(() => {
@@ -111,7 +112,10 @@ watchEffect(async () => {
 });
 
 watch(route, async () => {
+  projectId.value = parseInt(route.params.id as string, 10);
+  jobId.value = route.query.jobId as LocationQueryValue;
   await getProjectById();
+  connectWebSocketsIfNeeded();
 }, { deep: true });
 </script>
 

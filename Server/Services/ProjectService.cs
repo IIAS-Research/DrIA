@@ -188,13 +188,13 @@ public class ProjectService : ApplicationService
     return serviceResponse;
   }
 
-    public async Task<ResponseService<Project?>> GetProjectByModelId(long modelId)
+  public async Task<ResponseService<Project?>> GetProjectByProcessId(long processId)
   {
     var serviceResponse = new ResponseService<Project?>();
-    var project = await _projectRepository.GetProjectByModelId(modelId);
+    var project = await _projectRepository.GetProjectByProcessId(processId);
     if (project == null)
     {
-      serviceResponse.AddError("No project found containing this model id.");
+      serviceResponse.AddError("No project found containing this process id.");
     }
     else
     {
@@ -202,6 +202,7 @@ public class ProjectService : ApplicationService
     }
     return serviceResponse;
   }
+
   private static ResponseService<ProjectFileFormated> GetNFirstLineOfFile(byte[] dataFile, int rowCount, string colToPredict)
   {
     var response = new ResponseService<ProjectFileFormated>();

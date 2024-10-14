@@ -49,10 +49,10 @@ public class ProcessesController : ApplicationController
   [HttpGet("{id}/restart")]
   public async Task<IActionResult> RestartProcess(long id)
   {
-    var responseGetProject = await _projectService.GetProjectByModelId(id);
+    var responseGetProject = await _projectService.GetProjectByProcessId(id);
     if (!responseGetProject.IsSuccess) return BadRequest(responseGetProject.Errors);
 
-    var responseGetProjectFiles = await _projectService.GetTrainAndTestFiles(responseGetProject.Data.Id);
+    var responseGetProjectFiles = await _projectService.GetTrainAndTestFiles(responseGetProject.Data!.Id);
     if (!responseGetProjectFiles.IsSuccess) return BadRequest(responseGetProjectFiles.Errors);
 
     var responseGetProcessPipeline = await _processService.GetProcessPipeline(id, responseGetProject.Data.Id);
