@@ -82,8 +82,11 @@ module.exports = {
     'import/no-extraneous-dependencies': 'off',
     'import/prefer-default-export': 'off',
     'prefer-promise-reject-errors': 'off',
+    'comma-dangle' : 'off',
+    'object-curly-newline' : 'off',
+    'no-trailing-spaces' : 'off',
 
-    'max-len': ['error', { code: 120, ignoreComments: true }],
+    'max-len': "off",
 
     quotes: ['warn', 'single', { avoidEscape: true }],
 

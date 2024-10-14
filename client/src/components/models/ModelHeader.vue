@@ -72,13 +72,6 @@ const propsComponent = defineProps<{
           :to="{ name: 'model-test', params: { 
             id: routeParams.projectId, processId: routeParams.processId, modelId: routeParams.modelId } }"
         />
-
-        <q-btn
-          @click="console.log('mes couilles')"
-          color="yellow-9"
-          label="Créer une application"
-          class="q-mt-md"
-        />
       </div>
     </div>
   </div>
