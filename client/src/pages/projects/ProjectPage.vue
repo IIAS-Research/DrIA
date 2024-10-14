@@ -175,7 +175,6 @@ watch(route, async () => {
       />
 
       <TableShowDataSample />
-
     </template>
   </q-page>
 </template>

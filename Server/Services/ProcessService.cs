@@ -19,11 +19,11 @@ public class ProcessService : ApplicationService
         return await _processRepository.CreateProcess(pipelineResponse, pipelineData, project);
     }
 
-    public async Task<ResponseService<ProcessPipeline>> GetProcessPipeline(string processId, string projectId)
+    public async Task<ResponseService<ProcessPipeline>> GetProcessPipeline(long processId, long projectId)
     {
         var responseService = new ResponseService<ProcessPipeline>();
 
-        var pipeline = await _processRepository.GetProcessPipeline(long.Parse(processId), long.Parse(projectId));
+        var pipeline = await _processRepository.GetProcessPipeline(processId, projectId);
         if (pipeline == null)
         {
             responseService.AddError("No result found for the provided informations");
@@ -34,4 +34,5 @@ public class ProcessService : ApplicationService
         }
         return responseService;
     }
+
 }

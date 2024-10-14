@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import { ref } from 'vue';
-import { formatToDDMMYYYHHmm } from 'src/utils/date';
-import { IModel, IProcess } from '../models';
+import { IModel } from '../models';
 
 const router = useRouter();
 
@@ -13,10 +12,11 @@ const propsComponent = defineProps<{
 }>();
 
 const mainMetricName = ref<string | undefined>(
-  propsComponent.model.metrics.metrics_info[propsComponent.model.metrics.main_metrics].name
+  propsComponent.model.metrics.metrics_info[propsComponent.model.metrics.main_metrics].name,
 );
 const mainMetricValue = ref<number | undefined>(
-  propsComponent.model.metrics.metrics_test ? propsComponent.model.metrics.metrics_test[propsComponent.model.metrics.main_metrics] : undefined
+  propsComponent.model.metrics.metrics_test
+    ? propsComponent.model.metrics.metrics_test[propsComponent.model.metrics.main_metrics] : undefined,
 );
 
 function forkPipeline() {
@@ -45,7 +45,7 @@ function forkPipeline() {
         class="col-4"
       >
         <q-icon name="rocket_launch" />
-        {{  mainMetricName }} : {{ mainMetricValue }}
+        {{ mainMetricName }} : {{ mainMetricValue }}
       </div>
 
       <div

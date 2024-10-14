@@ -187,6 +187,21 @@ public class ProjectService : ApplicationService
     }
     return serviceResponse;
   }
+
+    public async Task<ResponseService<Project?>> GetProjectByModelId(long modelId)
+  {
+    var serviceResponse = new ResponseService<Project?>();
+    var project = await _projectRepository.GetProjectByModelId(modelId);
+    if (project == null)
+    {
+      serviceResponse.AddError("No project found containing this model id.");
+    }
+    else
+    {
+      serviceResponse.SetSuccessful(project);
+    }
+    return serviceResponse;
+  }
   private static ResponseService<ProjectFileFormated> GetNFirstLineOfFile(byte[] dataFile, int rowCount, string colToPredict)
   {
     var response = new ResponseService<ProjectFileFormated>();

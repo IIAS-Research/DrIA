@@ -91,6 +91,10 @@ public class ProjectRepository(MainDbContext dbContext)
     return (await _dbContext.Projects.FindAsync(projectId))?.CsvColumnToPredict;
   }
 
+  public async Task<Project?> GetProjectByModelId(long modelId)
+  {
+    return await _dbContext.Projects.Where(p => p.Processes.Any(proc => proc.Models.Any(m => m.Id == modelId))).FirstOrDefaultAsync();
+  }
 
 
 }
