@@ -24,7 +24,7 @@ public class IaWebService : ApplicationService
     Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
   };
 
-  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(RunPipelineFileDTO trainFile, RunPipelineFileDTO testFile, Project project, string pipeline)
+  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(RunPipelineFileDTO trainFile, RunPipelineFileDTO testFile, Project project, string pipeline, int? maxDuration)
   {
     var response = new ResponseService<RunPipelineOutDTO>();
     try
@@ -38,6 +38,9 @@ public class IaWebService : ApplicationService
             { new StringContent(project.CsvColumnToPredict), "dataset_target" },
             { new StringContent(SerializeToSnakeLowerCase(pipeline), Encoding.UTF8, "application/json"), "pipeline" }
         };
+        if (maxDuration != null) requestContent.Add(new StringContent(maxDuration.ToString()!), "max_duration");
+        if (project.SurvivalModel) requestContent.Add(new StringContent(project.SurvivalModelDatasetTargetTime!), "dataset_target_time");
+
         var httpResponse = await http.PostAsync($"{_ia_url}/pipeline/run", requestContent);
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();

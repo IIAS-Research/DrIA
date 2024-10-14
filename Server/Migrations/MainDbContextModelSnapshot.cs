@@ -282,6 +282,12 @@ namespace server.Migrations
                         .IsRequired()
                         .HasColumnType("text[]");
 
+                    b.Property<bool>("SurvivalModel")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SurvivalModelDatasetTargetTime")
+                        .HasColumnType("text");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");

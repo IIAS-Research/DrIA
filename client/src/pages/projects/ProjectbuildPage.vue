@@ -23,7 +23,11 @@ async function submitProject(projectForm: IProjectForm, file: File) {
   formData.append('datasetHasIdColumn', String(projectForm.datasetHasIdColumn));
   formData.append('datasetHasIdColumnListString', projectForm.datasetHasIdColumnList.toString());
   formData.append('pipeline', JSON.stringify(projectForm.pipeline));
+  formData.append('survivalModel', String(projectForm.survivalModel));
   formData.append('file', file);
+  if (projectForm.survivalModeldatasetTargetTime) {
+    formData.append('survivalModeldatasetTargetTime', projectForm.survivalModeldatasetTargetTime);
+  }
   try {
     const responsePostProject: ICreateProjectResponseDTO = (await api.post('Projects', formData, {
       headers: {

@@ -146,6 +146,7 @@ public record RunNewProcessDTO
 {
   public required long ProjectId { get; set; }
   public required ProcessPipeline Pipeline { get; set; } // JSON
+  public required int MaxDuration { get; set; } = 45;
 }
 
 public record RunNewPipelineDTO
@@ -172,4 +173,9 @@ public record PredictWithModelAiResponseDTO
 {
   public required string status { get; init; }
   public required List<object> prediction { get; init; }
+}
+
+public record RestartProcessRequestDTO
+{
+  public required int MaxDuration { get; set; } = 45;
 }

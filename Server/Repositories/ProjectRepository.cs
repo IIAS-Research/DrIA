@@ -38,7 +38,9 @@ public class ProjectRepository(MainDbContext dbContext)
       RowDepedenciesLinked = projectData.RowDepedenciesLinked,
       DatasetHasIdColumn = projectData.DatasetHasIdColumn,
       DatasetHasIdColumnList = projectData.DatasetHasIdColumnList,
-      UserId = user.Id
+      UserId = user.Id,
+      SurvivalModel = projectData.SurvivalModel,
+      SurvivalModelDatasetTargetTime = projectData.SurvivalModelDatasetTargetTime
     };
     await _dbContext.Projects.AddRangeAsync(project);
     await _dbContext.SaveChangesAsync();

@@ -57,6 +57,8 @@ export interface IProjectForm {
   datasetHasIdColumnList: string[];
   pipeline?: IPipeline;
   file?: string;
+  survivalModel: boolean;
+  survivalModeldatasetTargetTime?: string;
 }
 
 export interface IProject {
@@ -173,4 +175,5 @@ export interface IProcess {
 export interface IRunPipelineForkDto {
   projectId: number;
   pipeline: IPipeline;
+  maxDuration: number;
 }

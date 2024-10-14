@@ -29,6 +29,11 @@ public class Project : ApplicationRecord
   [Required]
   public required string[] DatasetHasIdColumnList { get; set; } = [];
 
+  [Required]
+  public required bool SurvivalModel { get; set; } = false;
+
+  public string? SurvivalModelDatasetTargetTime { get; set; }
+
   [Timestamp]
   public byte[]? CreatedAt { get; set; } = [];
 

@@ -35,8 +35,12 @@ async function getProjectById() {
 
 function updateProgressVal() {
   if (!project.value) return;
+  const runningProcesses = project.value.processes.filter((p) => p.status === 'RUNNING');
+  if (runningProcesses.length > 1) {
+    console.log('Multiple process currently running, picking the first found by default');
+  }
 
-  const process = project.value.processes.find((p) => p.status === 'RUNNING');
+  const process = runningProcesses[0];
   if (!process) {
     clearInterval(interval);
     return;

@@ -39,15 +39,15 @@ public class ProcessesController : ApplicationController
     var responseGetProject = await _projectService.GetProjectById(runNewProcessDTO.ProjectId);
     if (!responseGetProject.IsSuccess) return BadRequest(responseGetProject.Errors);
 
-    var responseIaWeb = await _iaWebService.RunPipeline(responseGetProjectFiles.Data.TrainFile, responseGetProjectFiles.Data.TestFile, responseGetProject.Data, JsonSerializer.Serialize(runNewProcessDTO.Pipeline));
+    var responseIaWeb = await _iaWebService.RunPipeline(responseGetProjectFiles.Data.TrainFile, responseGetProjectFiles.Data.TestFile, responseGetProject.Data, JsonSerializer.Serialize(runNewProcessDTO.Pipeline), runNewProcessDTO.MaxDuration);
     if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
 
     var responseProcess = await _processService.CreateProcess(responseIaWeb.Data, JsonSerializer.Serialize(runNewProcessDTO.Pipeline), responseGetProject.Data);
     return Ok(new { responseIaWeb.Data.Id, responseIaWeb.Data.Socket, responseIaWeb.Data.Status, projectId = responseGetProject.Data.Id, responseProcess.MaxDuration });
   }
 
-  [HttpGet("{id}/restart")]
-  public async Task<IActionResult> RestartProcess(long id)
+  [HttpPost("{id}/restart")]
+  public async Task<IActionResult> RestartProcess(long id, [FromBody] RestartProcessRequestDTO restartProcessRequestDTO)
   {
     var responseGetProject = await _projectService.GetProjectByProcessId(id);
     if (!responseGetProject.IsSuccess) return BadRequest(responseGetProject.Errors);
@@ -58,7 +58,7 @@ public class ProcessesController : ApplicationController
     var responseGetProcessPipeline = await _processService.GetProcessPipeline(id, responseGetProject.Data.Id);
     if (!responseGetProcessPipeline.IsSuccess) return BadRequest(responseGetProcessPipeline.Errors);
 
-    var responseIaWeb = await _iaWebService.RunPipeline(responseGetProjectFiles.Data.TrainFile, responseGetProjectFiles.Data.TestFile, responseGetProject.Data, JsonSerializer.Serialize(responseGetProcessPipeline.Data));
+    var responseIaWeb = await _iaWebService.RunPipeline(responseGetProjectFiles.Data.TrainFile, responseGetProjectFiles.Data.TestFile, responseGetProject.Data, JsonSerializer.Serialize(responseGetProcessPipeline.Data), restartProcessRequestDTO.MaxDuration);
     if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
 
     var responseProcess = await _processService.CreateProcess(responseIaWeb.Data, JsonSerializer.Serialize(responseGetProcessPipeline.Data), responseGetProject.Data);

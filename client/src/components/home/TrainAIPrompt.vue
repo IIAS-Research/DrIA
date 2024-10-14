@@ -18,8 +18,9 @@ const initialProjectInfos: IProjectForm = {
   rowDepedenciesLinked: [],
   datasetHasIdColumn: false,
   datasetHasIdColumnList: [],
+  survivalModel: false,
 };
-const maxStepNumber = 5;
+const maxStepNumber = 6;
 
 const uploadedFile = ref<File | null>(null);
 const csvFileHeaderColumns = ref<string[]>([]);
@@ -67,11 +68,12 @@ async function submitForAITrain() {
 
 async function handleNextStepValidation() {
   if (!formSteppers.value.length) return;
-  if (step.value > 2 && !project.value.csvColumnToPredict) return; // Stop here if no selection is made
-
+  if (step.value > 3 && !project.value.csvColumnToPredict) return; // Stop here if no selection is made
+  console.log('ici');
   const currentStepIndex = step.value - 1;
   const currentStepperForm = formSteppers.value[currentStepIndex];
   const isFormValid = await currentStepperForm?.validate();
+  console.log(isFormValid);
   if (isFormValid) {
     if (step.value + 1 <= maxStepNumber) {
       stepper.value?.next();
@@ -207,6 +209,43 @@ onMounted(async () => {
           class="flex-center column"
         >
           <div class="text-body1 text-grey-9 text-weight-bold question-title">
+            Est-ce un modèle de survie ?
+          </div>
+
+          <q-toggle
+            v-model="project.survivalModel"
+            :label="project.survivalModel === true ? 'Oui, model de survie !' : 'Non, modèle classqiue !'"
+            size="70px"
+          />
+
+          <div
+            v-if="project.survivalModel"
+            class="row wrap button-container"
+            style="max-width: 500px;"
+          >
+            <q-btn
+              v-for="(option, index) in csvFileHeaderColumns"
+              :key="index"
+              :label="option"
+              :color="project.survivalModeldatasetTargetTime === option ? 'primary' : 'grey'"
+              @click="project.survivalModeldatasetTargetTime = option"
+              class="q-mb-sm"
+            />
+          </div>
+        </q-form>
+      </q-step>
+
+      <q-step
+        :name="4"
+        title=""
+        icon="psychology"
+        :done="step > 4"
+      >
+        <q-form
+          :ref="(el: QForm) => formSteppers[3] = el"
+          class="flex-center column"
+        >
+          <div class="text-body1 text-grey-9 text-weight-bold question-title">
             Quelle information souhaitez-vous prédire ?
           </div>
           <div class="explain">
@@ -233,13 +272,13 @@ onMounted(async () => {
       </q-step>
 
       <q-step
-        :name="4"
+        :name="5"
         title=""
         icon="psychology"
-        :done="step > 4"
+        :done="step > 5"
       >
         <q-form
-          :ref="(el: QForm) => formSteppers[3] = el"
+          :ref="(el: QForm) => formSteppers[4] = el"
           class="flex-center column"
         >
           <div class="text-body1 text-grey-9 text-weight-bold question-title">
@@ -297,13 +336,13 @@ onMounted(async () => {
       </q-step>
 
       <q-step
-        :name="5"
+        :name="6"
         title="Informations sur la prédiction"
         icon="psychology"
-        :done="step > 5"
+        :done="step > 6"
       >
         <q-form
-          :ref="(el: QForm) => formSteppers[4] = el"
+          :ref="(el: QForm) => formSteppers[5] = el"
           class="flex-center column"
           @submit="submitForAITrain"
         >
@@ -378,7 +417,7 @@ onMounted(async () => {
             @click="handleNextStepValidation"
             color="primary"
             :label="step === 2 ? 'Valider' : 'Suivant'"
-            :loading="step === 5 && isPipelineLoading"
+            :loading="step === 6 && isPipelineLoading"
           />
         </q-stepper-navigation>
       </template>
