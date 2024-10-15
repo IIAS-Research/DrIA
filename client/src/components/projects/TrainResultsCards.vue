@@ -54,10 +54,10 @@ const sortedMetrics = computed(() => {
   );
   metrics = metrics.sort(
     (entryA, entryB) => {
-      if (entryA[0] === (props.baselineModel?.metrics.main_metrics ?? '') && entryB[0] === (props.baselineModel?.metrics.main_metrics ?? '')) {
+      if (entryA[0] === (props.baselineModel?.main_metrics ?? '') && entryB[0] === (props.baselineModel?.main_metrics ?? '')) {
         return 0;
       }
-      if (entryA[0] === (props.baselineModel?.metrics.main_metrics ?? '') && entryB[0] !== (props.baselineModel?.metrics.main_metrics ?? '')) {
+      if (entryA[0] === (props.baselineModel?.main_metrics ?? '') && entryB[0] !== (props.baselineModel?.main_metrics ?? '')) {
         return -1;
       }
       return 1;
@@ -69,7 +69,7 @@ const sortedMetrics = computed(() => {
 
 <template>
   <div>
-    <div class="row q-col-gutter-x-sm"><pre>{{ props.baselineModel }}</pre>
+    <div class="row q-col-gutter-x-sm">
       <div
         class="col-6"
         style="align-self: stretch;"

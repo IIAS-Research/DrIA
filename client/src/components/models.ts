@@ -69,6 +69,7 @@ export interface IMetricInfo {
 export interface IBaselineMetrics {
   metrics_info: { [name: string]: IMetricInfo };
   metrics: { [name: string]: number };
+  main_metrics: string;
 }
 
 export interface IProject {
