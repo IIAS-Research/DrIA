@@ -134,6 +134,8 @@ onMounted(async () => {
                 v-for="([key, confObj], confIndex) in Object.entries(step.configuration)"
                 :key="confIndex"
               >
+                <q-separator class="q-my-sm" />
+                <div>{{ step.description }}</div>
                 <q-input
                   v-if="chooseRightInputType(confObj) === 'QInput'"
                   v-model="confObj.value"

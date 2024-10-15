@@ -72,6 +72,7 @@ watchEffect(async () => {
       <q-list
         separator
         bordered
+        style="max-width: 100%;"
       >
         <q-item
           v-for="project in userProjects"
@@ -82,7 +83,9 @@ watchEffect(async () => {
           :to="{ name: 'project-show', params: { id: project.id } }"
         >
           <q-item-section>
-            <q-item-label>{{ project.title }}</q-item-label>
+            <q-item-label class="ellipsis">
+              {{ project.title }}
+            </q-item-label>
             <!-- <q-item-label caption>
               {{
                 formatToDDMMYYYHHmm(project.updatedAt)

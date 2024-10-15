@@ -11,12 +11,15 @@ import { useSignalR } from 'src/utils/useSignalR';
 import TableShowDataSample from 'components/projects/TableShowDataSample.vue';
 import { GetProjectWithNestedDataById } from 'src/api/projects.api';
 import TrainResultsCards from 'src/components/projects/TrainResultsCards.vue';
+import { restartProcessAsync } from 'src/api/processes.api';
 
 const route = useRoute();
 const router = useRouter();
 const signalR = useSignalR('generateModel');
 const jobId = ref<LocationQueryValue>(route.query.jobId as LocationQueryValue);
 const projectId = ref(parseInt(route.params.id as string, 10));
+const restartProcessDialog = ref(false);
+const restartProcessMaxDuration = ref(45);
 
 // eslint-disable-next-line no-undef
 let interval: NodeJS.Timeout;
@@ -82,6 +85,18 @@ function connectWebSocketsIfNeeded() {
   }, 2000);
 }
 
+async function restartProcess() {
+  const process = project.value?.processes[0];
+  if (!process) return;
+  console.log('propsComponent.process.id => ', process.id);
+  const response = await restartProcessAsync(process.id, restartProcessMaxDuration.value);
+  if (!response) return;
+  restartProcessDialog.value = false;
+  router.push(
+    { name: 'project-show', params: { id: response.projectId }, query: { jobId: response.id } },
+  );
+}
+
 onMounted(async () => {
   await getProjectById();
   connectWebSocketsIfNeeded();
@@ -130,13 +145,58 @@ watch(route, async () => {
         <div>{{ signalR.receivedMessageRef.value }}</div>
       </q-card>
     </q-dialog>
+
+    <q-dialog
+      v-model="restartProcessDialog"
+    >
+      <q-card style="min-width: 450px;">
+        <q-card-section>
+          Paramètre de la relance du process
+        </q-card-section>
+
+        <q-card-section>
+          <q-badge color="secondary">
+            maxDuration: {{ restartProcessMaxDuration }} sec
+          </q-badge>
+          <q-slider
+            v-model="restartProcessMaxDuration"
+            :min="45"
+            :max="3600"
+            :inner-min="10"
+            :inner-max="4000"
+            label
+            :label-value="restartProcessMaxDuration + 'sec'"
+            class="q-px-md"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn
+            color="primary"
+            label="valider"
+            @click="restartProcess"
+          >
+            <q-tooltip>Lancer l'entrainement</q-tooltip>
+          </q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
     <template v-if="project">
-      <q-btn
-        icon="arrow_back"
-        label="Back to home page"
-        class="q-mb-xl"
-        :to="{ name: 'home' }"
-      />
+      <div class="flex items-center justify-between q-mb-xl">
+        <q-btn
+          icon="arrow_back"
+          label="Back to home page"
+          :to="{ name: 'home' }"
+        />
+
+        <q-btn
+          @click="restartProcessDialog = true"
+          icon="refresh"
+          color="primary"
+        >
+          <q-tooltip>Relancer le process</q-tooltip>
+        </q-btn>
+      </div>
       <div class="text-h5">
         {{ project.title }}
       </div>
