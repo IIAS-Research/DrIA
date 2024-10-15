@@ -16,7 +16,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 
 public partial class Program
 {
-  public static void Main(string[] args)
+  public static async void Main(string[] args)
   {
     var builder = WebApplication.CreateBuilder(args);
 
@@ -31,8 +31,13 @@ public partial class Program
     using (var scope = app.Services.CreateScope())
     {
       var services = scope.ServiceProvider;
-      var context = services.GetRequiredService<MainDbContext>();
-      context.Database.Migrate();
+      var dbContext = services.GetRequiredService<MainDbContext>();
+      dbContext.Database.Migrate();
+      if (!app.Environment.IsProduction())
+      {
+        var userManger = services.GetRequiredService<UserManager<User>>();
+        await DatabaseSeed.Run(userManger);
+      }
     }
 
     app.UseSwagger(c =>
