@@ -22,11 +22,8 @@ public partial class Program
     RunBeforeStart(builder);
     RegisterServices(builder);
 
-    if (builder.Environment.IsDevelopment())
-    {
-      builder.Services.AddEndpointsApiExplorer();
-      builder.Services.AddSwaggerGen();
-    }
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
 
     var app = builder.Build();
 
@@ -37,15 +34,15 @@ public partial class Program
       context.Database.Migrate();
     }
 
-      app.UseSwagger(c => 
-      {
-        c.RouteTemplate = "api/swagger/{documentname}/swagger.json";
-      });
-      app.UseSwaggerUI(c => 
-      {
-        c.SwaggerEndpoint("/api/swagger/v1/swagger.json", "API Swagger");
-        c.RoutePrefix = "api/swagger";
-      });
+    app.UseSwagger(c =>
+    {
+      c.RouteTemplate = "api/swagger/{documentname}/swagger.json";
+    });
+    app.UseSwaggerUI(c =>
+    {
+      c.SwaggerEndpoint("/api/swagger/v1/swagger.json", "API Swagger");
+      c.RoutePrefix = "api/swagger";
+    });
 
     // app.UseHttpsRedirection();
     app.UseCors(app.Environment.EnvironmentName);
