@@ -130,14 +130,18 @@ public class ProjectService : ApplicationService
       return response;
     }
 
-    var GetColumnToPredictByProjectId = await _projectRepository.GetColumnToPredictByProjectId(projectId);
-    if (GetColumnToPredictByProjectId == null)
+    var project = await _projectRepository.GetProjectById(projectId);
+    if (project == null)
     {
       response.AddError("No project found for this id.");
       return response;
     }
 
-    var responseFormated = GetNFirstLineOfFile(responseGetFile.Data.Data, rowCount, GetColumnToPredictByProjectId);
+    var columnToPredictByProjectId = project.CsvColumnToPredict;
+
+    var datasetTargetTime = project.SurvivalModelDatasetTargetTime;
+
+    var responseFormated = GetNFirstLineOfFile(responseGetFile.Data.Data, rowCount, columnToPredictByProjectId, datasetTargetTime);
     if (!responseFormated.IsSuccess)
     {
       response.Errors = responseFormated.Errors;
@@ -151,8 +155,8 @@ public class ProjectService : ApplicationService
   public async Task<ResponseService<GetTrainAndTestFilesOutDTO>> GetTrainAndTestFiles(long projectId)
   {
     var responseService = new ResponseService<GetTrainAndTestFilesOutDTO>();
-    var projectFileTrain = await _projectRepository.GetProjectFileAsync(projectId, ProjectFile.EProjectFileType.TRAIN);
-    var projectFileTest = await _projectRepository.GetProjectFileAsync(projectId, ProjectFile.EProjectFileType.TEST);
+    var projectFileTrain = await _projectRepository.GetProjectFileAsync(projectId, EProjectFileType.TRAIN);
+    var projectFileTest = await _projectRepository.GetProjectFileAsync(projectId, EProjectFileType.TEST);
     if (projectFileTrain == null || projectFileTest == null)
     {
       responseService.AddError("Couldn't find either Test or Train File in DB, both are required for this method.");
@@ -219,7 +223,7 @@ public class ProjectService : ApplicationService
     return response;
   }
 
-  private static ResponseService<ProjectFileFormated> GetNFirstLineOfFile(byte[] dataFile, int rowCount, string colToPredict)
+  private static ResponseService<ProjectFileFormated> GetNFirstLineOfFile(byte[] dataFile, int rowCount, string colToPredict, string? datasetTargetTimeToRemove)
   {
     var response = new ResponseService<ProjectFileFormated>();
     var fileFormated = new ProjectFileFormated() { };
@@ -233,7 +237,7 @@ public class ProjectService : ApplicationService
     using var csvReader = new CsvReader(reader, config);
     var records = csvReader.GetRecords<dynamic>().ToList();
     var headerRow = ((IDictionary<string, object>)records.First()).Keys;
-    foreach (var headerCell in headerRow)
+    foreach (var headerCell in headerRow.Where(hr => hr != datasetTargetTimeToRemove))
     {
       var newColumn = new ProjectFileFormated.ProjectFileFormatedColumn
       {

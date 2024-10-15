@@ -497,7 +497,7 @@ public class IaWebService : ApplicationService
     return serviceResponse;
   }
 
-  public async Task<ResponseService<GetProjectBaselineMetricsInDTO>> GetProjectBaselineMetrics(RunPipelineFileDTO runPipelineTrainFileDTO, RunPipelineFileDTO runPipelineTestFileDTO, string datasetTarget)
+  public async Task<ResponseService<GetProjectBaselineMetricsInDTO>> GetProjectBaselineMetrics(RunPipelineFileDTO runPipelineTrainFileDTO, RunPipelineFileDTO runPipelineTestFileDTO, StartProjectInDTO project)
   {
     var serviceResponse = new ResponseService<GetProjectBaselineMetricsInDTO>();
 
@@ -505,10 +505,12 @@ public class IaWebService : ApplicationService
     {
       var requestContent = new MultipartFormDataContent
         {
-          { new ByteArrayContent(runPipelineTrainFileDTO.File!), "train_dataset", runPipelineTrainFileDTO.FileName },
-          { new ByteArrayContent(runPipelineTrainFileDTO.File!), "test_dataset", runPipelineTestFileDTO.FileName },
-          { new StringContent(datasetTarget), "dataset_target" }
+            { new ByteArrayContent(runPipelineTrainFileDTO.File), "train_dataset", runPipelineTrainFileDTO.FileName },
+            { new ByteArrayContent(runPipelineTestFileDTO.File), "test_dataset", runPipelineTestFileDTO.FileName },
+            { new StringContent(project.CsvColumnToPredict), "dataset_target" },
         };
+      if (project.RowDepedencies) requestContent.Add(new StringContent(string.Join(",", project.RowDepedenciesLinked)), "groups_columns");
+      if (project.SurvivalModel) requestContent.Add(new StringContent(project.SurvivalModelDatasetTargetTime!), "dataset_target_time");
       var httpResponse = await http.PostAsync($"{_ia_url}/baseline", requestContent);
       httpResponse.EnsureSuccessStatusCode();
       string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
@@ -574,7 +576,7 @@ public class IaWebService : ApplicationService
     // Keep all columns except those in DatasetHasIdColumnList, unless they are in RowDepedenciesLinked or they're target for the train
     var filteredHeaders = headerRow
         .Where(header =>
-            !project.DatasetHasIdColumnList.Contains(header) || project.RowDepedenciesLinked.Contains(header) || header.Equals(project.CsvColumnToPredict) || header.Equals(project.SurvivalModelDatasetTargetTime)
+            !project.DatasetHasIdColumnList.Contains(header) || !project.DatasetHasIdColumnList.Contains(header) && project.RowDepedenciesLinked.Contains(header) || project.RowDepedenciesLinked.Contains(header) || header.Equals(project.CsvColumnToPredict) || header.Equals(project.SurvivalModelDatasetTargetTime)
         ).ToList();
 
     // Write the filtered headers to the new CSV

@@ -99,7 +99,7 @@ public class ProjectsController : ApplicationController
         RunPipelineFileDTO runPipelineTrainFileDTO = new() { File = await IaWebService.IFormFileToByteArray(responseGetTrainFile.Data), FileName = responseGetTrainFile.Data.FileName };
         RunPipelineFileDTO runPipelineTestFileDTO = new() { File = await IaWebService.IFormFileToByteArray(responseGetTestFile.Data), FileName = responseGetTestFile.Data.FileName };
 
-        var getProjectBaselineMetricsResponse = await _iaWebService.GetProjectBaselineMetrics(runPipelineTrainFileDTO, runPipelineTestFileDTO, projectData.CsvColumnToPredict);
+        var getProjectBaselineMetricsResponse = await _iaWebService.GetProjectBaselineMetrics(runPipelineTrainFileDTO, runPipelineTestFileDTO, projectData);
         if (!getProjectBaselineMetricsResponse.IsSuccess) return BadRequest(getProjectBaselineMetricsResponse.Errors);
 
         responseProject.Data.MetricsBaselineJson = JsonSerializer.Serialize(getProjectBaselineMetricsResponse.Data);
