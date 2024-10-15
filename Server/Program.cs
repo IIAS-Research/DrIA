@@ -38,12 +38,9 @@ public partial class Program
       context.Database.Migrate();
     }
 
-    if (app.Environment.IsDevelopment())
-    {
       app.UseSwagger();
       app.UseSwaggerThemes(Theme.UniversalDark);
       app.UseSwaggerUI();
-    }
 
     // app.UseHttpsRedirection();
     app.UseCors(app.Environment.EnvironmentName);
