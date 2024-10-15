@@ -130,7 +130,7 @@ export interface IStructuredBibliography {
   step: string;
   year: number;
   name: string;
-  author: string[];
+  authors: string[];
   doi: string | null;
   publisher: string | null;
 }

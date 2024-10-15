@@ -500,36 +500,43 @@ public class IaWebService : ApplicationService
   public async Task<ResponseService<GetProjectBaselineMetricsInDTO>> GetProjectBaselineMetrics(RunPipelineFileDTO runPipelineTrainFileDTO, RunPipelineFileDTO runPipelineTestFileDTO, StartProjectInDTO project)
   {
     var serviceResponse = new ResponseService<GetProjectBaselineMetricsInDTO>();
-
-    using (var http = new HttpClient())
+    try
     {
-      var requestContent = new MultipartFormDataContent
+      using (var http = new HttpClient())
+      {
+        var requestContent = new MultipartFormDataContent
         {
             { new ByteArrayContent(runPipelineTrainFileDTO.File), "train_dataset", runPipelineTrainFileDTO.FileName },
             { new ByteArrayContent(runPipelineTestFileDTO.File), "test_dataset", runPipelineTestFileDTO.FileName },
             { new StringContent(project.CsvColumnToPredict), "dataset_target" },
         };
-      if (project.RowDepedencies) requestContent.Add(new StringContent(string.Join(",", project.RowDepedenciesLinked)), "groups_columns");
-      if (project.SurvivalModel) requestContent.Add(new StringContent(project.SurvivalModelDatasetTargetTime!), "dataset_target_time");
-      var httpResponse = await http.PostAsync($"{_ia_url}/baseline", requestContent);
-      httpResponse.EnsureSuccessStatusCode();
-      string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-      var genBaselineResponse = JsonSerializer.Deserialize<GetProjectBaselineMetricsInDTO>(httpResponseBody);
+        if (project.RowDepedencies) requestContent.Add(new StringContent(string.Join(",", project.RowDepedenciesLinked)), "groups_columns");
+        if (project.SurvivalModel) requestContent.Add(new StringContent(project.SurvivalModelDatasetTargetTime!), "dataset_target_time");
+        var httpResponse = await http.PostAsync($"{_ia_url}/baseline", requestContent);
+        httpResponse.EnsureSuccessStatusCode();
+        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
+        var genBaselineResponse = JsonSerializer.Deserialize<GetProjectBaselineMetricsInDTO>(httpResponseBody);
 
-      if (genBaselineResponse == null)
-      {
-        serviceResponse.AddError("Error generating baseline metrics.");
-        return serviceResponse;
+        if (genBaselineResponse == null)
+        {
+          serviceResponse.AddError("Error generating baseline metrics.");
+          return serviceResponse;
+        }
+
+        // Remove the status from the json
+        GetProjectBaselineMetricsInDTO baselineMetrics = new GetProjectBaselineMetricsInDTO { metrics_info = genBaselineResponse.metrics_info, metrics = genBaselineResponse.metrics, main_metrics = genBaselineResponse.main_metrics };
+
+        serviceResponse.SetSuccessful(baselineMetrics);
       }
 
-      // Remove the status from the json
-      GetProjectBaselineMetricsInDTO baselineMetrics = new GetProjectBaselineMetricsInDTO { metrics_info = genBaselineResponse.metrics_info, metrics = genBaselineResponse.metrics };
-
-      serviceResponse.SetSuccessful(baselineMetrics);
+      // Return the service response
+      return serviceResponse;
     }
-
-    // Return the service response
-    return serviceResponse;
+    catch (Exception exception)
+    {
+      serviceResponse.AddError("Get Project Baseline File route : " + exception.Message);
+      return serviceResponse;
+    }
   }
 
 

@@ -46,11 +46,30 @@ function seeBest() {
   if (!processId) return;
   router.push({ name: 'model-show', params: { id: props.projectId, processId, modelId: bestModel.value.id } });
 }
+
+// computeds
+const sortedMetrics = computed(() => {
+  let metrics = Object.entries(
+    props.baselineModel?.metrics ?? []
+  );
+  metrics = metrics.sort(
+    (entryA, entryB) => {
+      if (entryA[0] === (props.baselineModel?.metrics.main_metrics ?? '') && entryB[0] === (props.baselineModel?.metrics.main_metrics ?? '')) {
+        return 0;
+      }
+      if (entryA[0] === (props.baselineModel?.metrics.main_metrics ?? '') && entryB[0] !== (props.baselineModel?.metrics.main_metrics ?? '')) {
+        return -1;
+      }
+      return 1;
+    }
+  );
+  return metrics;
+});
 </script>
 
 <template>
   <div>
-    <div class="row q-col-gutter-x-sm">
+    <div class="row q-col-gutter-x-sm"><pre>{{ props.baselineModel }}</pre>
       <div
         class="col-6"
         style="align-self: stretch;"
@@ -120,9 +139,7 @@ function seeBest() {
               v-if="baselineModel"
             >
               <q-item
-                v-for="item in Object.entries(
-                  baselineModel.metrics
-                )"
+                v-for="item in sortedMetrics"
                 :key="item[0]"
                 clickable
                 class="row custom-q-item"

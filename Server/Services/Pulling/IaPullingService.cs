@@ -67,7 +67,6 @@ namespace Server.Services
     public IHubContext<T> Hub { get; } = hub;
     public string JobWebServiceId { get; } = jobWebServiceId;
     public bool IsPulling { get; set; } = false;
-    public Process.EProcessStatut Status { get; set; }
     private readonly List<string> _connectionIds = [];
     protected System.Timers.Timer _timer = new System.Timers.Timer(1000 * 10);
     public IServiceScopeFactory ScopeFactory = scopeFactory;

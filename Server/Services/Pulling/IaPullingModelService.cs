@@ -22,6 +22,7 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
 
   public class IaConnectionModelPulling : IaConnectionPulling<IaGenerateModelHub>
   {
+    public Process.EProcessStatut Status { get; set; }
     public IaConnectionModelPulling(string jobWebServiceId, IHubContext<IaGenerateModelHub> hub, IServiceScopeFactory scopeFactory)
     : base(jobWebServiceId, hub, scopeFactory) { }
 

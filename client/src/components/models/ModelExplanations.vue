@@ -1,18 +1,24 @@
 <script setup lang="ts">
-import { marked } from 'marked';
-import { IModel } from '../models';
+import { marked } from "marked";
+import { IModel } from "../models";
+import { useQuasar } from "quasar";
 
 // props
 const propsComponent = defineProps<{
   model: IModel;
 }>();
 
+// consts
+const $q = useQuasar();
 </script>
 
 <template>
   <div class="flex column flex-center">
-    <div class="flex row items-start justify-center">
-      <div class="flex-center column col-5 q-mr-md">
+    <div
+      class="flex row items-start justify-center"
+      :class="$q.screen.gt.md ? 'no-wrap' : ''"
+    >
+      <div class="flex-center column q-mr-md">
         <h4 class="no-margin q-py-lg text-weight-medium">
           Explication des pré-traitements
         </h4>
@@ -27,10 +33,8 @@ const propsComponent = defineProps<{
         </q-card>
       </div>
 
-      <div class="flex-center column col-5 q-ml-md">
-        <h4 class="no-margin q-py-lg text-weight-medium">
-          Bibliographie
-        </h4>
+      <div class="flex-center column q-ml-md">
+        <h4 class="no-margin q-py-lg text-weight-medium">Bibliographie</h4>
         <q-list class="q-gutter-y-md">
           <q-item
             v-for="(biblio, index) in propsComponent.model.bibliography
@@ -39,7 +43,7 @@ const propsComponent = defineProps<{
             clickable
             class="bg-grey-1 shadow-2"
             tag="a"
-            :href="biblio.doi"
+            :href="(biblio.doi as string)"
             target="_blank"
           >
             <div>
@@ -49,7 +53,7 @@ const propsComponent = defineProps<{
               </span>
               <div class="text-weight-tigh">
                 <q-icon name="person" />
-                {{ biblio.author ?? "Undefined authors" }}
+                {{ biblio.authors.join(", ") ?? "Undefined authors" }}
               </div>
               <div class="text-weight-tigh">
                 <q-icon name="feed" />

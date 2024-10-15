@@ -41,13 +41,27 @@ public record ExplainStatusOutDTO
 {
   public required string id { get; init; }
   public required string socket { get; init; }
-  public required JobStatusOut status { get; init; }
+  public required JobStatusExplainOut status { get; init; }
+}
+
+public record JobStatusExplainOut
+{
+  public required EExplainStatut current { get; init; } // Change to string for deserialization
+  public required List<JobStatusHistory> history { get; init; } // Change to List
 }
 
 public record JobStatusOut
 {
   public required EProcessStatut current { get; init; } // Change to string for deserialization
   public required List<JobStatusHistory> history { get; init; } // Change to List
+}
+
+public enum EExplainStatut
+{
+  COMPUTING,
+  FINISHED,
+  CRASHED,
+  QUEUED
 }
 
 public record JobStatusHistory
@@ -185,4 +199,5 @@ public record GetProjectBaselineMetricsInDTO
   public string? status { get; init; }
   public required Dictionary<string, MetricInfo> metrics_info { get; init; }
   public required Dictionary<string, float> metrics { get; init; }
+  public required string main_metrics { get; init;}
 }

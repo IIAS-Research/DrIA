@@ -1,13 +1,33 @@
 <script setup lang="ts">
 import { formatToDDMMYYYHHmm } from 'src/utils/date';
 import { IModel, IProcess } from '../models';
+import { computed } from 'vue';
 
-defineProps<{
+const props = defineProps<{
   model: IModel;
   projectId: number;
   process: IProcess;
   baseline: boolean;
 }>();
+
+// computed
+const sortedMetrics = computed(() => {
+  let metrics = Object.entries(
+    props.model.metrics.metrics_test ?? props.model.metrics.metrics_train ?? []
+  );
+  metrics = metrics.sort(
+    (entryA, entryB) => {
+      if (entryA[0] === (props.model?.metrics.main_metrics ?? '') && entryB[0] === (props.model?.metrics.main_metrics ?? '')) {
+        return 0;
+      }
+      if (entryA[0] === (props.model?.metrics.main_metrics ?? '') && entryB[0] !== (props.model?.metrics.main_metrics ?? '')) {
+        return -1;
+      }
+      return 1;
+    }
+  );
+  return metrics;
+});
 </script>
 
 <template>
@@ -60,9 +80,7 @@ defineProps<{
       class="q-mt-md"
     >
       <q-item
-        v-for="item in Object.entries(
-          model.metrics.metrics_test ?? model.metrics.metrics_train
-        )"
+        v-for="item in sortedMetrics"
         :key="item[0]"
         clickable
         class="row"
