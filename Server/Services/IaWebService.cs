@@ -568,12 +568,12 @@ public class IaWebService : ApplicationService
     // Get the headers of the CSV
     var headerRow = ((IDictionary<string, object>)records.First()).Keys;
 
-    // Filter columns based on RowDepedenciesLinked and DatasetHasIdColumnList
+    // Filter columns based on the logic:
+    // Keep all columns except those in DatasetHasIdColumnList, unless they are in RowDepedenciesLinked or they're target for the train
     var filteredHeaders = headerRow
         .Where(header =>
-            !project.RowDepedenciesLinked.Contains(header) &&
-            !project.DatasetHasIdColumnList.Contains(header))
-        .ToList();
+            !project.DatasetHasIdColumnList.Contains(header) || project.RowDepedenciesLinked.Contains(header) || header.Equals(project.CsvColumnToPredict) || header.Equals(project.SurvivalModelDatasetTargetTime)
+        ).ToList();
 
     // Write the filtered headers to the new CSV
     foreach (var header in filteredHeaders)
@@ -603,6 +603,7 @@ public class IaWebService : ApplicationService
     // Return the filtered CSV file as a byte array
     return memoryStream.ToArray();
   }
+
 
 
 
