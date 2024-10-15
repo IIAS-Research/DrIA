@@ -173,10 +173,10 @@ watch(route, async () => {
         <q-card-actions align="right">
           <q-btn
             color="primary"
-            label="valider"
+            label="Validate"
             @click="restartProcess"
           >
-            <q-tooltip>Lancer l'entrainement</q-tooltip>
+            <q-tooltip>Run training</q-tooltip>
           </q-btn>
         </q-card-actions>
       </q-card>
@@ -194,7 +194,7 @@ watch(route, async () => {
           icon="refresh"
           color="primary"
         >
-          <q-tooltip>Relancer le process</q-tooltip>
+          <q-tooltip>Rerun the process</q-tooltip>
         </q-btn>
       </div>
       <div class="text-h5">
@@ -211,7 +211,7 @@ watch(route, async () => {
         <div
           class="text-h6 text-primary"
         >
-          Recherche du meilleur modèle en cours...
+          Looking for the best modele...
         </div>
         <q-linear-progress
           :value="progress"

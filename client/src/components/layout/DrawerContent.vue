@@ -51,18 +51,9 @@ watchEffect(async () => {
           v-if="isUserAdmin"
           color="primary"
           icon="settings"
-          :to="{ name: 'admin-users'}"
+          :to="{ name: 'admin-dashboard'}"
         >
-          <q-tooltip> Gestion des utilisateurs </q-tooltip>
-        </q-btn>
-
-        <q-btn
-          v-if="isUserAdmin"
-          color="primary"
-          icon="sync"
-          :to="{ name: 'admin-pulling'}"
-        >
-          <q-tooltip> Pulling Debug </q-tooltip>
+          <q-tooltip> Dashboard admin </q-tooltip>
         </q-btn>
 
         <q-btn

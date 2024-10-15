@@ -30,15 +30,10 @@ public class ProjectService : ApplicationService
     return await _fileStorageService.WriteProjectFileToStorageAsync(file, type);
   }
 
-  async public Task<ProjectResponseGetAll> GetProjects()
+  async public Task<ProjectResponseGetAll> GetProjects(int limit, int offset)
   {
     ProjectResponseGetAll projectResponseGetAll = new();
-    List<Project> projects = await _projectRepository.GetProjects();
-    if (projects.Count == 0)
-    {
-      projectResponseGetAll.AddError("No projects found");
-      return projectResponseGetAll;
-    }
+    List<Project> projects = await _projectRepository.GetProjects(limit, offset);
     projectResponseGetAll.IsSuccess = true;
     projectResponseGetAll.Projects = projects;
     return projectResponseGetAll;

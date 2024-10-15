@@ -18,16 +18,30 @@ const routes: RouteRecordRaw[] = [
         component: () => import('src/pages/projects/ProjectbuildPage.vue'),
       },
       {
-        path: 'manage-users',
-        name: 'admin-users',
-        component: () => import('pages/administration/ManageUsersPage.vue'),
+        path: 'admin-dashboard',
         beforeEnter: mustBeAdmin,
-      },
-      {
-        path: 'admin-pulling-overview',
-        name: 'admin-pulling',
-        component: () => import('pages/administration/PullingOverviewPage.vue'),
-        beforeEnter: mustBeAdmin
+        children: [
+          {
+            path: '',
+            name: 'admin-dashboard',
+            component: () => import('pages/administration/DashboardAdminPage.vue')
+          },
+          {
+            path: 'manage-projects',
+            name: 'admin-projects',
+            component: () => import('pages/administration/ManageProjectsPage.vue')
+          },
+          {
+            path: 'manage-users',
+            name: 'admin-users',
+            component: () => import('pages/administration/ManageUsersPage.vue'),
+          },
+          {
+            path: 'admin-pulling-overview',
+            name: 'admin-pulling',
+            component: () => import('pages/administration/PullingOverviewPage.vue'),
+          },
+        ]
       },
       {
         // This route accept an optional query parameter: ?jobId=<jobId>

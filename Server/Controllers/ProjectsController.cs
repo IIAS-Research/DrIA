@@ -27,9 +27,13 @@ public class ProjectsController : ApplicationController
 
     [HttpGet]
     [Authorize(Policy = "AdminOnly")]
-    public async Task<IActionResult> GetProjects()
+    public async Task<IActionResult> GetProjects([FromQuery]int limit, [FromQuery]int offset)
     {
-        var projectResponseGetAll = await _projectService.GetProjects();
+        if (limit == 0 || limit > 30)
+        {
+          limit = 30;
+        }
+        var projectResponseGetAll = await _projectService.GetProjects(limit, offset);
         return Ok(projectResponseGetAll.Projects);
     }
 
@@ -151,9 +155,9 @@ public class ProjectsController : ApplicationController
 
     [HttpDelete("{id}")]
     [Authorize(Policy = "AdminOnly")]
-    public async Task<ActionResult> DeleteProjectById(long projectId)
+    public async Task<ActionResult> DeleteProjectById(long id)
     {
-      var responseDelete = await _projectService.DeleteProjectById(projectId);
+      var responseDelete = await _projectService.DeleteProjectById(id);
       if (!responseDelete.IsSuccess) return BadRequest(responseDelete.Errors);
 
       return Ok();
