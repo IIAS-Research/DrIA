@@ -61,6 +61,16 @@ export interface IProjectForm {
   survivalModeldatasetTargetTime?: string;
 }
 
+export interface IMetricInfo {
+  name: string;
+  desc: string;
+}
+
+export interface IBaselineMetrics {
+  metrics_info: { [name: string]: IMetricInfo };
+  metrics: { [name: string]: number };
+}
+
 export interface IProject {
   id: number;
   title: string;
@@ -75,6 +85,7 @@ export interface IProject {
   userId: IUser['id'];
   // eslint-disable-next-line no-use-before-define
   processes: IProcess[];
+  metricsBaseline: IBaselineMetrics;
 }
 
 export interface IColumn {
@@ -94,11 +105,6 @@ export interface IModelAccuracyData {
   [key: string]: number;
 }
 
-export interface IMetricInfo {
-  name: string;
-  desc: string;
-}
-
 export interface IModelInfo {
   name: string;
   description: string;
@@ -113,7 +119,7 @@ export interface IPlot {
 export interface IMetrics {
   id: number;
   metrics_info: { [name: string]: IMetricInfo };
-  model_info: { [name:string]: IModelInfo };
+  model_info: { [name: string]: IModelInfo };
   main_metrics: string;
   metrics_train: { [name: string]: number };
   metrics_test: { [name: string]: number } | undefined;
@@ -130,15 +136,17 @@ export interface IStructuredBibliography {
 }
 
 export interface IExplanation {
-  plots: { [keyPlot: string]: {
-    title: string;
-    description: string;
-    image: string;
-  }};
+  plots: {
+    [keyPlot: string]: {
+      title: string;
+      description: string;
+      image: string;
+    };
+  };
   features: {
     name: string;
     value: number;
-  }[]
+  }[];
 }
 
 export interface IBibliography {

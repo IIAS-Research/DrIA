@@ -3,7 +3,9 @@ import { computed } from 'vue';
 import ModelCardContent from 'components/projects/ModelCardContent.vue';
 import ModelInlineContent from 'components/projects/ModelInlineContent.vue';
 import { useRouter } from 'vue-router';
-import { IModel, IProcess } from '../models';
+import {
+  IModel, IProcess, IProject,
+} from '../models';
 import ProcessCardContent from './ProcessCardContent.vue';
 
 const router = useRouter();
@@ -12,6 +14,7 @@ const props = defineProps<{
   processes: IProcess[];
   projectId: number;
   isLoading: boolean;
+  baselineModel?: IProject['metricsBaseline']
 }>();
 
 const lastRunningProcess = computed(() => {
@@ -99,15 +102,48 @@ function seeBest() {
               Baseline model
             </div>
 
-            <ModelCardContent
-              v-if="bestModel"
-              :baseline="true"
-              :model="bestModel"
-              :project-id="projectId"
-              :process="(lastRunningProcess as IProcess)"
-              display-best-model-name
-              class="text-grey-8"
-            />
+            <div
+              class="row q-col-gutter-x-sm full-width"
+            >
+              <div
+                class="col-12"
+              >
+                <q-icon
+                  name="help"
+                  class="q-mb-xs"
+                />
+                Results of a model without Dr IA optimizations
+              </div>
+            </div>
+            <div
+              class="q-mt-md"
+              v-if="baselineModel"
+            >
+              <q-item
+                v-for="item in Object.entries(
+                  baselineModel.metrics.metrics_test ?? baselineModel.metrics.metrics_train
+                )"
+                :key="item[0]"
+                clickable
+                class="row custom-q-item"
+              >
+                <q-item-section>
+                  <div
+                    class="flex row items-center justify-between"
+                    :class="{reverse: baselineModel}"
+                  >
+                    <div class="text-weight-medium">
+                      {{
+                        baselineModel.metrics_info[item[0]].name
+                      }}
+                    </div>
+                    <div class="text-weight-medium">
+                      {{ item[1] }}
+                    </div>
+                  </div>
+                </q-item-section>
+              </q-item>
+            </div>
           </q-card-section>
         </q-card>
       </div>

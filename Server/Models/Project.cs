@@ -1,10 +1,15 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 
 namespace Server.Models;
 
 public class Project : ApplicationRecord
 {
+  private string _metricsBaselineJson = "";
+
+
   [Key]
   public long Id { get; set; }
 
@@ -34,6 +39,29 @@ public class Project : ApplicationRecord
 
   public string? SurvivalModelDatasetTargetTime { get; set; }
 
+  [NotMapped] // This ensures Entity Framework doesn't treat this as a mapped column
+  public object? MetricsBaseline
+  {
+    get
+    {
+      return string.IsNullOrWhiteSpace(_metricsBaselineJson)
+          ? null
+          : JsonSerializer.Deserialize<object>(_metricsBaselineJson);
+    }
+    set
+    {
+      // Serialize the object to JSON
+      _metricsBaselineJson = JsonSerializer.Serialize(value);
+    }
+  }
+
+  [Required]
+  [Column(TypeName = "jsonb")]
+  public string MetricsBaselineJson
+  {
+    get => _metricsBaselineJson;
+    set => _metricsBaselineJson = value;
+  }
   [Timestamp]
   public byte[]? CreatedAt { get; set; } = [];
 

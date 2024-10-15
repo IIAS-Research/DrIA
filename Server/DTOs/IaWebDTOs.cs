@@ -179,3 +179,10 @@ public record RestartProcessRequestDTO
 {
   public required int MaxDuration { get; set; } = 45;
 }
+
+public record GetProjectBaselineMetricsInDTO
+{
+  public string? status { get; init; }
+  public required Dictionary<string, MetricInfo> metrics_info { get; init; }
+  public required Dictionary<string, float> metrics { get; init; }
+}

@@ -49,6 +49,6 @@ public record StartProjectInDTO
 
   public required bool SurvivalModel { get; set; }
 
-  public required string SurvivalModelDatasetTargetTime { get; set; }
+  public string? SurvivalModelDatasetTargetTime { get; set; }
 
 }
