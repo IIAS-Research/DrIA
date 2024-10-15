@@ -211,7 +211,14 @@ onMounted(async () => {
           class="flex-center column"
         >
           <div class="text-body1 text-grey-9 text-weight-bold question-title">
-            Est-ce un modèle de survie ?
+            Souhaitez-vous créer un modèle de survie ?
+          </div>
+          <div class="explain">
+            Un modèle de survie est un modèle d'intelligence artificielle conçu pour
+            prédire la survenue d'un événement tout en tenant compte du moment précis
+            où cet événement se produit. Si vous souhaitez construire un tel modèle,
+            il est nécessaire d'avoir une colonne dans votre jeu de données qui enregistre
+            cette information temporelle.
           </div>
 
           <q-toggle
@@ -221,20 +228,30 @@ onMounted(async () => {
             @update:model-value="(v) => { v === false ? project.survivalModeldatasetTargetTime = '' : null }"
           />
 
-          <div
-            v-if="project.survivalModel"
-            class="row wrap button-container"
-            style="max-width: 500px;"
-          >
-            <q-btn
-              v-for="(option, index) in csvFileHeaderColumns"
-              :key="index"
-              :label="option"
-              :color="project.survivalModeldatasetTargetTime === option ? 'primary' : 'grey'"
-              @click="project.survivalModeldatasetTargetTime = option"
-              class="q-mb-sm"
-            />
-          </div>
+          <template v-if="project.survivalModel">
+            <div class="text-body1 text-grey-9 text-weight-bold question-title">
+              Quelle colonne contient l’information temporelle ?
+            </div>
+            <div class="explain">
+              Voici toutes les colonnes disponibles dans le fichier que vous avez sélectionné.
+              Veuillez indiquer celle qui contient l'information sur le temps ou la durée
+              associée à l'événement que vous souhaitez modéliser.
+            </div>
+
+            <div
+              class="row wrap button-container"
+              style="max-width: 500px;"
+            >
+              <q-btn
+                v-for="(option, index) in csvFileHeaderColumns"
+                :key="index"
+                :label="option"
+                :color="project.survivalModeldatasetTargetTime === option ? 'primary' : 'grey'"
+                @click="project.survivalModeldatasetTargetTime = option"
+                class="q-mb-sm"
+              />
+            </div>
+          </template>
         </q-form>
       </q-step>
 
