@@ -46,4 +46,9 @@ public record StartProjectInDTO
   public required string Pipeline { get; set; } // Deserialize in the service
 
   public required IFormFile File { get; set; }
+
+  public required bool SurvivalModel { get; set; }
+
+  public string? SurvivalModelDatasetTargetTime { get; set; }
+
 }

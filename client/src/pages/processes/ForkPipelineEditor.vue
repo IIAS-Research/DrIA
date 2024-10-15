@@ -14,6 +14,7 @@ const processId = parseInt(route.params.processId as string, 10);
 const pipelineComponentRef = ref<InstanceType<typeof PipelineProject>>();
 const pipeline = ref<IPipeline>();
 const runNewProcessWithNewPipelineDto = ref<IRunPipelineForkDto>();
+const maxDuration = ref(45);
 
 async function fetchProcessPipeline() {
   if (!projectId || !processId) {
@@ -30,6 +31,7 @@ async function runForkedPipeline() {
   runNewProcessWithNewPipelineDto.value = {
     projectId,
     pipeline: { ...pipelineComponentRef.value.pipelineRefLocalComponent },
+    maxDuration: maxDuration.value,
   };
   const runForkPipelineResponse = await runNewProcessWithNewPipeline(runNewProcessWithNewPipelineDto.value);
   if (runForkPipelineResponse) {
@@ -49,6 +51,20 @@ onMounted(async () => {
     <div class="text-h6">
       Édition des paramètres de l'IA pour un nouvel entraînement
     </div>
+
+    <q-badge color="secondary">
+      maxDuration: {{ maxDuration }} sec
+    </q-badge>
+    <q-slider
+      v-model="maxDuration"
+      :min="45"
+      :max="3600"
+      :inner-min="10"
+      :inner-max="4000"
+      label
+      :label-value="maxDuration + 'sec'"
+      class="q-px-md"
+    />
 
     <PipelineProject
       ref="pipelineComponentRef"

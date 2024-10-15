@@ -30,10 +30,14 @@ Promise<ICreateProjectResponseDTO | undefined> {
   }
 }
 
-export async function restartProcessAsync(processId: IProcess['id']):
+export async function restartProcessAsync(processId: IProcess['id'], maxDurationTrainingTimeInSec: number):
 Promise<ICreateProjectResponseDTO | undefined> {
   try {
-    const response = (await api.get(`${processUrl}/${processId}/restart`))?.data;
+    console.log(maxDurationTrainingTimeInSec);
+    const response = (await api.post(
+      `${processUrl}/${processId}/restart`,
+      { maxDuration: maxDurationTrainingTimeInSec },
+    ))?.data;
     return response;
   } catch (error) {
     console.error('Error restarting process:', error);

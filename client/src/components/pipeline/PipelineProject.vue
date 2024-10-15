@@ -42,8 +42,11 @@ function resetValueWithDefault(stepConf: IPipeline['configuration'][0]) {
   stepConf.value = stepConf.default;
 }
 
-function autoSelectFirstChildOnChange(val: QTabPanel['name'] = `${pipelineRefLocalComponent.value?.children[0].step}-0`) {
-  innerTab.value = `${pipelineRefLocalComponent.value?.children.find((s, i) => `${s.step}-${i}` === val)?.children[0].step}-0`;
+function autoSelectFirstChildOnChange(
+  val: QTabPanel['name'] = `${pipelineRefLocalComponent.value?.children[0].step}-0`,
+) {
+  innerTab.value = `${pipelineRefLocalComponent.value?.children
+    .find((s, i) => `${s.step}-${i}` === val)?.children[0].step}-0`;
 }
 
 onMounted(async () => {
@@ -131,6 +134,8 @@ onMounted(async () => {
                 v-for="([key, confObj], confIndex) in Object.entries(step.configuration)"
                 :key="confIndex"
               >
+                <q-separator class="q-my-sm" />
+                <div>{{ step.description }}</div>
                 <q-input
                   v-if="chooseRightInputType(confObj) === 'QInput'"
                   v-model="confObj.value"

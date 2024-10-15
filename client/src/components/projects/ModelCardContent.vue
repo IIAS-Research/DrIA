@@ -21,7 +21,10 @@ defineProps<{
       <div
         class="col-5"
       >
-        <q-icon name="smart_toy" class="q-mb-xs" />
+        <q-icon
+          name="smart_toy"
+          class="q-mb-xs"
+        />
         {{ model.metrics.model_info.name }}
       </div>
 
@@ -46,7 +49,10 @@ defineProps<{
       <div
         class="col-12"
       >
-        <q-icon name="help" class="q-mb-xs" />
+        <q-icon
+          name="help"
+          class="q-mb-xs"
+        />
         Results of a model without Dr IA optimizations
       </div>
     </div>

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Server.DAL.Db;
 using Server.DTOs;
@@ -38,12 +39,40 @@ public class ProjectRepository(MainDbContext dbContext)
       RowDepedenciesLinked = projectData.RowDepedenciesLinked,
       DatasetHasIdColumn = projectData.DatasetHasIdColumn,
       DatasetHasIdColumnList = projectData.DatasetHasIdColumnList,
-      UserId = user.Id
+      UserId = user.Id,
+      SurvivalModel = projectData.SurvivalModel,
+      SurvivalModelDatasetTargetTime = projectData.SurvivalModelDatasetTargetTime,
+      MetricsBaselineJson = JsonSerializer.Serialize("")
     };
     await _dbContext.Projects.AddRangeAsync(project);
     await _dbContext.SaveChangesAsync();
     return project;
   }
+
+  public async Task<Project?> UpdateProject(Project project)
+  {
+    var projectToUpdate = await _dbContext.Projects.FindAsync(project.Id);
+    if (projectToUpdate == null) return null;
+
+    // Update the fields of the existing project
+    projectToUpdate.Title = project.Title;
+    projectToUpdate.Description = project.Description;
+    projectToUpdate.CsvColumnToPredict = project.CsvColumnToPredict;
+    projectToUpdate.RowDepedencies = project.RowDepedencies;
+    projectToUpdate.RowDepedenciesLinked = project.RowDepedenciesLinked;
+    projectToUpdate.DatasetHasIdColumn = project.DatasetHasIdColumn;
+    projectToUpdate.DatasetHasIdColumnList = project.DatasetHasIdColumnList;
+    projectToUpdate.SurvivalModel = project.SurvivalModel;
+    projectToUpdate.SurvivalModelDatasetTargetTime = project.SurvivalModelDatasetTargetTime;
+    projectToUpdate.MetricsBaselineJson = project.MetricsBaselineJson;
+
+    // Save the updated project to the database
+    _dbContext.Projects.Update(projectToUpdate);
+    await _dbContext.SaveChangesAsync();
+
+    return projectToUpdate;
+  }
+
 
   public async Task<ProjectFile> CreateProjectFile(Project project, string filename, string filePath, string mimeType, EProjectFileType type)
   {

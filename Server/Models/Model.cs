@@ -15,7 +15,7 @@ public class Model
   public long Id { get; set; }
 
   [Required]
-  public required int IaRemoteId { get; set;}
+  public required int IaRemoteId { get; set; }
 
   [Required]
   public required DateTime Date { get; set; }
@@ -47,7 +47,7 @@ public class Model
   [Column(TypeName = "jsonb")]
   public string? Explanation { get; set; }
 
-  public string[] TextExplanation { get; set;} = [];
+  public string[] TextExplanation { get; set; } = [];
 
   [NotMapped] // This ensures Entity Framework doesn't treat this as a mapped column
   public object? Metrics
@@ -61,7 +61,7 @@ public class Model
     set
     {
       // Serialize the object to JSON
-      _bibliographyJson = JsonSerializer.Serialize(value);
+      _metricsJson = JsonSerializer.Serialize(value);
     }
   }
 
@@ -97,13 +97,13 @@ public class Model
 
   public record ModelExplanation
   {
-    public required Dictionary<string, Plot> plots { get; set;}
-    public required ModelExplainFeature[] features { get; set;}
+    public required Dictionary<string, Plot> plots { get; set; }
+    public required ModelExplainFeature[] features { get; set; }
 
     public record ModelExplainFeature
     {
-      public required string name { get; set;}
-      public required float value { get; set;}
+      public required string name { get; set; }
+      public required float value { get; set; }
     }
   }
 

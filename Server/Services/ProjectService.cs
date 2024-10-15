@@ -4,6 +4,7 @@ using CsvHelper.Configuration;
 using Server.DTOs;
 using Server.Models;
 using Server.Repositories;
+using static Server.Models.ProjectFile;
 using static Server.Services.FileStorageService;
 
 namespace Server.Services;
@@ -118,11 +119,11 @@ public class ProjectService : ApplicationService
     return response;
   }
 
-  async public Task<ResponseService<ProjectFileFormated>> GetProjectDefaultFileFirstNLine(long projectId, int rowCount)
+  async public Task<ResponseService<ProjectFileFormated>> GetProjectFileFirstNLine(long projectId, int rowCount, EProjectFileType type)
   {
     var response = new ResponseService<ProjectFileFormated>();
 
-    var responseGetFile = await GetProjectFile(projectId, ProjectFile.EProjectFileType.DEFAULT);
+    var responseGetFile = await GetProjectFile(projectId, type);
     if (!responseGetFile.IsSuccess)
     {
       response.Errors = responseGetFile.Errors;
@@ -201,6 +202,21 @@ public class ProjectService : ApplicationService
       serviceResponse.SetSuccessful(project);
     }
     return serviceResponse;
+  }
+
+  async public Task<ResponseService<Project?>> UpdateProjectById(Project project)
+  {
+    var response = new ResponseService<Project?>();
+    var projectResponse = await _projectRepository.UpdateProject(project);
+
+    if (projectResponse == null)
+    {
+      response.AddError("Error trying to update project.");
+      return response;
+    }
+
+    response.SetSuccessful(project);
+    return response;
   }
 
   private static ResponseService<ProjectFileFormated> GetNFirstLineOfFile(byte[] dataFile, int rowCount, string colToPredict)

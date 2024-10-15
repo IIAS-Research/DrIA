@@ -24,7 +24,7 @@ public class IaWebService : ApplicationService
     Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
   };
 
-  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(RunPipelineFileDTO trainFile, RunPipelineFileDTO testFile, Project project, string pipeline)
+  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(RunPipelineFileDTO trainFile, RunPipelineFileDTO testFile, Project project, string pipeline, int? maxDuration)
   {
     var response = new ResponseService<RunPipelineOutDTO>();
     try
@@ -38,6 +38,9 @@ public class IaWebService : ApplicationService
             { new StringContent(project.CsvColumnToPredict), "dataset_target" },
             { new StringContent(SerializeToSnakeLowerCase(pipeline), Encoding.UTF8, "application/json"), "pipeline" }
         };
+        if (maxDuration != null) requestContent.Add(new StringContent(maxDuration.ToString()!), "max_duration");
+        if (project.SurvivalModel) requestContent.Add(new StringContent(project.SurvivalModelDatasetTargetTime!), "dataset_target_time");
+
         var httpResponse = await http.PostAsync($"{_ia_url}/pipeline/run", requestContent);
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
@@ -492,6 +495,39 @@ public class IaWebService : ApplicationService
     return serviceResponse;
   }
 
+  public async Task<ResponseService<GetProjectBaselineMetricsInDTO>> GetProjectBaselineMetrics(RunPipelineFileDTO runPipelineTrainFileDTO, RunPipelineFileDTO runPipelineTestFileDTO, string datasetTarget)
+  {
+    var serviceResponse = new ResponseService<GetProjectBaselineMetricsInDTO>();
+
+    using (var http = new HttpClient())
+    {
+      var requestContent = new MultipartFormDataContent
+        {
+          { new ByteArrayContent(runPipelineTrainFileDTO.File!), "train_dataset", runPipelineTrainFileDTO.FileName },
+          { new ByteArrayContent(runPipelineTrainFileDTO.File!), "test_dataset", runPipelineTestFileDTO.FileName },
+          { new StringContent(datasetTarget), "dataset_target" }
+        };
+      var httpResponse = await http.PostAsync($"{_ia_url}/baseline", requestContent);
+      httpResponse.EnsureSuccessStatusCode();
+      string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
+      var genBaselineResponse = JsonSerializer.Deserialize<GetProjectBaselineMetricsInDTO>(httpResponseBody);
+
+      if (genBaselineResponse == null)
+      {
+        serviceResponse.AddError("Error generating baseline metrics.");
+        return serviceResponse;
+      }
+
+      // Remove the status from the json
+      GetProjectBaselineMetricsInDTO baselineMetrics = new GetProjectBaselineMetricsInDTO { metrics_info = genBaselineResponse.metrics_info, metrics = genBaselineResponse.metrics };
+
+      serviceResponse.SetSuccessful(baselineMetrics);
+    }
+
+    // Return the service response
+    return serviceResponse;
+  }
+
 
   private static string SerializeToSnakeLowerCase(string pipeline)
   {
@@ -522,33 +558,54 @@ public class IaWebService : ApplicationService
     };
 
     using var reader = new StreamReader(file.OpenReadStream());
-    using var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture);
+    using var csvReader = new CsvReader(reader, config);
     var records = csvReader.GetRecords<dynamic>().ToList();
 
     using var memoryStream = new MemoryStream();
     using var writer = new StreamWriter(memoryStream);
     using var csvWriter = new CsvWriter(writer, CultureInfo.InvariantCulture);
 
+    // Get the headers of the CSV
     var headerRow = ((IDictionary<string, object>)records.First()).Keys;
+
+    // Filter columns based on the logic:
+    // Keep all columns except those in DatasetHasIdColumnList, unless they are in RowDepedenciesLinked or they're target for the train
     var filteredHeaders = headerRow
-        .Where(header => project.RowDepedenciesLinked.Contains(header) && !project.DatasetHasIdColumnList.Contains(header))
-        .ToList();
-    csvWriter.WriteField(filteredHeaders);
+        .Where(header =>
+            !project.DatasetHasIdColumnList.Contains(header) || project.RowDepedenciesLinked.Contains(header) || header.Equals(project.CsvColumnToPredict) || header.Equals(project.SurvivalModelDatasetTargetTime)
+        ).ToList();
+
+    // Write the filtered headers to the new CSV
+    foreach (var header in filteredHeaders)
+    {
+      csvWriter.WriteField(header);
+    }
     csvWriter.NextRecord();
 
+    // Write the filtered records
     foreach (var record in records)
     {
       var recordAsDict = (IDictionary<string, object>)record;
-      var filteredRecord = recordAsDict
-          .Where(pair => project.RowDepedenciesLinked.Contains(pair.Key) && !project.DatasetHasIdColumnList.Contains(pair.Key))
-          .ToDictionary(pair => pair.Key, pair => pair.Value);
-      csvWriter.WriteRecord(filteredRecord);
+
+      // Filter the record to only include fields that are in the filteredHeaders
+      var filteredRecord = filteredHeaders.Select(header => recordAsDict[header]).ToList();
+
+      // Write the filtered record to the new CSV
+      foreach (var field in filteredRecord)
+      {
+        csvWriter.WriteField(field);
+      }
       csvWriter.NextRecord();
     }
+
     await writer.FlushAsync();
 
+    // Return the filtered CSV file as a byte array
     return memoryStream.ToArray();
   }
+
+
+
 
   public async static Task<byte[]> IFormFileToByteArray(IFormFile file)
   {

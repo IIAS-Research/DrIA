@@ -5,6 +5,8 @@ using Server.Models;
 using Server.Services;
 using Server.Authorization;
 using Server.DTOs;
+using System.Text.Json;
+using static Server.Models.ProjectFile;
 
 namespace Server.Controllers;
 
@@ -80,6 +82,8 @@ public class ProjectsController : ApplicationController
         var responseSplit = await _iaWebService.Split(projectData.File, responseProject.Data);
         if (!responseSplit.IsSuccess) return BadRequest(responseSplit.Errors);
 
+
+
         // Get and save files
         var responseGetTrainFile = await _iaWebService.GetSplitTrainFile(responseSplit.Data.id);
         if (!responseGetTrainFile.IsSuccess) return BadRequest(responseGetTrainFile.Errors);
@@ -90,10 +94,20 @@ public class ProjectsController : ApplicationController
         var responseCreateProjectFileTest = await _projectService.CreateProjectFile(responseGetTestFile.Data, responseProject.Data, ProjectFile.EProjectFileType.TEST);
         if (!responseCreateProjectFileTest.IsSuccess) return BadRequest(responseCreateProjectFileTest.Errors);
 
+
+
         RunPipelineFileDTO runPipelineTrainFileDTO = new() { File = await IaWebService.IFormFileToByteArray(responseGetTrainFile.Data), FileName = responseGetTrainFile.Data.FileName };
         RunPipelineFileDTO runPipelineTestFileDTO = new() { File = await IaWebService.IFormFileToByteArray(responseGetTestFile.Data), FileName = responseGetTestFile.Data.FileName };
 
-        var responseIaWeb = await _iaWebService.RunPipeline(runPipelineTrainFileDTO, runPipelineTestFileDTO, responseProject.Data, projectData.Pipeline);
+        var getProjectBaselineMetricsResponse = await _iaWebService.GetProjectBaselineMetrics(runPipelineTrainFileDTO, runPipelineTestFileDTO, projectData.CsvColumnToPredict);
+        if (!getProjectBaselineMetricsResponse.IsSuccess) return BadRequest(getProjectBaselineMetricsResponse.Errors);
+
+        responseProject.Data.MetricsBaselineJson = JsonSerializer.Serialize(getProjectBaselineMetricsResponse.Data);
+        var updateProjectResponse = await _projectService.UpdateProjectById(responseProject.Data);
+        if (!updateProjectResponse.IsSuccess) return BadRequest(updateProjectResponse.Errors);
+
+
+        var responseIaWeb = await _iaWebService.RunPipeline(runPipelineTrainFileDTO, runPipelineTestFileDTO, responseProject.Data, projectData.Pipeline, null);
         if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
 
         var responseProcess = await _processService.CreateProcess(responseIaWeb.Data, projectData.Pipeline, responseProject.Data);
@@ -114,7 +128,7 @@ public class ProjectsController : ApplicationController
         {
             rowCount = 50;
         }
-        var responseFile = await _projectService.GetProjectDefaultFileFirstNLine(projectId, rowCount);
+        var responseFile = await _projectService.GetProjectFileFirstNLine(projectId, rowCount, EProjectFileType.TEST);
         if (responseFile.IsSuccess == false) return NotFound(responseFile.Errors);
 
         return Ok(responseFile.Data);
