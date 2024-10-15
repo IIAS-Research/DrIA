@@ -13,7 +13,7 @@
 
 const configTargetApi = {
   development: 'http://localhost:3000/api',
-  production: 'http://rss01185.domchurs.ad/api'
+  production: 'https://dria.domchurs.ad/api'
 };
 
 const API = process.env.NODE_ENV ? configTargetApi[process.env.NODE_ENV] : 'http://localhost:3000/api';
@@ -27,7 +27,7 @@ module.exports = configure((/* ctx */) => ({
     // exclude: [],
     // rawOptions: {},
     warnings: true,
-    errors: true,
+    errors: false,
   },
 
   // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature

@@ -1,5 +1,0 @@
-GET http://rss00992:32845/pipeline/generate
-
-###
-
-GET http://rss00992:32845/jobs/07fd829d-648e-46c7-ad62-7ca824617977/status

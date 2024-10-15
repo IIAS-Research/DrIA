@@ -2,10 +2,9 @@ namespace Server;
 
 public static class Configuration
 {
-  public static readonly string AppName = "Dr_IA";
-  public static readonly string ConnectionString = $"{AppName}:ConnectionString";
-  public static readonly string JwtPrivateKey = $"{AppName}:JwtPrivateKey";
-  public static readonly string PathMainStorage = $"{AppName}:PathMainStorage";
+  public static readonly string ConnectionString = "ConnectionString";
+  public static readonly string JwtPrivateKey = "JwtPrivateKey";
+  public static readonly string PathMainStorage = "PathMainStorage";
 
   public static void EnsureSecretsAreOk(IConfiguration config)
   {
