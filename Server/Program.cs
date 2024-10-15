@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Server.Authorization.Handlers;
 using Server.Hubs;
+using SwaggerThemes;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.HttpOverrides;
 
@@ -38,6 +39,7 @@ public partial class Program
     {
       c.RouteTemplate = "api/swagger/{documentname}/swagger.json";
     });
+    app.UseSwaggerThemes(Theme.UniversalDark);
     app.UseSwaggerUI(c =>
     {
       c.SwaggerEndpoint("/api/swagger/v1/swagger.json", "API Swagger");
