@@ -1,9 +1,9 @@
-import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
-import { Cookies } from 'quasar';
-import { jwtDecode, JwtPayload } from 'jwt-decode';
-import { IUser } from 'src/components/models';
-import { api } from 'src/boot/axios';
+import { defineStore } from "pinia";
+import { computed, ref } from "vue";
+import { Cookies, Notify } from "quasar";
+import { jwtDecode, JwtPayload } from "jwt-decode";
+import { IUser } from "src/components/models";
+import { api } from "src/boot/axios";
 
 interface CustomJwtPayload extends JwtPayload {
   email: string;
@@ -16,17 +16,17 @@ interface CookieOptions {
   expires?: string | number | Date;
   path?: string;
   domain?: string;
-  sameSite?: 'Strict' | 'Lax' | 'None';
+  sameSite?: "Strict" | "Lax" | "None";
   secure?: boolean;
   httpOnly?: boolean;
   other?: string;
 }
 
-const COOKIES_ACCESS_TOKEN = 'drIA-accessToken';
-const COOKIES_OPTIONS_CONFIG: CookieOptions = { sameSite: 'Strict', path: '/' }; // https://quasar.dev/quasar-plugins/cookies#cookies-api
+const COOKIES_ACCESS_TOKEN = "drIA-accessToken";
+const COOKIES_OPTIONS_CONFIG: CookieOptions = { sameSite: "Strict", path: "/" }; // https://quasar.dev/quasar-plugins/cookies#cookies-api
 const REMAINING_TIME_BEFORE_ASK_REFRESH_ACCESS_TOKEN = 6 * 60 * 1000;
 
-export const useUserStore = defineStore('user', () => {
+export const useUserStore = defineStore("user", () => {
   // States
   const decodedJwtAccessToken = ref<CustomJwtPayload>();
   const accessToken = ref<string>();
@@ -44,7 +44,8 @@ export const useUserStore = defineStore('user', () => {
       isAccessTokenExpired.value = true;
       return true;
     }
-    isAccessTokenExpired.value = new Date() > new Date(decodedJwtAccessToken.value.exp * 1000);
+    isAccessTokenExpired.value =
+      new Date() > new Date(decodedJwtAccessToken.value.exp * 1000);
     return new Date() > new Date(decodedJwtAccessToken.value.exp * 1000);
   }
 
@@ -67,7 +68,8 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function checkIfAccessTokenWillExpireSoon() {
-    if (!checkIfUserIsConnected() || !decodedJwtAccessToken.value?.exp) return false;
+    if (!checkIfUserIsConnected() || !decodedJwtAccessToken.value?.exp)
+      return false;
     const now = new Date().getTime();
     const expTime = new Date(decodedJwtAccessToken.value.exp * 1000).getTime();
     return expTime - now < REMAINING_TIME_BEFORE_ASK_REFRESH_ACCESS_TOKEN;
@@ -76,7 +78,7 @@ export const useUserStore = defineStore('user', () => {
   function decodeJwtFromAccessToken() {
     if (!accessToken.value) return;
     decodedJwtAccessToken.value = jwtDecode<CustomJwtPayload>(
-      accessToken.value,
+      accessToken.value
     );
     accessTokenExpirationTime.value = decodedJwtAccessToken.value.exp ?? 0;
   }
@@ -102,23 +104,38 @@ export const useUserStore = defineStore('user', () => {
     password: string;
   }) {
     if (checkIfUserIsConnected()) return;
-    const response: { accessToken: string } | undefined = (
-      await api.post('Auth/login', { email, password })
-    )?.data;
-    if (!response?.accessToken) return;
-    accessToken.value = response.accessToken;
-    Cookies.set(
-      COOKIES_ACCESS_TOKEN,
-      accessToken.value,
-      COOKIES_OPTIONS_CONFIG,
-    );
-    decodeJwtFromAccessToken();
-    assignCurrentUserFromDecodedAccessToken();
+    try {
+      const response: { accessToken: string } | undefined = (
+        await api.post("Auth/login", { email, password })
+      )?.data;
+      if (!response?.accessToken) return;
+      accessToken.value = response.accessToken;
+      Cookies.set(
+        COOKIES_ACCESS_TOKEN,
+        accessToken.value,
+        COOKIES_OPTIONS_CONFIG
+      );
+      decodeJwtFromAccessToken();
+      assignCurrentUserFromDecodedAccessToken();
+    } catch (error: any) {
+      console.log(error)
+      if (error?.status === 401) {
+        Notify.create({
+          type: "warning",
+          message: "Email ou mot de passe invalide",
+        });
+      } else {
+        Notify.create({
+          type: 'negative',
+          message: 'Une erreur est survenue'
+        })
+      }
+    }
   }
 
   async function refreshToken() {
     const response: { accessToken: string } | undefined = (
-      await api.get('Auth/refresh-access-token')
+      await api.get("Auth/refresh-access-token")
     )?.data;
     if (!response?.accessToken) return;
     if (Cookies.has(COOKIES_ACCESS_TOKEN)) {
@@ -128,7 +145,7 @@ export const useUserStore = defineStore('user', () => {
     Cookies.set(
       COOKIES_ACCESS_TOKEN,
       accessToken.value,
-      COOKIES_OPTIONS_CONFIG,
+      COOKIES_OPTIONS_CONFIG
     );
     decodeJwtFromAccessToken();
     assignCurrentUserFromDecodedAccessToken();

@@ -96,6 +96,9 @@ onMounted(async () => {
       title="Utilisateurs"
       :rows="users"
       :columns="columns"
+      :pagination="{
+        rowsPerPage: 50
+      }"
       row-key="name"
       flat
       bordered

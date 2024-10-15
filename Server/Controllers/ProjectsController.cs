@@ -134,4 +134,14 @@ public class ProjectsController : ApplicationController
 
         return File(responseFile.Data.Data, responseFile.Data.MimeType);
     }
+
+    [HttpDelete("{id}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult> DeleteProjectById(long projectId)
+    {
+      var responseDelete = await _projectService.DeleteProjectById(projectId);
+      if (!responseDelete.IsSuccess) return BadRequest(responseDelete.Errors);
+
+      return Ok();
+    }
 }

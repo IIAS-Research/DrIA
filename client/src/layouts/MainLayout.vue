@@ -52,9 +52,7 @@ onMounted(async () => {
       style="z-index: 2; border-bottom-right-radius: 5px; width: fit-content"
       @click="leftDrawerOpen = !leftDrawerOpen"
     >
-      <q-avatar size="lg">
-        <q-img src="https://i.pravatar.cc/300" />
-      </q-avatar>
+      <q-avatar size="lg" color="secondary" icon="person" text-color="white" />
       <div class="column justify-center">
         <div class="text-weight-bold">
           {{ userStore.currentUser?.firstName }} {{ userStore.currentUser?.lastName }}

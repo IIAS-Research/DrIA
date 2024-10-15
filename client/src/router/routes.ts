@@ -24,6 +24,12 @@ const routes: RouteRecordRaw[] = [
         beforeEnter: mustBeAdmin,
       },
       {
+        path: 'admin-pulling-overview',
+        name: 'admin-pulling',
+        component: () => import('pages/administration/PullingOverviewPage.vue'),
+        beforeEnter: mustBeAdmin
+      },
+      {
         // This route accept an optional query parameter: ?jobId=<jobId>
         path: 'projets/:id',
         name: 'project-show-root',

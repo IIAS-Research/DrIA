@@ -41,6 +41,7 @@ async function getExplanation() {
     }
     signalR.connect(response.id, propsComponent.model.id);
   } catch (error) {
+    isLoadingExplanation.value = false;
     console.error(error);
     $q.notify({
       type: "negative",

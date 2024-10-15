@@ -30,10 +30,7 @@ export default boot(({ router }) => {
   api.interceptors.response.use(
     (response) => response,
     (error) => {
-      console.error(error);
-      router.push({
-        name: 'error',
-      });
+      return Promise.reject(error);
     },
   );
 });

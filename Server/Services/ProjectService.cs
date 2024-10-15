@@ -241,6 +241,20 @@ public class ProjectService : ApplicationService
     return response;
   }
 
+  public async Task<ResponseService> DeleteProjectById(long id)
+  {
+    var response = new ResponseService();
+    var project = await _projectRepository.GetProjectById(id);
+    if (project == null)
+    {
+      response.AddError("Project not found");
+      return response;
+    }
+    _projectRepository.DeleteProjectbyId(project);
+    response.SetSuccessful();
+    return response;
+  }
+
   // Service responses
   public class ProjectResponseGetFile
   {

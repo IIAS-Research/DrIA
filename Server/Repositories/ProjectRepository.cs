@@ -96,5 +96,10 @@ public class ProjectRepository(MainDbContext dbContext)
     return await _dbContext.Projects.Where(p => p.Processes.Any(p => p.Id == processId)).FirstOrDefaultAsync();
   }
 
+  public void DeleteProjectbyId(Project project)
+  {
+    _dbContext.Projects.Remove(project);
+  }
+
 
 }
