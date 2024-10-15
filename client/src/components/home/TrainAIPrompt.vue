@@ -72,6 +72,13 @@ async function handleNextStepValidation() {
   console.log('ici');
   const currentStepIndex = step.value - 1;
   const currentStepperForm = formSteppers.value[currentStepIndex];
+  if (
+    currentStepIndex === 2
+  && project.value.survivalModel
+  && !project.value.survivalModeldatasetTargetTime
+  ) {
+    return;
+  }
   const isFormValid = await currentStepperForm?.validate();
   console.log(isFormValid);
   if (isFormValid) {
@@ -216,6 +223,7 @@ onMounted(async () => {
             v-model="project.survivalModel"
             :label="project.survivalModel === true ? 'Oui, model de survie !' : 'Non, modèle classqiue !'"
             size="70px"
+            @update:model-value="(v) => { v === false ? project.survivalModeldatasetTargetTime = '' : null }"
           />
 
           <div

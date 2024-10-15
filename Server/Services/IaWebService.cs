@@ -38,6 +38,7 @@ public class IaWebService : ApplicationService
             { new StringContent(project.CsvColumnToPredict), "dataset_target" },
             { new StringContent(SerializeToSnakeLowerCase(pipeline), Encoding.UTF8, "application/json"), "pipeline" }
         };
+        if (project.RowDepedencies) requestContent.Add(new StringContent(string.Join(",", project.RowDepedenciesLinked)), "groups_columns");
         if (maxDuration != null) requestContent.Add(new StringContent(maxDuration.ToString()!), "max_duration");
         if (project.SurvivalModel) requestContent.Add(new StringContent(project.SurvivalModelDatasetTargetTime!), "dataset_target_time");
 
@@ -253,6 +254,7 @@ public class IaWebService : ApplicationService
             { new ByteArrayContent(formatedFile), "dataset", file.FileName },
             { new StringContent(project.CsvColumnToPredict), "dataset_target" },
         };
+        if (project.RowDepedencies) requestContent.Add(new StringContent(string.Join(",", project.RowDepedenciesLinked)), "groups_columns");
         var httpResponse = await http.PostAsync($"{_ia_url}/split", requestContent);
         httpResponse.EnsureSuccessStatusCode();
         string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();

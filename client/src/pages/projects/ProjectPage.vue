@@ -155,9 +155,18 @@ watch(route, async () => {
         </q-card-section>
 
         <q-card-section>
-          <q-badge color="secondary">
-            maxDuration: {{ restartProcessMaxDuration }} sec
-          </q-badge>
+          <q-input
+            v-model.number="restartProcessMaxDuration"
+            filled
+            label="Max Duration"
+            type="number"
+            dense
+          >
+            <template #append>
+              Sec
+            </template>
+          </q-input>
+
           <q-slider
             v-model="restartProcessMaxDuration"
             :min="45"
@@ -166,7 +175,7 @@ watch(route, async () => {
             :inner-max="4000"
             label
             :label-value="restartProcessMaxDuration + 'sec'"
-            class="q-px-md"
+            class="q-px-md q-mt-md"
           />
         </q-card-section>
 
@@ -193,6 +202,7 @@ watch(route, async () => {
           @click="restartProcessDialog = true"
           icon="refresh"
           color="primary"
+          :loading="isProcessing"
         >
           <q-tooltip>Relancer le process</q-tooltip>
         </q-btn>
@@ -237,6 +247,7 @@ watch(route, async () => {
         :project-id="project.id"
         :processes="project.processes"
         :is-loading="isProcessing"
+        :baseline-model="project.metricsBaseline"
         class="q-my-md"
       />
 

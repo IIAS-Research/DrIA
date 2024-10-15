@@ -47,7 +47,7 @@ function addRowToTable() {
   if (!projectFileDataSample.value) return;
   const rowToAdd = cols.value?.map((col) => col).reduce((acc, col) => {
     if (col.isColToPredict) return acc;
-    acc[col.name] = 0;
+    acc[col.name] = 'Edit here';
     return acc;
   }, {} as IRow);
 

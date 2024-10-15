@@ -65,7 +65,7 @@ defineProps<{
         )"
         :key="item[0]"
         clickable
-        class="row custom-q-item"
+        class="row"
       >
         <q-item-section
           side
@@ -111,10 +111,3 @@ defineProps<{
     </q-item-label>
   </q-item>
 </template>
-
-<style>
-.custom-q-item {
-  min-height: 28px;
-  height: 28px;
-}
-</style>

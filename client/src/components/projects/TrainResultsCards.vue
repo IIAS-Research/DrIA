@@ -121,7 +121,7 @@ function seeBest() {
             >
               <q-item
                 v-for="item in Object.entries(
-                  baselineModel.metrics.metrics_test ?? baselineModel.metrics.metrics_train
+                  baselineModel.metrics
                 )"
                 :key="item[0]"
                 clickable
@@ -130,7 +130,6 @@ function seeBest() {
                 <q-item-section>
                   <div
                     class="flex row items-center justify-between"
-                    :class="{reverse: baselineModel}"
                   >
                     <div class="text-weight-medium">
                       {{
