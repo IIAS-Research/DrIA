@@ -83,13 +83,8 @@ async function handleNextStepValidation() {
   }
 }
 
-async function toggleDepedencies(option:string) {
-  const index = project.value.rowDepedenciesLinked.indexOf(option);
-  if (index === -1) {
-    project.value.rowDepedenciesLinked.push(option);
-  } else {
-    project.value.rowDepedenciesLinked.splice(index, 1);
-  }
+async function toggleDepedencies(option: string) {
+  project.value.rowDepedenciesLinked = [option];
 }
 
 async function toggleIdColumns(option:string) {
@@ -138,7 +133,7 @@ onMounted(async () => {
             class="q-mt-lg"
             name="csv_test_set"
             accept=".csv"
-            :max-file-size="10000000"
+            :max-file-size="1000000000"
             label="Sélectionner un fichier .csv"
             clearable
             counter
