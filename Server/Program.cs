@@ -31,8 +31,13 @@ public partial class Program
     using (var scope = app.Services.CreateScope())
     {
       var services = scope.ServiceProvider;
-      var context = services.GetRequiredService<MainDbContext>();
-      context.Database.Migrate();
+      var dbContext = services.GetRequiredService<MainDbContext>();
+      dbContext.Database.Migrate();
+      if (!app.Environment.IsProduction())
+      {
+        var userManager = services.GetRequiredService<UserManager<User>>();
+        DatabaseSeed.Run(userManager);
+      }
     }
 
     app.UseSwagger(c =>

@@ -4,6 +4,26 @@ import { notify } from 'src/utils/notify';
 
 const projectUrl = 'Projects';
 
+export async function getProjects(limit: number, offset: number): Promise<IProject[]> {
+  try {
+    const response = (await api.get(`${projectUrl}?limit=${limit}&offset=${offset}`))?.data;
+    return response;
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+    notify('negative', String(error));
+    return [];
+  }
+}
+
+export async function deleteProject(projectId: IProject['id']) {
+  try {
+    await api.delete(`${projectUrl}/${projectId}`);
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+    notify('negative', String(error));
+  }
+}
+
 export async function getUserProjects(): Promise<IProject[]> {
   try {
     const response = (await api.get(`${projectUrl}/me`))?.data;

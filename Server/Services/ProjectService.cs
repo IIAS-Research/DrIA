@@ -30,15 +30,10 @@ public class ProjectService : ApplicationService
     return await _fileStorageService.WriteProjectFileToStorageAsync(file, type);
   }
 
-  async public Task<ProjectResponseGetAll> GetProjects()
+  async public Task<ProjectResponseGetAll> GetProjects(int limit, int offset)
   {
     ProjectResponseGetAll projectResponseGetAll = new();
-    List<Project> projects = await _projectRepository.GetProjects();
-    if (projects.Count == 0)
-    {
-      projectResponseGetAll.AddError("No projects found");
-      return projectResponseGetAll;
-    }
+    List<Project> projects = await _projectRepository.GetProjects(limit, offset);
     projectResponseGetAll.IsSuccess = true;
     projectResponseGetAll.Projects = projects;
     return projectResponseGetAll;
@@ -258,6 +253,20 @@ public class ProjectService : ApplicationService
     }
 
     response.SetSuccessful(fileFormated);
+    return response;
+  }
+
+  public async Task<ResponseService> DeleteProjectById(long id)
+  {
+    var response = new ResponseService();
+    var project = await _projectRepository.GetProjectById(id);
+    if (project == null)
+    {
+      response.AddError("Project not found");
+      return response;
+    }
+    _projectRepository.DeleteProjectbyId(project);
+    response.SetSuccessful();
     return response;
   }
 

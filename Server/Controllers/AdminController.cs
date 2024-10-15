@@ -1,40 +1,37 @@
-// using Microsoft.AspNetCore.Mvc;
-// using Microsoft.EntityFrameworkCore;
-// using Server.DAL.Db;
-// using Server.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Server.Services;
 
-// namespace Server.Controllers;
+namespace Server.Controllers;
 
-// [ApiController]
-// public class AdminController : ControllerBase
-// {
-//   private readonly MainDbContext _MainDbContext;
-//   public AdminController(MainDbContext MainDbContext)
-//   {
-//     _MainDbContext = MainDbContext;
-//   }
+[Route("api/[controller]")]
+[ApiController]
+[Authorize(Policy = "AdminOnly")]
+public class AdminController : ControllerBase
+{
+  private readonly IaPullingModelService _iaPullingModelService;
+  private readonly IaPullingExplainService _iaPullingExplainService;
+  public AdminController(IaPullingModelService iaPullingModelService, IaPullingExplainService iaPullingExplainService)
+  {
+    _iaPullingModelService = iaPullingModelService;
+    _iaPullingExplainService = iaPullingExplainService;
+  }
 
-//   // POST: api/Users
-//   [HttpPost]
-//   public async Task<ActionResult> PostUser(User user)
-//   {
-//     _MainDbContext.Users.Add(user);
-//     try
-//     {
-//       await _MainDbContext.SaveChangesAsync();
-//     }
-//     catch (DbUpdateException)
-//     {
-//       if (UserExists(user.Id))
-//       {
-//         return Conflict();
-//       }
-//       else
-//       {
-//         throw;
-//       }
-//     }
+  [HttpGet]
+  [Route("PullingData")]
+  public IActionResult GetSingletonsPullingData()
+  {
+    var connectionsModel = _iaPullingModelService.GetAllConnections();
+    var connectionsExplain = _iaPullingExplainService.GetAllConnections();
+    return Ok(new {connectionsModel, connectionsExplain});
+  }
 
-//     return Ok();
-//   }
-// }
+  [HttpDelete]
+  [Route("DeleteConnection/{jobServiceId}")]
+  public IActionResult DeletePullingConnection(string jobServiceId)
+  {
+    _iaPullingModelService.DeleteIaConnection(jobServiceId);
+    _iaPullingExplainService.DeleteIaConnection(jobServiceId);
+    return Ok();
+  }
+}

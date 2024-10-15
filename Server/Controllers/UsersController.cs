@@ -51,7 +51,7 @@ namespace Server.Controllers
         // PUT: api/User/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPatch("{id}")]
-        // [Authorize(Policy = "AdminOnly")]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> PutUser(long id, User user)
         {
             if (id != user.Id)
@@ -83,6 +83,7 @@ namespace Server.Controllers
         // POST: api/User
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<ActionResult<User>> PostUser(User user)
         {
             _context.Users.Add(user);
@@ -93,6 +94,7 @@ namespace Server.Controllers
 
         // DELETE: api/User/5
         [HttpDelete("{id}")]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> DeleteUser(long id)
         {
             var user = await _context.Users.FindAsync(id);

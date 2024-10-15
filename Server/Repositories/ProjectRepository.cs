@@ -18,9 +18,9 @@ public class ProjectRepository(MainDbContext dbContext)
     return projects;
   }
 
-  public async Task<List<Project>> GetProjects()
+  public async Task<List<Project>> GetProjects(int limit, int offset)
   {
-    return await _dbContext.Projects.ToListAsync();
+    return await _dbContext.Projects.Skip(offset).Take(limit).ToListAsync();
   }
 
   public async Task<Project?> GetProjectById(long id)
@@ -123,6 +123,12 @@ public class ProjectRepository(MainDbContext dbContext)
   public async Task<Project?> GetProjectByProcessId(long processId)
   {
     return await _dbContext.Projects.Where(p => p.Processes.Any(p => p.Id == processId)).FirstOrDefaultAsync();
+  }
+
+  public void DeleteProjectbyId(Project project)
+  {
+    _dbContext.Projects.Remove(project);
+    _dbContext.SaveChanges();
   }
 
 

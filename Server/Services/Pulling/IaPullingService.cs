@@ -12,11 +12,27 @@ namespace Server.Services
     protected readonly List<IaConnectionPulling<T>> _connections = [];
     protected readonly IServiceScopeFactory _scopeFactory;
     protected readonly IHubContext<T> _hub;
+    protected readonly System.Timers.Timer _timerForClean = new System.Timers.Timer(1000 * 60 * 5);
 
     public IaPullingService(IServiceScopeFactory scopeFactory, IHubContext<T> hub)
     {
       _scopeFactory = scopeFactory;
       _hub = hub;
+      StartCleanProcess();
+    }
+
+    private void StartCleanProcess()
+    {
+      _timerForClean.Enabled = true;
+      _timerForClean.Elapsed += async (sender, args) =>
+      {
+        var connectionsToDelete = GetAllConnections().FindAll(iac => iac.IsPulling == false);
+        foreach (var connection in connectionsToDelete)
+        {
+          DeleteIaConnection(connection.JobWebServiceId);
+          Console.WriteLine($"Cleaning connection done for job {connection.JobWebServiceId}");
+        }
+      };
     }
 
     public IaConnectionPulling<T>? GetIaConnection(string jobWebServiceId) =>
@@ -25,12 +41,12 @@ namespace Server.Services
     public List<IaConnectionPulling<T>> SearchConnectionsByConnectionId(string connectionId) =>
         _connections.FindAll(c => c.HasConnectionId(connectionId));
 
-    public void DeleteIaConnection(string uuid)
+    public void DeleteIaConnection(string jobServiceId)
     {
-      var connection = GetIaConnection(uuid);
+      var connection = GetIaConnection(jobServiceId);
       if (connection != null)
       {
-        connection.IsPulling = false;
+        connection.StopPulling();
         _connections.Remove(connection);
       }
     }
@@ -38,6 +54,11 @@ namespace Server.Services
     public List<IaConnectionPulling<T>> SearchForConnectionIdInConnection(string connectionId)
     {
       return _connections.FindAll(c => c.HasConnectionId(connectionId));
+    }
+
+    public List<IaConnectionPulling<T>> GetAllConnections()
+    {
+      return _connections;
     }
   }
 
@@ -62,7 +83,7 @@ namespace Server.Services
       }
       catch (Exception ex)
       {
-        Console.WriteLine($"Connection failed: {ex.Message}");
+        Console.WriteLine($"Error occured in interval for job {JobWebServiceId}: {ex.Message}");
       }
     }
 
@@ -78,13 +99,10 @@ namespace Server.Services
 
     public void StopPulling()
     {
-      Console.WriteLine($"Stop pulling");
+      Console.WriteLine($"Stop pulling for job {JobWebServiceId}");
       _timer.Stop();
       _timer.Enabled = false;
-      if (_connectionIds.Count == 0)
-      {
-        // TODO delete instance otherwise leak
-      }
+      IsPulling = false;
     }
 
     public void AddConnectionId(string connectionId) => _connectionIds.Add(connectionId);
