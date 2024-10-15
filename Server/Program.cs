@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Server.Authorization.Handlers;
 using Server.Hubs;
-using SwaggerThemes;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.HttpOverrides;
 
@@ -38,9 +37,15 @@ public partial class Program
       context.Database.Migrate();
     }
 
-      app.UseSwagger();
-      app.UseSwaggerThemes(Theme.UniversalDark);
-      app.UseSwaggerUI();
+      app.UseSwagger(c => 
+      {
+        c.RouteTemplate = "api/swagger/{documentname}/swagger.json";
+      });
+      app.UseSwaggerUI(c => 
+      {
+        c.SwaggerEndpoint("/api/swagger/v1/swagger.json", "API Swagger");
+        c.RoutePrefix = "api/swagger";
+      });
 
     // app.UseHttpsRedirection();
     app.UseCors(app.Environment.EnvironmentName);
