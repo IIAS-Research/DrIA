@@ -22,7 +22,6 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
 
   public class IaConnectionModelPulling : IaConnectionPulling<IaGenerateModelHub>
   {
-    public Process.EProcessStatut Status { get; set; }
     public IaConnectionModelPulling(string jobWebServiceId, IHubContext<IaGenerateModelHub> hub, IServiceScopeFactory scopeFactory)
     : base(jobWebServiceId, hub, scopeFactory) { }
 
@@ -44,19 +43,19 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
           return;
         }
 
-        Status = responseGetStatus.Data.status.current;
+        Status = responseGetStatus.Data.status.current.ToString();
 
         // If status has changed, update it in DB
         var currentProcess = await dbContext.Processes.FirstOrDefaultAsync(p => p.IaRemoteId == responseGetStatus.Data.id);
 
         if (currentProcess != null && responseGetStatus.Data.status.current != currentProcess.Status)
         {
-          currentProcess.Status = Status;
+          currentProcess.Status = responseGetStatus.Data.status.current;
           await dbContext.SaveChangesAsync();
         }
 
         Console.WriteLine($"PULLING => Job status: {Status}");
-        switch (Status)
+        switch (responseGetStatus.Data.status.current)
         {
           case Process.EProcessStatut.QUEUED:
             _timer.Enabled = true;
@@ -74,20 +73,20 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
               await SendErrorsToWs(responseWs);
               return;
             }
-            StopPulling();
             await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", responseGetStatus.Data.status.current.ToString());
+            StopPulling();
             break;
           case Process.EProcessStatut.CANCELED:
-            StopPulling();
             await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", $"Process terminé avec status : {Status}");
+            StopPulling();
             break;
           case Process.EProcessStatut.CRASHED:
-            StopPulling();
             await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", $"Process terminé avec status : {Status}");
+            StopPulling();
             break;
           case Process.EProcessStatut.TIMEOUT:
-            StopPulling();
             await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", $"Process terminé avec status : {Status}");
+            StopPulling();
             break;
         }
       }

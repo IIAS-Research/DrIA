@@ -5,7 +5,6 @@ using Server.DAL.Db;
 using Server.DTOs;
 using Server.Hubs;
 using Server.Models;
-using static Server.Services.ApplicationService;
 
 namespace Server.Services;
 
@@ -20,92 +19,97 @@ public class IaPullingExplainService : IaPullingService<IaExplainModelHub>
     _connections.Add(newConnection);
     return newConnection;
   }
-}
 
-public class IaConnectionExplainPulling : IaConnectionPulling<IaExplainModelHub>
-{
-  private readonly long _localModelId;
-  public EExplainStatut Status { get; set; }
-
-  public IaConnectionExplainPulling(string jobWebServiceId, IHubContext<IaExplainModelHub> hub, IServiceScopeFactory scopeFactory, long localModelId)
-  : base(jobWebServiceId, hub, scopeFactory) 
+  public override List<IaConnectionPulling<IaExplainModelHub>> GetAllConnections()
   {
-    _localModelId = localModelId;
+    return _connections;
   }
 
-  protected override async Task RunInterval(object source, ElapsedEventArgs elapseArg)
+  public class IaConnectionExplainPulling : IaConnectionPulling<IaExplainModelHub>
   {
-    using (var scope = ScopeFactory.CreateScope())
+    private readonly long _localModelId;
+    public IaConnectionExplainPulling(string jobWebServiceId, IHubContext<IaExplainModelHub> hub, IServiceScopeFactory scopeFactory, long localModelId)
+    : base(jobWebServiceId, hub, scopeFactory)
     {
-      var iaWebService = scope.ServiceProvider.GetRequiredService<IaWebService>();
-      var dbContext = scope.ServiceProvider.GetRequiredService<MainDbContext>();
+      _localModelId = localModelId;
+    }
 
-      var responseGetStatus = await iaWebService.GetExplainStatus(JobWebServiceId);
-
-      if (!responseGetStatus.IsSuccess)
+    protected override async Task RunInterval(object source, ElapsedEventArgs elapseArg)
+    {
+      using (var scope = ScopeFactory.CreateScope())
       {
-        var responseWs = new ResponseService();
-        responseWs.EnsureOtherServiceIsSuccess(responseGetStatus);
-        await SendErrorsToWs(responseWs);
-        return;
+        var iaWebService = scope.ServiceProvider.GetRequiredService<IaWebService>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MainDbContext>();
+
+        var responseGetStatus = await iaWebService.GetExplainStatus(JobWebServiceId);
+
+        if (!responseGetStatus.IsSuccess)
+        {
+          var responseWs = new ResponseService();
+          responseWs.EnsureOtherServiceIsSuccess(responseGetStatus);
+          await SendErrorsToWs(responseWs);
+          return;
+        }
+
+        Status = responseGetStatus.Data.status.current.ToString();
+        Console.WriteLine($"PULLING EXPLAINS => Job status: {Status}");
+        switch (responseGetStatus.Data.status.current)
+        {
+          case EExplainStatut.QUEUED:
+            _timer.Enabled = true;
+            break;
+          case EExplainStatut.COMPUTING:
+            _timer.Enabled = true;
+            break;
+          case EExplainStatut.FINISHED:
+            var onProcessFinishResponse = await OnProcessFinish();
+
+            if (!onProcessFinishResponse.IsSuccess)
+            {
+              await SendErrorsToWs(onProcessFinishResponse);
+              return;
+            }
+            await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", responseGetStatus.Data.status.current.ToString());
+            StopPulling();
+            break;
+          case EExplainStatut.CRASHED:
+            await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", $"Process terminé avec status : {Status}");
+            StopPulling();
+            break;
+        }
       }
+    }
 
-      Status = responseGetStatus.Data.status.current;
-      Console.WriteLine($"PULLING EXPLAINS => Job status: {Status}");
-      switch (Status)
+    protected override async Task<ResponseService> OnProcessFinish()
+    {
+      using (var scope = ScopeFactory.CreateScope())
       {
-        case EExplainStatut.QUEUED:
-          _timer.Enabled = true;
-          break;
-        case EExplainStatut.COMPUTING:
-          _timer.Enabled = true;
-          break;
-        case EExplainStatut.FINISHED:
-          var onProcessFinishResponse = await OnProcessFinish();
+        var response = new ResponseService();
+        var modelService = scope.ServiceProvider.GetRequiredService<ModelService>();
+        var iaWebService = scope.ServiceProvider.GetRequiredService<IaWebService>();
 
-          if (!onProcessFinishResponse.IsSuccess)
-          {
-            await SendErrorsToWs(onProcessFinishResponse);
-            return;
-          }
-          StopPulling();
-          await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", responseGetStatus.Data.status.current.ToString());
-          break;
-        case EExplainStatut.CRASHED:
-          StopPulling();
-          await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", $"Process terminé avec status : {Status}");
-          break;
+        var responseModele = await modelService.GetModelById(_localModelId);
+        if (!response.EnsureOtherServiceIsSuccess(responseModele)) return response;
+
+        var responseShapPlot = await iaWebService.GetExplainShapPlots(JobWebServiceId);
+        if (!response.EnsureOtherServiceIsSuccess(responseShapPlot)) return response;
+
+        var responseFeatures = await iaWebService.GetExplainFeatures(JobWebServiceId);
+        if (!response.EnsureOtherServiceIsSuccess(responseFeatures)) return response;
+
+        var explanation = new Model.ModelExplanation
+        {
+          plots = responseShapPlot.Data,
+          features = responseFeatures.Data.features
+        };
+
+        var responseSaveModel = await modelService.SaveModelExplanation(responseModele.Data, explanation);
+        if (!response.EnsureOtherServiceIsSuccess(responseSaveModel)) return response;
+
+        response.SetSuccessful();
+        return response;
       }
     }
   }
-
-  protected override async Task<ResponseService> OnProcessFinish()
-  {
-    using (var scope = ScopeFactory.CreateScope())
-    {
-      var response = new ResponseService();
-      var modelService = scope.ServiceProvider.GetRequiredService<ModelService>();
-      var iaWebService = scope.ServiceProvider.GetRequiredService<IaWebService>();
-
-      var responseModele = await modelService.GetModelById(_localModelId);
-      if (!response.EnsureOtherServiceIsSuccess(responseModele)) return response;
-
-      var responseShapPlot = await iaWebService.GetExplainShapPlots(JobWebServiceId);
-      if (!response.EnsureOtherServiceIsSuccess(responseShapPlot)) return response;
-
-      var responseFeatures = await iaWebService.GetExplainFeatures(JobWebServiceId);
-      if (!response.EnsureOtherServiceIsSuccess(responseFeatures)) return response;
-
-      var explanation = new Model.ModelExplanation{
-        plots = responseShapPlot.Data,
-        features = responseFeatures.Data.features
-      };
-      
-      var responseSaveModel = await modelService.SaveModelExplanation(responseModele.Data, explanation);
-      if (!response.EnsureOtherServiceIsSuccess(responseSaveModel)) return response;
-
-      response.SetSuccessful();
-      return response;
-    }
-  }
 }
+
