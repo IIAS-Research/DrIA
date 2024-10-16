@@ -237,7 +237,7 @@ public class IaWebService : ApplicationService
   {
     var response = new ResponseService<SplitOutDTO>();
     byte[] formatedFile;
-    if (project.RowDepedenciesLinked.Length == 0)
+    if (project.DatasetHasIdColumnList.Length == 0)
     {
       formatedFile = await IFormFileToByteArray(file);
     }
@@ -583,7 +583,7 @@ public class IaWebService : ApplicationService
     // Keep all columns except those in DatasetHasIdColumnList, unless they are in RowDepedenciesLinked or they're target for the train
     var filteredHeaders = headerRow
         .Where(header =>
-            !project.DatasetHasIdColumnList.Contains(header) || !project.DatasetHasIdColumnList.Contains(header) && project.RowDepedenciesLinked.Contains(header) || project.RowDepedenciesLinked.Contains(header) || header.Equals(project.CsvColumnToPredict) || header.Equals(project.SurvivalModelDatasetTargetTime)
+            !project.DatasetHasIdColumnList.Contains(header) || (project.RowDepedenciesLinked.Contains(header) && project.DatasetHasIdColumnList.Contains(header)) || header.Equals(project.CsvColumnToPredict) || header.Equals(project.SurvivalModelDatasetTargetTime)
         ).ToList();
 
     // Write the filtered headers to the new CSV

@@ -55,7 +55,7 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
           await dbContext.SaveChangesAsync();
         }
 
-        Console.WriteLine($"PULLING => Job status: {Status}");
+        Console.WriteLine($"PULLING MODEL => Job status: {Status}");
         switch (responseGetStatus.Data.status.current)
         {
           case Process.EProcessStatut.QUEUED:
