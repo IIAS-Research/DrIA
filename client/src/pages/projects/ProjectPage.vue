@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  computed, onMounted, ref, watch, watchEffect, onUnmounted,
+  computed, onMounted, ref, watch, onUnmounted,
 } from 'vue';
 import { useRouter, useRoute, LocationQueryValue } from 'vue-router';
 import {
@@ -77,19 +77,24 @@ const isProcessing = computed(() => Boolean(
 
 function connectWebSocketsIfNeeded() {
   if (!isProcessing.value) return;
+  console.log('connect to wS');
   signalR.connect(jobId.value);
   startProcessTime.value = new Date().getTime();
-  if (interval) return;
+  if (interval) clearInterval(interval);
   interval = setInterval(() => {
     updateProgressVal();
   }, 2000);
 }
 
 async function restartProcess() {
+  clearInterval(interval);
   const process = project.value?.processes[0];
+  progress.value = 0;
+
   if (!process) return;
   console.log('propsComponent.process.id => ', process.id);
   const response = await restartProcessAsync(process.id, restartProcessMaxDuration.value);
+  console.log(response);
   if (!response) return;
   restartProcessDialog.value = false;
   router.push(
@@ -123,7 +128,7 @@ const remainingFormatedTime = computed(() => {
   return timeString.trim();
 });
 
-watchEffect(async () => {
+watch(signalR.receivedMessageRef, async () => {
   const messageReceived = signalR.receivedMessageRef.value as ProcessStatus;
   if (messageReceived !== 'FINISHED') return;
   signalR.disconnect();
@@ -136,6 +141,7 @@ watch(route, async () => {
   await getProjectById();
   connectWebSocketsIfNeeded();
 }, { deep: true });
+
 </script>
 
 <template>
@@ -168,7 +174,7 @@ watch(route, async () => {
           </q-input>
 
           <q-slider
-            v-model="restartProcessMaxDuration"
+            v-model.number="restartProcessMaxDuration"
             :min="45"
             :max="3600"
             :inner-min="10"
