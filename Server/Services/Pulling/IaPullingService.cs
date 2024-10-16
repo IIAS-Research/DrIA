@@ -2,7 +2,6 @@ using System.Net.WebSockets;
 using System.Timers;
 using Microsoft.AspNetCore.SignalR;
 using Server.Hubs;
-using Server.Models;
 using static Server.Services.ApplicationService;
 
 namespace Server.Services
@@ -56,7 +55,7 @@ namespace Server.Services
       return _connections.FindAll(c => c.HasConnectionId(connectionId));
     }
 
-    public List<IaConnectionPulling<T>> GetAllConnections()
+    public virtual List<IaConnectionPulling<T>> GetAllConnections()
     {
       return _connections;
     }
@@ -65,6 +64,7 @@ namespace Server.Services
   public abstract class IaConnectionPulling<T>(string jobWebServiceId, IHubContext<T> hub, IServiceScopeFactory scopeFactory) where T : ApplicationHub
   {
     public IHubContext<T> Hub { get; } = hub;
+    public string Status { get; set; } = "Waiting for interval";
     public string JobWebServiceId { get; } = jobWebServiceId;
     public bool IsPulling { get; set; } = false;
     private readonly List<string> _connectionIds = [];
