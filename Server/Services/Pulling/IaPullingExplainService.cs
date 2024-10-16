@@ -45,6 +45,7 @@ public class IaPullingExplainService : IaPullingService<IaExplainModelHub>
 
         if (!responseGetStatus.IsSuccess)
         {
+          Console.WriteLine($"Get Job Status in Pulling Explain Failed => {responseGetStatus.Errors}");
           var responseWs = new ResponseService();
           responseWs.EnsureOtherServiceIsSuccess(responseGetStatus);
           await SendErrorsToWs(responseWs);

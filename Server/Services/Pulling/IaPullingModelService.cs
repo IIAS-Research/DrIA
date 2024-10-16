@@ -36,7 +36,7 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
 
         if (!responseGetStatus.IsSuccess)
         {
-          Console.WriteLine($"Get Job Status in Pulling Failed => {responseGetStatus.Errors}");
+          Console.WriteLine($"Get Job Status in Pulling Model Failed => {responseGetStatus.Errors}");
           var responseWs = new ResponseService();
           responseWs.EnsureOtherServiceIsSuccess(responseGetStatus);
           await SendErrorsToWs(responseWs);
