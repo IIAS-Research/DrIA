@@ -58,9 +58,9 @@ const baselineSource = computed(() => {
 
 <template>
   <div>
-    <div class="row q-col-gutter-x-sm">
-      <div class="col-6" style="align-self: stretch">
-        <q-card class="bg-teal-4 full-height">
+    <div class="row q-col-gutter-sm">
+      <div class="col-12 col-md-6 result-column" style="align-self: stretch">
+        <q-card class="bg-teal-4 full-height result-card">
           <q-card-section>
             <div class="text-h6 text-white">Best Dr IA Model</div>
 
@@ -75,9 +75,10 @@ const baselineSource = computed(() => {
             />
           </q-card-section>
 
-          <q-card-actions align="right">
+          <q-card-actions align="right" class="model-actions">
             <q-btn
               :loading="isLoading"
+              :disable="!bestModel"
               icon="fork_right"
               label="Fork pipeline"
               color="red-4"
@@ -85,6 +86,7 @@ const baselineSource = computed(() => {
             />
             <q-btn
               :loading="isLoading"
+              :disable="!bestModel"
               icon="visibility"
               label="See model details"
               color="primary"
@@ -93,21 +95,24 @@ const baselineSource = computed(() => {
           </q-card-actions>
         </q-card>
       </div>
-      <div class="col-6" style="align-self: stretch">
-        <q-card class="bg-grey-4 full-height">
+      <div class="col-12 col-md-6 result-column" style="align-self: stretch">
+        <q-card class="bg-grey-4 full-height result-card">
           <q-card-section>
             <div class="text-h6 text-grey-8">Baseline model</div>
 
-            <div class="row q-col-gutter-x-sm full-width">
-              <div class="col-12">
-                <q-icon name="help" class="q-mb-xs"><q-tooltip>{{ baselineSource }}</q-tooltip></q-icon>
-                Results of a model without Dr IA optimizations
-              </div>
+            <div class="baseline-description">
+              <q-icon name="help" class="q-mb-xs">
+                <q-tooltip class="baseline-tooltip">
+                  <div>{{ baselineSource }}</div>
+                  <div v-if="baselineModel?.error" class="q-mt-xs">{{ displayServiceText(baselineModel.error) }}</div>
+                </q-tooltip>
+              </q-icon>
+              Results of a model without Dr IA optimizations
             </div>
             <div class="q-mt-md" v-if="baselineModel">
               <q-chip v-if="baselineModel.status && !baseline" :icon="baselinePending ? 'hourglass_top' : ['FINISHED', 'CACHED'].includes(baselineModel.status.current) ? 'check' : 'error'">
                 {{ baselineModel.status.current }}
-                <q-tooltip v-if="baselineModel.error">{{ displayServiceText(baselineModel.error) }}</q-tooltip>
+                <q-tooltip v-if="baselineModel.error" class="baseline-tooltip">{{ displayServiceText(baselineModel.error) }}</q-tooltip>
               </q-chip>
               <q-item
                 v-for="item in sortedMetrics"
@@ -116,11 +121,11 @@ const baselineSource = computed(() => {
                 class="row custom-q-item"
               >
                 <q-item-section>
-                  <div class="flex row items-center justify-between">
-                    <div class="text-weight-medium">
+                  <div class="metric-line">
+                    <div class="text-weight-medium metric-value">
                       {{ formatScore(item[1]) }}
                     </div>
-                    <div class="text-weight-medium">
+                    <div class="text-weight-medium metric-label">
                       {{ displayServiceName(baseline?.metrics_info?.[item[0]]?.name ?? item[0]) }}
                     </div>
                   </div>
@@ -162,3 +167,68 @@ const baselineSource = computed(() => {
     </q-card>
   </div>
 </template>
+
+<style scoped>
+.result-column,
+.result-card,
+.baseline-description {
+  min-width: 0;
+}
+
+.result-card,
+.baseline-description {
+  overflow-wrap: anywhere;
+}
+
+.model-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.model-actions > .q-btn {
+  min-width: 0;
+  max-width: 100%;
+  margin-left: 0;
+}
+
+.model-actions :deep(.q-btn__content) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.custom-q-item {
+  min-height: 28px;
+  height: auto;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.metric-line {
+  display: grid;
+  grid-template-columns: fit-content(60%) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.metric-label,
+.metric-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.metric-label {
+  text-align: right;
+}
+
+.metric-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.baseline-tooltip {
+  max-width: min(420px, calc(100vw - 32px));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+</style>

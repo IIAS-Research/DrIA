@@ -33,21 +33,23 @@ const processMessages = computed(() => [...new Set([
 <template>
   <q-item
     v-if="process"
-    class="row full-width"
+    class="process-header full-width"
   >
-    <div class="col-2">
+    <div class="process-date">
       <q-icon name="date_range" />
       {{ formatToDDMMYYYHHmm(process?.date) }}
     </div>
-    <div class="col-2">
+    <div class="process-duration">
       <q-icon name="timer" />
       {{ process?.maxDuration }}s
     </div>
-    <div class="col-5">
-      <q-icon name="rocket_launch"><q-tooltip>{{ mainMetricDirection }}</q-tooltip></q-icon>
-      Best {{ mainMetricName }} : {{ formatScore(mainMetricValue) }}
+    <div class="process-score">
+      <q-icon name="rocket_launch">
+        <q-tooltip>{{ mainMetricDirection }}</q-tooltip>
+      </q-icon>
+      Best {{ mainMetricName }} : <span class="metric-value">{{ formatScore(mainMetricValue) }}</span>
     </div>
-    <div class="col-2">
+    <div class="process-status">
       <q-chip
         v-if="process"
         square
@@ -72,7 +74,9 @@ const processMessages = computed(() => [...new Set([
 
         }[process.status]"
         :label="process?.status"
-      ><q-tooltip v-if="processMessages">{{ processMessages }}</q-tooltip></q-chip>
+      >
+        <q-tooltip v-if="processMessages" class="process-tooltip">{{ processMessages }}</q-tooltip>
+      </q-chip>
     </div>
 
     <!-- <q-space />
@@ -92,3 +96,44 @@ const processMessages = computed(() => [...new Set([
     </div>
   </q-item>
 </template>
+
+<style scoped>
+.process-header {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 5fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.process-date,
+.process-duration,
+.process-score,
+.process-status {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.process-date,
+.process-duration,
+.metric-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.process-status .q-chip {
+  max-width: 100%;
+  margin: 0;
+}
+
+.process-tooltip {
+  max-width: min(420px, calc(100vw - 32px));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 599px) {
+  .process-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+</style>

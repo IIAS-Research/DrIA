@@ -2,6 +2,8 @@
 import { formatToDDMMYYYHHmm } from 'src/utils/date';
 import { IModel, IProcess } from '../models';
 import { computed } from 'vue';
+import { formatScore, metricKey } from 'src/utils/iaml';
+import { displayServiceName } from 'src/utils/service-label';
 
 const props = defineProps<{
   model: IModel;
@@ -10,24 +12,21 @@ const props = defineProps<{
   baseline: boolean;
 }>();
 
-// computed
+// The objective may be an alias and can be minimized; missing scores remain unavailable.
 const sortedMetrics = computed(() => {
-  let metrics = Object.entries(
-    props.model.metrics.metrics_test ?? props.model.metrics.metrics_train ?? []
-  );
-  metrics = metrics.sort(
-    (entryA, entryB) => {
-      if (entryA[0] === (props.model?.metrics.main_metrics ?? '') && entryB[0] === (props.model?.metrics.main_metrics ?? '')) {
-        return 0;
-      }
-      if (entryA[0] === (props.model?.metrics.main_metrics ?? '') && entryB[0] !== (props.model?.metrics.main_metrics ?? '')) {
-        return -1;
-      }
-      return 1;
-    }
-  );
-  return metrics;
+  const scores = props.model.metrics.metrics_test ?? props.model.metrics.metrics_train ?? {};
+  return Object.entries(scores)
+    .sort((a, b) => Number(b[0] === metricKey(props.model.metrics)) - Number(a[0] === metricKey(props.model.metrics)));
 });
+const scoreSource = computed(() => props.model.metrics.metrics_test
+  ? 'Jeu de test indépendant'
+  : props.model.metrics.score_source === 'in_sample' ? 'Données d’entraînement' : 'Validation croisée');
+function metricDirection(key: string): string {
+  const greater = key === metricKey(props.model.metrics)
+    ? props.model.metrics.objective?.greater_is_better ?? props.model.metrics.metrics_info?.[key]?.greater_is_better
+    : props.model.metrics.metrics_info?.[key]?.greater_is_better;
+  return greater === undefined ? '' : greater ? 'Maximiser' : 'Minimiser';
+}
 </script>
 
 <template>
@@ -36,27 +35,27 @@ const sortedMetrics = computed(() => {
   >
     <div
       v-if="!baseline"
-      class="row q-col-gutter-x-sm full-width"
+      class="model-header"
     >
       <div
-        class="col-5"
+        class="model-name"
       >
         <q-icon
           name="smart_toy"
           class="q-mb-xs"
         />
-        {{ model.metrics.model_info.name }}
+        {{ displayServiceName(model.metrics.model_info?.name) }}
       </div>
 
       <div
-        class="col-5"
+        class="model-date"
       >
         <q-icon name="date_range" />
         {{ formatToDDMMYYYHHmm(model.date) }}
       </div>
 
       <div
-        class="col-2"
+        class="model-duration"
       >
         <q-icon name="timer" />
         {{ process.maxDuration }}s
@@ -64,10 +63,10 @@ const sortedMetrics = computed(() => {
     </div>
     <div
       v-else
-      class="row q-col-gutter-x-sm full-width"
+      class="model-header"
     >
       <div
-        class="col-12"
+        class="model-baseline-description"
       >
         <q-icon
           name="help"
@@ -83,7 +82,7 @@ const sortedMetrics = computed(() => {
         v-for="item in sortedMetrics"
         :key="item[0]"
         clickable
-        class="row"
+        class="row custom-q-item"
       >
         <q-item-section
           side
@@ -99,23 +98,24 @@ const sortedMetrics = computed(() => {
               self="center left"
             >
               {{
-                model.metrics.metrics_info[item[0]].desc
+                model.metrics.metrics_info?.[item[0]]?.desc ?? ''
               }}
+              {{ metricDirection(item[0]) }} · {{ scoreSource }}
             </q-tooltip>
           </q-icon>
         </q-item-section>
         <q-item-section>
           <div
-            class="flex row items-center justify-between"
-            :class="{reverse: baseline}"
+            class="metric-line"
+            :class="{ 'metric-line--baseline': baseline }"
           >
-            <div class="text-weight-medium">
+            <div class="text-weight-medium metric-label">
               {{
-                model.metrics.metrics_info[item[0]].name
+                displayServiceName(model.metrics.metrics_info?.[item[0]]?.name ?? item[0])
               }}
             </div>
-            <div class="text-weight-medium">
-              {{ item[1] }}
+            <div class="text-weight-medium metric-value">
+              {{ formatScore(item[1]) }}
             </div>
           </div>
         </q-item-section>
@@ -129,3 +129,78 @@ const sortedMetrics = computed(() => {
     </q-item-label>
   </q-item>
 </template>
+
+<style scoped>
+.model-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.model-name,
+.model-date {
+  flex: 5 1 140px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.model-date,
+.model-duration,
+.metric-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.model-duration {
+  flex: 2 1 64px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.model-baseline-description {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.custom-q-item {
+  min-height: 28px;
+  height: auto;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.metric-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) fit-content(60%);
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.metric-label,
+.metric-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.metric-value {
+  text-align: right;
+}
+
+.metric-line--baseline {
+  grid-template-columns: fit-content(60%) minmax(0, 1fr);
+}
+
+.metric-line--baseline .metric-label {
+  grid-column: 2;
+  grid-row: 1;
+  text-align: right;
+}
+
+.metric-line--baseline .metric-value {
+  grid-column: 1;
+  grid-row: 1;
+  text-align: left;
+}
+</style>

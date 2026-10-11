@@ -33,30 +33,30 @@ function forkPipeline() {
     v-if="model"
   >
     <div
-      class="row q-col-gutter-x-sm full-width"
+      class="model-inline"
     >
-      <div class="col-1" />
       <div
-        class="col-5"
+        class="model-inline-name"
       >
         <q-icon name="smart_toy" />
         {{ displayServiceName(model.metrics.model_info?.name) }}
       </div>
 
       <div
-        class="col-4"
+        class="model-inline-score"
       >
-        <q-icon name="rocket_launch"><q-tooltip>{{ mainMetricDirection }}</q-tooltip></q-icon>
-        {{ mainMetricName }} : {{ formatScore(mainMetricValue) }}
+        <q-icon name="rocket_launch">
+          <q-tooltip>{{ mainMetricDirection }}</q-tooltip>
+        </q-icon>
+        {{ mainMetricName }} : <span class="metric-value">{{ formatScore(mainMetricValue) }}</span>
       </div>
 
       <div
-        class="col-2"
+        class="model-inline-actions"
       >
         <q-btn
           icon="fork_right"
           color="red-4"
-          class="q-mr-md"
           title="Fork pipeline"
           @click="forkPipeline"
         >
@@ -78,3 +78,40 @@ function forkPipeline() {
     </q-item-label>
   </q-item>
 </template>
+
+<style scoped>
+.model-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8.3333%;
+  min-width: 0;
+}
+
+.model-inline-name,
+.model-inline-score {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.metric-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.model-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 16px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 599px) {
+  .model-inline {
+    grid-template-columns: minmax(0, 1fr);
+    padding-left: 0;
+  }
+}
+</style>
