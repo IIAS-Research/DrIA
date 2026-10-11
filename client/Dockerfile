@@ -11,7 +11,7 @@ RUN npm run build
 
 FROM nginx:stable-alpine AS runtime
 # x-release-please-start-version
-ARG DRIA_VERSION=0.7.3
+ARG DRIA_VERSION=0.8.0
 # x-release-please-end
 ARG DRIA_REVISION=local
 LABEL org.opencontainers.image.title="DrIA Web" \

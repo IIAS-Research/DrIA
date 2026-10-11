@@ -7,7 +7,7 @@ RUN dotnet publish server.csproj -c Release -o /out --no-restore /p:UseAppHost=f
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 # x-release-please-start-version
-ARG DRIA_VERSION=0.7.3
+ARG DRIA_VERSION=0.8.0
 # x-release-please-end
 ARG DRIA_REVISION=local
 LABEL org.opencontainers.image.title="DrIA API" \
