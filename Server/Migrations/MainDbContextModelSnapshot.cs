@@ -276,6 +276,9 @@ namespace server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("CreationContextJson")
+                        .HasColumnType("jsonb");
+
                     b.Property<bool>("DatasetHasIdColumn")
                         .HasColumnType("boolean");
 
@@ -284,6 +287,10 @@ namespace server.Migrations
                         .HasColumnType("text[]");
 
                     b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EvaluationMode")
                         .IsRequired()
                         .HasColumnType("text");
 

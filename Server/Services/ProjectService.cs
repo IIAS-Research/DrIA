@@ -147,21 +147,23 @@ public class ProjectService : ApplicationService
     var responseService = new ResponseService<GetTrainAndTestFilesOutDTO>();
     var projectFileTrain = await _projectRepository.GetProjectFileAsync(projectId, EProjectFileType.TRAIN);
     var projectFileTest = await _projectRepository.GetProjectFileAsync(projectId, EProjectFileType.TEST);
-    if (projectFileTrain == null || projectFileTest == null)
+    var project = await _projectRepository.GetProjectById(projectId);
+    if (projectFileTrain == null || (projectFileTest == null && project?.EvaluationMode != "cross_validation"))
     {
-      responseService.AddError("Couldn't find either Test or Train File in DB, both are required for this method.");
+      responseService.AddError("Les fichiers nécessaires à l’apprentissage et à l’évaluation du projet sont introuvables.");
       return responseService;
     }
     var getTrainFileResponse = await _fileStorageService.GetFileFromStorageAsync(projectFileTrain.StorageFilename);
-    var getTestFileResponse = await _fileStorageService.GetFileFromStorageAsync(projectFileTest.StorageFilename);
-
-    // Handle potential errors
-    if (!getTrainFileResponse.IsSuccess) responseService.Errors.AddRange(getTrainFileResponse.Errors);
-    if (!getTestFileResponse.IsSuccess) responseService.Errors.AddRange(getTestFileResponse.Errors);
-    if (!getTrainFileResponse.IsSuccess || !getTestFileResponse.IsSuccess) return responseService;
+    if (!responseService.EnsureOtherServiceIsSuccess(getTrainFileResponse)) return responseService;
 
     RunPipelineFileDTO trainFile = new() { File = getTrainFileResponse.Data.FileBytes!, FileName = projectFileTrain.Filename };
-    RunPipelineFileDTO testFile = new() { File = getTestFileResponse.Data.FileBytes!, FileName = projectFileTest.Filename };
+    RunPipelineFileDTO? testFile = null;
+    if (projectFileTest != null)
+    {
+      var getTestFileResponse = await _fileStorageService.GetFileFromStorageAsync(projectFileTest.StorageFilename);
+      if (!responseService.EnsureOtherServiceIsSuccess(getTestFileResponse)) return responseService;
+      testFile = new() { File = getTestFileResponse.Data.FileBytes!, FileName = projectFileTest.Filename };
+    }
 
     responseService.SetSuccessful(new GetTrainAndTestFilesOutDTO { TrainFile = trainFile, TestFile = testFile });
 
@@ -261,7 +263,9 @@ public class ProjectService : ApplicationService
       response.AddError("Project not found");
       return response;
     }
+    var files = await _projectRepository.GetProjectFiles(id);
     _projectRepository.DeleteProjectbyId(project);
+    foreach (var file in files) _fileStorageService.EraseFileFromStorage(file.StorageFilename);
     response.SetSuccessful();
     return response;
   }

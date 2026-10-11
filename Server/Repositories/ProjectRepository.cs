@@ -33,7 +33,9 @@ public class ProjectRepository(MainDbContext dbContext)
     Project project = new Project
     {
       Title = projectData.Title,
-      Description = projectData.Description,
+      Description = projectData.Description ?? string.Empty,
+      EvaluationMode = projectData.EvaluationMode,
+      CreationContextJson = string.IsNullOrWhiteSpace(projectData.CreationContextJson) ? null : projectData.CreationContextJson,
       CsvColumnToPredict = projectData.CsvColumnToPredict,
       RowDepedencies = projectData.RowDepedencies,
       RowDepedenciesLinked = projectData.RowDepedenciesLinked,
@@ -58,6 +60,8 @@ public class ProjectRepository(MainDbContext dbContext)
     // Update the fields of the existing project
     projectToUpdate.Title = project.Title;
     projectToUpdate.Description = project.Description;
+    projectToUpdate.EvaluationMode = project.EvaluationMode;
+    projectToUpdate.CreationContextJson = project.CreationContextJson;
     projectToUpdate.CsvColumnToPredict = project.CsvColumnToPredict;
     projectToUpdate.RowDepedencies = project.RowDepedencies;
     projectToUpdate.RowDepedenciesLinked = project.RowDepedenciesLinked;
@@ -104,6 +108,8 @@ public class ProjectRepository(MainDbContext dbContext)
       .ThenInclude(proc => proc.Models)
       .FirstOrDefaultAsync(proj => proj.Id == id);
   }
+
+  public Task<List<ProjectFile>> GetProjectFiles(long projectId) => _dbContext.ProjectFiles.Where(f => f.ProjectId == projectId).ToListAsync();
 
   public async Task<ProjectFile?> GetProjectFileAsync(long projectId, ProjectFile.EProjectFileType type)
   {

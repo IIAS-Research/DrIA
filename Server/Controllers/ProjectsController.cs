@@ -82,6 +82,15 @@ public class ProjectsController : ApplicationController
         User? currentUser = await GetCurrentUser();
         if (currentUser is null) return Unauthorized();
 
+        var fileValidation = new FileStorageService.ProjectDefaultFileOptions().EnsureFileIsOk(projectData.File);
+        if (!fileValidation.IsSuccess) return ServiceFailure(fileValidation);
+        if (projectData.TestFile != null)
+        {
+            var testValidation = new FileStorageService.ProjectTestFileOptions().EnsureFileIsOk(projectData.TestFile);
+            if (!testValidation.IsSuccess) return ServiceFailure(testValidation);
+        }
+        var datasetValidation = ProjectCreationValidation.ValidateFiles(projectData);
+        if (!datasetValidation.IsSuccess) return ServiceFailure(datasetValidation);
         using var study = JsonDocument.Parse(projectData.Pipeline);
         var validation = await _iaWebService.ValidateConfiguration(study.RootElement);
         if (!validation.IsSuccess) return ServiceFailure(validation);
@@ -96,14 +105,22 @@ public class ProjectsController : ApplicationController
             return ServiceFailure(failed);
         }
 
-        var responseSplit = await _iaWebService.Split(projectData.File, responseProject.Data);
-        if (!responseSplit.IsSuccess) return await RejectRegistration(responseSplit);
-        var responseGetTrainFile = await _iaWebService.GetSplitTrainFile(responseSplit.Data.id);
-        if (!responseGetTrainFile.IsSuccess) return await RejectRegistration(responseGetTrainFile);
-        var responseGetTestFile = await _iaWebService.GetSplitTestFile(responseSplit.Data.id);
-        if (!responseGetTestFile.IsSuccess) return await RejectRegistration(responseGetTestFile);
-        IFormFile trainFile = responseGetTrainFile.Data;
-        IFormFile? testFile = responseGetTestFile.Data;
+        IFormFile trainFile = projectData.File;
+        IFormFile? testFile = projectData.TestFile;
+        if (projectData.EvaluationMode == "split")
+        {
+            var responseSplit = await _iaWebService.Split(projectData.File, responseProject.Data);
+            if (!responseSplit.IsSuccess) return await RejectRegistration(responseSplit);
+            var responseGetTrainFile = await _iaWebService.GetSplitTrainFile(responseSplit.Data.id);
+            if (!responseGetTrainFile.IsSuccess) return await RejectRegistration(responseGetTrainFile);
+            var responseGetTestFile = await _iaWebService.GetSplitTestFile(responseSplit.Data.id);
+            if (!responseGetTestFile.IsSuccess) return await RejectRegistration(responseGetTestFile);
+            trainFile = responseGetTrainFile.Data;
+            testFile = responseGetTestFile.Data;
+        }
+
+        var predictionValidation = ProjectCreationValidation.ValidatePredictionKind(trainFile, projectData);
+        if (!predictionValidation.IsSuccess) return await RejectRegistration(predictionValidation);
 
         var responseCreateProjectFileTrain = await _projectService.CreateProjectFile(trainFile, responseProject.Data, ProjectFile.EProjectFileType.TRAIN);
         if (!responseCreateProjectFileTrain.IsSuccess) return await RejectRegistration(responseCreateProjectFileTrain);
@@ -155,7 +172,8 @@ public class ProjectsController : ApplicationController
         {
             rowCount = 50;
         }
-        var responseFile = await _projectService.GetProjectFileFirstNLine(projectId, rowCount, EProjectFileType.TEST);
+        var fileType = projectResponseGetOne.Data.EvaluationMode == "cross_validation" ? EProjectFileType.TRAIN : EProjectFileType.TEST;
+        var responseFile = await _projectService.GetProjectFileFirstNLine(projectId, rowCount, fileType);
         if (responseFile.IsSuccess == false) return NotFound(responseFile.Errors);
 
         return Ok(responseFile.Data);
@@ -174,6 +192,30 @@ public class ProjectsController : ApplicationController
         if (responseFile.IsSuccess == false) return ServiceFailure(responseFile);
 
         return File(responseFile.Data.Data, responseFile.Data.MimeType);
+    }
+
+    [Authorize]
+    [HttpGet("{projectId}/datasets/{dataset}")]
+    public async Task<ActionResult> GetProjectDataset(long projectId, string dataset)
+    {
+        EProjectFileType? fileType = dataset.ToLowerInvariant() switch
+        {
+            "train" => EProjectFileType.TRAIN,
+            "test" => EProjectFileType.TEST,
+            _ => null
+        };
+        if (fileType == null) return BadRequest(new { error = "Le jeu de données demandé doit être train ou test." });
+
+        var responseProject = await _projectService.GetProjectById(projectId);
+        if (!responseProject.IsSuccess) return NotFound(responseProject.Errors);
+
+        var ownerAuthorization = await _authorizationService.AuthorizeAsync(User, responseProject.Data, Operations.ReadOnlyOwn);
+        if (!ownerAuthorization.Succeeded) return Unauthorized();
+
+        var responseFile = await _projectService.GetProjectFile(projectId, fileType.Value);
+        if (!responseFile.IsSuccess) return ServiceFailure(responseFile);
+
+        return File(responseFile.Data.Data, responseFile.Data.MimeType, $"projet-{projectId}-{dataset.ToLowerInvariant()}.csv");
     }
 
     [HttpDelete("{id}")]

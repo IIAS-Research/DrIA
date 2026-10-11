@@ -19,6 +19,10 @@ public partial class Program
   public static async Task Main(string[] args)
   {
     var builder = WebApplication.CreateBuilder(args);
+    const long maxUploadSize = 100L * 1024L * 1024L;
+    builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = maxUploadSize);
+    builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+        options.MultipartBodyLengthLimit = maxUploadSize);
 
     RunBeforeStart(builder);
     RegisterServices(builder);

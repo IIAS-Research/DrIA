@@ -61,6 +61,9 @@ export interface IProjectForm {
   survivalModel: boolean;
   survivalModeldatasetTargetTime?: string;
   survivalModelEventValue?: string;
+  evaluationMode?: 'split' | 'external' | 'cross_validation';
+  testFile?: File;
+  creationContextJson?: string;
 }
 export interface IMetricInfo {
   name: string;
@@ -93,6 +96,8 @@ export interface IProject {
   // eslint-disable-next-line no-use-before-define
   processes: IProcess[];
   metricsBaseline?: IBaselineMetrics;
+  evaluationMode?: 'split' | 'external' | 'cross_validation';
+  creationContextJson?: string | null;
 }
 export interface IColumn {
   label: string;

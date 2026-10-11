@@ -8,7 +8,13 @@ public record StartProjectInDTO : IValidatableObject
 {
   public required string Title { get; set; }
 
-  public required string Description { get; set; }
+  public string? Description { get; set; } = string.Empty;
+
+  public string EvaluationMode { get; set; } = "split";
+
+  public IFormFile? TestFile { get; set; }
+
+  public string? CreationContextJson { get; set; }
 
   public required string CsvColumnToPredict { get; set; }
 
@@ -81,6 +87,12 @@ public record StartProjectInDTO : IValidatableObject
         if (scalar.RootElement.ValueKind is not (System.Text.Json.JsonValueKind.String or System.Text.Json.JsonValueKind.Number or System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
           errors.Add(new ValidationResult("La valeur d’événement doit être un scalaire JSON.", [nameof(SurvivalModelEventValue)]));
       }
+      if (!string.IsNullOrWhiteSpace(CreationContextJson))
+      {
+        using var context = System.Text.Json.JsonDocument.Parse(CreationContextJson);
+        if (context.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object)
+          errors.Add(new ValidationResult("Le contexte de création doit être un objet JSON.", [nameof(CreationContextJson)]));
+      }
     }
     catch (System.Text.Json.JsonException)
     {
@@ -88,6 +100,12 @@ public record StartProjectInDTO : IValidatableObject
     }
     if (SurvivalModel && (string.IsNullOrWhiteSpace(SurvivalModelDatasetTargetTime) || SurvivalModelDatasetTargetTime == CsvColumnToPredict))
       errors.Add(new ValidationResult("Le temps de survie doit utiliser une colonne distincte de l’événement.", [nameof(SurvivalModelDatasetTargetTime)]));
+    if (EvaluationMode is not ("split" or "external" or "cross_validation"))
+      errors.Add(new ValidationResult("Le mode d’évaluation est inconnu.", [nameof(EvaluationMode)]));
+    if (EvaluationMode == "external" && TestFile == null)
+      errors.Add(new ValidationResult("Importez le fichier réservé à l’évaluation.", [nameof(TestFile)]));
+    if (EvaluationMode != "external" && TestFile != null)
+      errors.Add(new ValidationResult("Le fichier d’évaluation est réservé au mode de test séparé.", [nameof(TestFile)]));
     return errors;
   }
 

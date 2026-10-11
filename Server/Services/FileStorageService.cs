@@ -240,15 +240,19 @@ public class FileStorageService : ApplicationService
       {
         responseService.AddError("File is tempty");
       }
-      if (!PermittedExtensions.Contains(Path.GetExtension(formfile.FileName)))
+      if (!PermittedExtensions.Contains(Path.GetExtension(formfile.FileName), StringComparer.OrdinalIgnoreCase))
       {
         responseService.AddError("File extension is not accepted");
       }
       if (formfile.Length > MaxFileLength)
       {
         responseService.AddError($"File is too big ( size > {MaxFileLength})");
+        responseService.HttpStatusCode = StatusCodes.Status413PayloadTooLarge;
       }
-      responseService.SetSuccessful();
+      if (responseService.Errors.Count == 0)
+      {
+        responseService.SetSuccessful();
+      }
       return responseService;
     }
   }

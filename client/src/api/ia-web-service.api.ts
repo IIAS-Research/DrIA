@@ -1,5 +1,5 @@
 import { api } from 'src/boot/axios';
-import { IPipeline } from 'src/components/models';
+import { IPipeline, IStatistics } from 'src/components/models';
 import { notifyApiError } from 'src/utils/iaml';
 import { isSessionExpired } from 'src/utils/session';
 export async function getDefaultPipeline(): Promise<IPipeline | undefined> {
@@ -22,4 +22,7 @@ export async function validateStudy(configuration: IPipeline): Promise<{
   description: any;
 }> {
   return (await api.post('IaWebService/validate', { configuration })).data;
+}
+export async function exploreStatistics(body: FormData, plots = true, signal?: AbortSignal): Promise<IStatistics> {
+  return (await api.post(`IaWebService/statistics?plots=${plots}`, body, { signal })).data;
 }

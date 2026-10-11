@@ -264,6 +264,49 @@ public class IaWebService : ApplicationService
     return response;
   }
 
+  public async Task<ResponseService<JsonElement>> GetStatistics(IFormCollection form, bool plots = true)
+  {
+    try
+    {
+      // The creation wizard annotates the source file without changing it.
+      // Apply exclusions here, as during training; this local field is not part
+      // of the IAML API. Groups stay available for IAML to extract separately.
+      var excluded = form.TryGetValue("excluded_columns", out var excludedValue)
+        ? JsonSerializer.Deserialize<string[]>(excludedValue.ToString())
+          ?? throw new ArgumentException("La liste des colonnes exclues doit être un tableau JSON.")
+        : [];
+      if (excluded.Any(string.IsNullOrWhiteSpace))
+        throw new ArgumentException("Les colonnes exclues doivent avoir un nom non vide.");
+      var target = form["dataset_target"].ToString();
+      var time = form["dataset_target_time"].ToString();
+      if (excluded.Contains(target, StringComparer.Ordinal) || (!string.IsNullOrEmpty(time) && excluded.Contains(time, StringComparer.Ordinal)))
+        throw new ArgumentException("Les colonnes à prédire et de durée de suivi ne peuvent pas être exclues des statistiques.");
+      using var content = new MultipartFormDataContent();
+      foreach (var file in form.Files)
+      {
+        var bytes = await IFormFileToByteArray(file);
+        if (file.Name == "train_dataset") bytes = FilterCsv(bytes, excluded);
+        content.Add(new ByteArrayContent(bytes), file.Name, file.FileName);
+      }
+      foreach (var field in form)
+      {
+        if (field.Key == "excluded_columns") continue;
+        var value = field.Value.ToString();
+        if (field.Key == "configuration")
+        {
+          using var document = JsonDocument.Parse(value);
+          value = IamlStudyCompatibility.PreparePayload(document.RootElement).GetRawText();
+        }
+        content.Add(new StringContent(value, Encoding.UTF8), field.Key);
+      }
+      return await SendJson<JsonElement>(HttpMethod.Post, "statistics?format=json&plots=" + (plots ? "true" : "false"), content);
+    }
+    catch (Exception ex) { return Failure<JsonElement>(ex); }
+  }
+
+  public Task<ResponseService<JsonElement>> GetStatistics(JsonElement request, bool plots = true) =>
+    PostCompatibleConfiguration("statistics?format=json&plots=" + (plots ? "true" : "false"), request);
+
   private async Task<ResponseService<JsonElement>> PostCompatibleConfiguration(string path, JsonElement request, bool includeBase = false)
   {
     try

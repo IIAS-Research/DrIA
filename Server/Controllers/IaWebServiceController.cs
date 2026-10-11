@@ -74,5 +74,26 @@ public class IaWebServiceController(UserManager<User> userManager, IaWebService 
     return File(memory.ToArray(), file.ContentType, file.FileName);
   }
 
-
+  [HttpPost("statistics")]
+  [RequestSizeLimit(104857600)]
+  [RequestFormLimits(MultipartBodyLengthLimit = 104857600)]
+  public async Task<IActionResult> Statistics([FromQuery] bool plots = true)
+  {
+    if (Request.HasFormContentType)
+    {
+      var response = await _iaWebService.GetStatistics(await Request.ReadFormAsync(), plots);
+      return response.IsSuccess ? Ok(response.Data) : ServiceFailure(response);
+    }
+    if (Request.ContentType?.Split(';')[0].Trim() == "application/json")
+    {
+      try
+      {
+        using var document = await JsonDocument.ParseAsync(Request.Body);
+        var response = await _iaWebService.GetStatistics(document.RootElement, plots);
+        return response.IsSuccess ? Ok(response.Data) : ServiceFailure(response);
+      }
+      catch (JsonException) { return BadRequest(new { error = "Le corps JSON n'est pas valide." }); }
+    }
+    return StatusCode(StatusCodes.Status415UnsupportedMediaType, new { error = "Utilisez multipart/form-data ou application/json." });
+  }
 }

@@ -46,3 +46,14 @@ export async function getProjectDataSampleAsync(projectId: IProject['id']): Prom
     return undefined;
   }
 }
+export async function downloadProjectData(projectId: IProject['id']): Promise<Blob> {
+  return (await api.get(`${projectUrl}/${projectId}/defaultFile`, { responseType: 'blob' })).data;
+}
+
+export type ProjectDatasetSource = 'original' | 'train' | 'test';
+
+export async function getProjectDatasetFile(projectId: IProject['id'], source: ProjectDatasetSource, signal?: AbortSignal): Promise<File> {
+  const url = source === 'original' ? `${projectUrl}/${projectId}/defaultFile` : `${projectUrl}/${projectId}/datasets/${source}`;
+  const response = await api.get<Blob>(url, { responseType: 'blob', signal });
+  return new File([response.data], `projet-${projectId}-${source}.csv`, { type: response.data.type || 'text/csv' });
+}

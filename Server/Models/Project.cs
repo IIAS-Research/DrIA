@@ -19,6 +19,11 @@ public class Project : ApplicationRecord
   [Required]
   public required string Description { get; set; }
 
+  public string EvaluationMode { get; set; } = "split";
+
+  [Column(TypeName = "jsonb")]
+  public string? CreationContextJson { get; set; }
+
   [Required]
   public required string CsvColumnToPredict { get; set; }
 

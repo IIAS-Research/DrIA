@@ -50,7 +50,8 @@ public class ModelsController : ApplicationController
   {
     var model = await OwnedModel(id);
     if (model == null) return NotFound(new { error = "Modèle introuvable." });
-    var data = await _projects.GetProjectFile(model.Process!.ProjectId, ProjectFile.EProjectFileType.TEST);
+    var fileType = model.Process!.Project?.EvaluationMode == "cross_validation" ? ProjectFile.EProjectFileType.TRAIN : ProjectFile.EProjectFileType.TEST;
+    var data = await _projects.GetProjectFile(model.Process.ProjectId, fileType);
     if (!data.IsSuccess) return ServiceFailure(data);
     var response = await _models.StartModelExplain(model, data.Data.Data, options);
     return response.IsSuccess ? Accepted(response.Data) : ServiceFailure(response);
