@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -15,614 +16,453 @@ namespace Server.Services;
 
 public class IaWebService : ApplicationService
 {
-  // private readonly string _ia_url = "http://rss00992:32845";
-  private readonly string _ia_url = "http://tmp-iias:32845";
-  private readonly JsonSerializerOptions _serializeOptions = new JsonSerializerOptions
+  // Service instances are transient; share the transport to keep connections pooled.
+  private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(5) };
+  private readonly string _iaUrl;
+  private static readonly JsonSerializerOptions SerializeOptions = new()
   {
     PropertyNameCaseInsensitive = true,
     PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
     Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
   };
 
-  async public Task<ResponseService<RunPipelineOutDTO>> RunPipeline(RunPipelineFileDTO trainFile, RunPipelineFileDTO testFile, Project project, string pipeline, int? maxDuration)
+  public IaWebService(IConfiguration configuration)
   {
-    var response = new ResponseService<RunPipelineOutDTO>();
+    _iaUrl = (configuration[Configuration.IamlBaseUrl] ?? "http://localhost:8000").TrimEnd('/');
+    if (!Uri.TryCreate(_iaUrl, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
+      throw new ArgumentException("Iaml:BaseUrl doit être une URL HTTP ou HTTPS absolue.");
+  }
+
+  public async Task<ResponseService<ProcessPipeline?>> GeneratePipeline()
+  {
+    var result = new ResponseService<ProcessPipeline?>();
+    var response = await GetJson<JsonElement>("pipeline/generate");
+    if (!result.EnsureOtherServiceIsSuccess(response)) return result;
     try
     {
-      using (var http = new HttpClient())
+      var study = IamlStudyCompatibility.PreparePayload(response.Data);
+      result.SetSuccessful(study.Deserialize<ProcessPipeline>(SerializeOptions));
+    }
+    catch (Exception ex) { SetFailure(result, ex); }
+    return result;
+  }
+  public Task<ResponseService<JsonElement>> GetHealth() => GetJson<JsonElement>("health");
+  public Task<ResponseService<JsonElement>> GetCatalogue() => GetJson<JsonElement>("pipeline/catalogue");
+  public Task<ResponseService<JsonElement>> ValidateConfiguration(JsonElement configuration) => PostCompatibleConfiguration("pipeline/validate", configuration);
+  public Task<ResponseService<JsonElement>> EditConfiguration(JsonElement request) => PostCompatibleConfiguration("pipeline/edit", request);
+  public Task<ResponseService<JsonElement>> DiffConfiguration(JsonElement request) => PostCompatibleConfiguration("pipeline/diff", request, includeBase: true);
+  public async Task<ResponseService<IFormFile>> ExportConfiguration(JsonElement request, string format)
+  {
+    var result = new ResponseService<IFormFile>();
+    // Validation resolves omitted default recipes, so JSON and Python exports both
+    // use the same repaired canonical study shown in the editor.
+    var validated = await ValidateConfiguration(request);
+    if (!result.EnsureOtherServiceIsSuccess(validated)) return result;
+    return await Download("pipeline/export?format=" + Uri.EscapeDataString(format), format == "python" ? "study.py" : "study.json",
+      JsonContent(validated.Data.GetProperty("configuration")), format == "json" ? CompatibleJsonExport : null);
+  }
+
+  public async Task<ResponseService<RunPipelineOutDTO>> RunPipeline(RunPipelineFileDTO trainFile, RunPipelineFileDTO? testFile, Project project, string pipeline, int? maxDuration)
+  {
+    try
+    {
+      var configuration = StudyConfiguration(pipeline, maxDuration);
+      if (!configuration.ContainsKey("pipeline"))
       {
-        var requestContent = new MultipartFormDataContent
+        var validated = await ValidateConfiguration(JsonSerializer.SerializeToElement(configuration));
+        if (!validated.IsSuccess)
         {
-            { new ByteArrayContent(trainFile.File), "train_dataset", trainFile.FileName },
-            { new ByteArrayContent(testFile.File), "test_dataset", testFile.FileName },
-            { new StringContent(project.CsvColumnToPredict), "dataset_target" },
-            { new StringContent(SerializeToSnakeLowerCase(pipeline), Encoding.UTF8, "application/json"), "pipeline" }
-        };
-        if (project.RowDepedencies) requestContent.Add(new StringContent(string.Join(",", project.RowDepedenciesLinked)), "groups_columns");
-        if (maxDuration != null) requestContent.Add(new StringContent(maxDuration.ToString()!), "max_duration");
-        if (project.SurvivalModel) requestContent.Add(new StringContent(project.SurvivalModelDatasetTargetTime!), "dataset_target_time");
-
-        var httpResponse = await http.PostAsync($"{_ia_url}/pipeline/run", requestContent);
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<RunPipelineOutDTO>(httpResponseBody, _serializeOptions)!);
+          var failed = new ResponseService<RunPipelineOutDTO>();
+          failed.EnsureOtherServiceIsSuccess(validated);
+          return failed;
+        }
+        configuration = StudyConfiguration(validated.Data.GetProperty("configuration").GetRawText());
       }
+      using var content = DataContent(trainFile, testFile, project.CsvColumnToPredict, project.RowDepedencies ? project.RowDepedenciesLinked : [],
+        project.DatasetHasIdColumn ? project.DatasetHasIdColumnList : [], project.SurvivalModel ? project.SurvivalModelDatasetTargetTime : null, project.SurvivalModelEventValue);
+      content.Add(new StringContent(configuration.ToJsonString(), Encoding.UTF8, "application/json"), "configuration");
+      var response = await SendJson<RunPipelineOutDTO>(HttpMethod.Post, "pipeline/run", content);
+      if (response.IsSuccess) response.Data.ConfigurationJson = configuration.ToJsonString();
       return response;
     }
-    catch (Exception exception)
-    {
-      response.AddError("Run Pipeline route : " + exception.Message);
-      return response;
-    }
+    catch (Exception ex) { return Failure<RunPipelineOutDTO>(ex); }
   }
 
-  async public Task<ResponseService<ProcessPipeline?>> GeneratePipeline()
+  public async Task<ResponseService<RunPipelineOutDTO>> StartBaselineAsync(RunPipelineFileDTO trainFile, RunPipelineFileDTO? testFile, StartProjectInDTO project)
   {
-    var response = new ResponseService<ProcessPipeline?>();
     try
     {
-      using (var http = new HttpClient())
+      var configuration = StudyConfiguration(project.Pipeline);
+      // A fit's search parameters are explicitly forbidden on the baseline route.
+      if (configuration["fit_options"] is JsonObject fit)
       {
-        var httpResponse = await http.GetAsync($"{_ia_url}/pipeline/generate");
-        var jsonOptions = new JsonSerializerOptions
-        {
-          PropertyNameCaseInsensitive = true,
-          PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        };
-
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<ProcessPipeline>(httpResponseBody, jsonOptions)!);
+        fit.Remove("patience");
+        fit.Remove("n_candidates");
       }
-      return response;
+      using var content = DataContent(trainFile, testFile, project.CsvColumnToPredict, project.RowDepedencies ? project.RowDepedenciesLinked : [],
+        project.DatasetHasIdColumn ? project.DatasetHasIdColumnList : [], project.SurvivalModel ? project.SurvivalModelDatasetTargetTime : null, project.SurvivalModelEventValue);
+      content.Add(new StringContent(configuration.ToJsonString(), Encoding.UTF8, "application/json"), "configuration");
+      return await SendJson<RunPipelineOutDTO>(HttpMethod.Post, "baseline", content);
     }
-    catch (Exception exception)
-    {
-      response.AddError("Generate Pipeline route : " + exception.Message);
-      return response;
-    }
+    catch (Exception ex) { return Failure<RunPipelineOutDTO>(ex); }
   }
 
-  async public Task<ResponseService<JobStatusOutDTO>> GetJobStatus(string processRemoteId)
+  public Task<ResponseService<JobStatusOutDTO>> GetJobStatus(string id) => GetJson<JobStatusOutDTO>($"jobs/{Id(id)}/status?with_logs=true");
+  public Task<ResponseService<CancelJobOutDTO>> CancelJob(Process process) => CancelJob(process.IaRemoteId);
+  public Task<ResponseService<CancelJobOutDTO>> CancelJob(string remoteId) => SendJson<CancelJobOutDTO>(HttpMethod.Post, $"jobs/{Id(remoteId)}/cancel");
+  public Task<ResponseService<GetJobMetricsOutDTO>> RetrieveJobMetric(string id) => GetJson<GetJobMetricsOutDTO>($"jobs/{Id(id)}/metrics");
+  public Task<ResponseService<JsonElement>> GetJobHistory(string id) => GetJson<JsonElement>($"jobs/{Id(id)}/history");
+  public Task<ResponseService<JsonElement>> GetJobAudit(string id) => GetJson<JsonElement>($"jobs/{Id(id)}/audit");
+  public Task<ResponseService<ModelBibliography>> GetBibliography(string id, int rid = 0) => GetJson<ModelBibliography>($"jobs/{Id(id)}/model/{rid}/bibliography");
+  public Task<ResponseService<IFormFile>> DownloadModel(string id, long rid = 0) => Download($"jobs/{Id(id)}/model/{rid}/download", "pyiaml_model.pickle");
+  public Task<ResponseService<IFormFile>> DownloadModelFile(string id, int rid) => DownloadModel(id, rid);
+  public Task<ResponseService<GetModelTextExplanationOutDTO>> GetTextExplanation(string id, int rid) => GetJson<GetModelTextExplanationOutDTO>($"jobs/{Id(id)}/model/{rid}/explanations");
+  public Task<ResponseService<JsonElement>> GetModelReport(string id, int rid) => GetJson<JsonElement>($"jobs/{Id(id)}/model/{rid}/report");
+  public Task<ResponseService<IFormFile>> GetModelMarkdownReport(string id, int rid) => Download($"jobs/{Id(id)}/model/{rid}/report?format=markdown", "model-report.md");
+  public Task<ResponseService<JsonElement>> GetModelAudit(string id, int rid) => GetJson<JsonElement>($"jobs/{Id(id)}/model/{rid}/audit");
+  public Task<ResponseService<JsonElement>> PredictCandidate(string id, int rid, JsonElement request) => PostJson<JsonElement>($"jobs/{Id(id)}/model/{rid}/predict", request);
+
+  public async Task<ResponseService<JsonElement>> EvaluateCandidate(string id, int rid, Project project, RunPipelineFileDTO file)
   {
-    var response = new ResponseService<JobStatusOutDTO>();
     try
     {
-      using (var http = new HttpClient())
+      // Evaluation consumes only features and targets; unlike fit it does not
+      // extract groups_columns before checking the fitted model's input schema.
+      var groups = project.RowDepedencies ? project.RowDepedenciesLinked : [];
+      var ids = project.DatasetHasIdColumn ? project.DatasetHasIdColumnList : [];
+      using var content = DataContent(file, null, project.CsvColumnToPredict, [],
+        ids.Concat(groups).ToArray(), project.SurvivalModel ? project.SurvivalModelDatasetTargetTime : null, project.SurvivalModelEventValue);
+      return await SendJson<JsonElement>(HttpMethod.Post, $"jobs/{Id(id)}/model/{rid}/evaluate", content);
+    }
+    catch (Exception ex) { return Failure<JsonElement>(ex); }
+  }
+
+  public async Task<ResponseService<ExplainModelOutDTO>> ExplainCandidate(Project project, byte[] dataset, string id, int rid, JsonElement? options = null)
+  {
+    try
+    {
+      var groups = project.RowDepedencies ? project.RowDepedenciesLinked : [];
+      var ids = project.DatasetHasIdColumn ? project.DatasetHasIdColumnList : [];
+      var excluded = ids.Concat(groups).Except([project.CsvColumnToPredict, project.SurvivalModelDatasetTargetTime ?? ""]);
+      var filtered = FilterCsv(dataset, excluded);
+      using var content = new MultipartFormDataContent
       {
-        var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{processRemoteId}/status");
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<JobStatusOutDTO>(httpResponseBody, _serializeOptions)!);
-      }
-      return response;
+        { new ByteArrayContent(filtered), "dataset", "observations.csv" },
+        { new StringContent(project.CsvColumnToPredict), "dataset_target" }
+      };
+      if (project.SurvivalModel) AddSurvival(content, project.SurvivalModelDatasetTargetTime, project.SurvivalModelEventValue);
+      if (options.HasValue) content.Add(new StringContent(options.Value.GetRawText(), Encoding.UTF8, "application/json"), "options");
+      return await SendJson<ExplainModelOutDTO>(HttpMethod.Post, $"jobs/{Id(id)}/model/{rid}/explain", content);
     }
-    catch (Exception exception)
-    {
-      response.AddError("Get Job Status route : " + exception.Message);
-      return response;
-    }
+    catch (Exception ex) { return Failure<ExplainModelOutDTO>(ex); }
   }
 
-  async public Task<ResponseService<CancelJobOutDTO>> CancelJob(Process process)
+  public async Task<ResponseService<ExplainModelOutDTO>> ExplainModel(byte[] dataset, byte[] model)
   {
-    var response = new ResponseService<CancelJobOutDTO>();
-    try
+    using var content = new MultipartFormDataContent
     {
-      using var http = new HttpClient();
-      var httpResponse = await http.PostAsync($"{_ia_url}/job/{process.Id}/cancel", null);
-      httpResponse.EnsureSuccessStatusCode();
-      string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-      response.SetSuccessful(JsonSerializer.Deserialize<CancelJobOutDTO>(httpResponseBody, _serializeOptions)!);
-      return response;
-    }
-    catch (Exception exception)
-    {
-      response.AddError("Cancel Job route : " + exception.Message);
-      return response;
-    }
+      { new ByteArrayContent(dataset), "dataset", "observations.csv" },
+      { new ByteArrayContent(model), "pipeline", "pyiaml_model.pickle" }
+    };
+    return await SendJson<ExplainModelOutDTO>(HttpMethod.Post, "explain", content);
   }
 
-  async public Task<ResponseService<GetJobMetricsOutDTO>> RetrieveJobMetric(string processRemoteId)
+  public async Task<ResponseService<ExplainModelOutDTO>> ExplainModel(byte[] dataset, byte[] model, Project project, JsonElement? options = null)
   {
-    var response = new ResponseService<GetJobMetricsOutDTO>();
     try
     {
-      using var http = new HttpClient();
-      var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{processRemoteId}/metrics");
-      string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-      response.SetSuccessful(JsonSerializer.Deserialize<GetJobMetricsOutDTO>(httpResponseBody, _serializeOptions)!);
-      return response;
-    }
-    catch (Exception exception)
-    {
-      response.AddError("Retrieve Job route : " + exception.Message);
-      return response;
-    }
-  }
-
-  async public Task<ResponseService<ModelBibliography>> GetBibliography(string iaRemoteProcessId, int jobMetricId = 0)
-  {
-    var response = new ResponseService<ModelBibliography>();
-    try
-    {
-      using (var http = new HttpClient())
+      var groups = project.RowDepedencies ? project.RowDepedenciesLinked : [];
+      var ids = project.DatasetHasIdColumn ? project.DatasetHasIdColumnList : [];
+      var excluded = ids.Concat(groups).Except([project.CsvColumnToPredict, project.SurvivalModelDatasetTargetTime ?? ""]);
+      using var content = new MultipartFormDataContent
       {
-        var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{iaRemoteProcessId}/model/{jobMetricId}/bibliography");
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<ModelBibliography>(httpResponseBody)!);
-      }
-      return response;
+        { new ByteArrayContent(FilterCsv(dataset, excluded)), "dataset", "observations.csv" },
+        { new ByteArrayContent(model), "pipeline", "pyiaml_model.pickle" },
+        { new StringContent(project.CsvColumnToPredict), "dataset_target" }
+      };
+      if (project.SurvivalModel) AddSurvival(content, project.SurvivalModelDatasetTargetTime, project.SurvivalModelEventValue);
+      if (options.HasValue) content.Add(new StringContent(options.Value.GetRawText(), Encoding.UTF8, "application/json"), "options");
+      return await SendJson<ExplainModelOutDTO>(HttpMethod.Post, "explain", content);
     }
-    catch (Exception exception)
-    {
-      response.AddError("Get Bibliography route : " + exception.Message);
-      return response;
-    }
+    catch (Exception ex) { return Failure<ExplainModelOutDTO>(ex); }
   }
 
-  async public Task<ResponseService<IFormFile>> DownloadModel(string iaRemoteprocessId, long jobMetricId = 0)
+  public Task<ResponseService<ExplainStatusOutDTO>> GetExplainStatus(string id) => GetJson<ExplainStatusOutDTO>($"explain/{Id(id)}/status");
+  public Task<ResponseService<ExplainResultsOutDTO>> GetExplainResults(string id) => GetJson<ExplainResultsOutDTO>($"explain/{Id(id)}/results");
+  public Task<ResponseService<GetModelFeaturesInDTO>> GetExplainFeatures(string id, string? key = null) => GetJson<GetModelFeaturesInDTO>($"explain/{Id(id)}/features" + (key == null ? "" : "?key=" + Uri.EscapeDataString(key)));
+  public Task<ResponseService<Dictionary<string, Plot>>> GetExplainShapPlots(string id, string? key = null, string? plots = null, string? ps = null, string? scatterFeature = null)
   {
-    var response = new ResponseService<IFormFile>();
+    var query = "?format=json";
+    if (key != null) query += "&key=" + Uri.EscapeDataString(key);
+    if (plots != null) query += "&plots=" + Uri.EscapeDataString(plots);
+    if (ps != null) query += "&ps=" + Uri.EscapeDataString(ps);
+    if (scatterFeature != null) query += "&scatter_feature=" + Uri.EscapeDataString(scatterFeature);
+    return GetJson<Dictionary<string, Plot>>($"explain/{Id(id)}/shap_plots{query}");
+  }
+
+  public async Task<ResponseService<SplitOutDTO>> Split(IFormFile file, Project project)
+  {
     try
     {
-      using var http = new HttpClient();
-      var httpResponse = await http.GetAsync($"{_ia_url}/job/{iaRemoteprocessId}/model/{jobMetricId}/download");
-      httpResponse.EnsureSuccessStatusCode();
-      using var stream = await httpResponse.Content.ReadAsStreamAsync();
-      var formFile = new FormFile(stream, 0, stream.Length, "file", $"Job{iaRemoteprocessId}/Model{jobMetricId}.pickle")
+      // Split retains every column. Identifier columns are removed before training.
+      using var content = new MultipartFormDataContent
+      {
+        { new ByteArrayContent(await IFormFileToByteArray(file)), "dataset", file.FileName },
+        { new StringContent("0.2"), "ratio" },
+        { new StringContent("42"), "random_state" }
+      };
+      if (project.RowDepedencies)
+        content.Add(new StringContent(JsonSerializer.Serialize(project.RowDepedenciesLinked)), "groups_columns");
+      return await SendJson<SplitOutDTO>(HttpMethod.Post, "split", content);
+    }
+    catch (Exception ex) { return Failure<SplitOutDTO>(ex); }
+  }
+
+  public Task<ResponseService<IFormFile>> GetSplitTrainFile(string id) => Download($"split/{Id(id)}/train", $"Train{id}.csv");
+  public Task<ResponseService<IFormFile>> GetSplitTestFile(string id) => Download($"split/{Id(id)}/test", $"Test{id}.csv");
+
+  public async Task<ResponseService<JsonElement>> PredictWithArtifact(FileStorageResponseGet model, JsonElement request)
+  {
+    try
+    {
+      if (request.ValueKind != JsonValueKind.Object) throw new ArgumentException("La requête de prédiction doit être un objet JSON.");
+      using var content = new MultipartFormDataContent
+      {
+        { new ByteArrayContent(model.FileBytes!), "pipeline", "pyiaml_model.pickle" }
+      };
+      foreach (var field in request.EnumerateObject())
+      {
+        if (field.Name is not ("json_row" or "method" or "target" or "times"))
+          throw new ArgumentException($"Champ de prédiction non pris en charge : {field.Name}.");
+        if (field.Name == "method" && field.Value.ValueKind != JsonValueKind.String)
+          throw new ArgumentException("La méthode de prédiction doit être une chaîne de caractères.");
+        var value = field.Name == "method" ? field.Value.GetString()! : field.Value.GetRawText();
+        content.Add(new StringContent(value, Encoding.UTF8, "application/json"), field.Name);
+      }
+      return await SendJson<JsonElement>(HttpMethod.Post, "predict", content);
+    }
+    catch (Exception ex) { return Failure<JsonElement>(ex); }
+  }
+
+  public async Task<ResponseService<ProjectFileFormated>> PredictValueUsingAiModel(FileStorageResponseGet modelFile, ProjectFileFormated table, string targetColumn)
+  {
+    var response = new ResponseService<ProjectFileFormated>();
+    try
+    {
+      var columns = table.Columns.Where(c => c.Label != targetColumn && !c.IsColToPredict && !c.IsGroupColumn && !c.IsIdColumn).ToList();
+      var rows = table.Rows.Select(row => columns.ToDictionary(c => c.Label, c => row.TryGetValue(c.Name, out var value) ? value : null)).ToArray();
+      var request = JsonSerializer.SerializeToElement(new { json_row = rows, method = "predict" });
+      var predicted = await PredictWithArtifact(modelFile, request);
+      if (!response.EnsureOtherServiceIsSuccess(predicted)) return response;
+      var values = predicted.Data.GetProperty("prediction").EnumerateArray().ToArray();
+      if (values.Length != table.Rows.Count) throw new InvalidDataException("Le nombre de prédictions ne correspond pas au nombre d'observations.");
+      var outputKey = table.Columns.FirstOrDefault(c => c.Label == targetColumn)?.Name ?? targetColumn;
+      for (var i = 0; i < values.Length; i++) table.Rows[i][outputKey] = values[i].Clone();
+      response.SetSuccessful(table);
+    }
+    catch (Exception ex) { SetFailure(response, ex); }
+    return response;
+  }
+
+  private async Task<ResponseService<JsonElement>> PostCompatibleConfiguration(string path, JsonElement request, bool includeBase = false)
+  {
+    try
+    {
+      var prepared = IamlStudyCompatibility.PreparePayload(request, includeBase);
+      var response = await PostJson<JsonElement>(path, prepared);
+      if (response.IsSuccess && path is "pipeline/validate" or "pipeline/edit")
+        response.Data = IamlStudyCompatibility.PreparePayload(response.Data);
+      return response;
+    }
+    catch (Exception ex) { return Failure<JsonElement>(ex); }
+  }
+
+  private Task<ResponseService<T>> GetJson<T>(string path) => SendJson<T>(HttpMethod.Get, path);
+  private Task<ResponseService<T>> PostJson<T>(string path, JsonElement request) => SendJson<T>(HttpMethod.Post, path, JsonContent(request));
+  private static StringContent JsonContent(JsonElement request) => new(request.GetRawText(), Encoding.UTF8, "application/json");
+  private static string Id(string id) => Uri.EscapeDataString(id);
+
+  private async Task<ResponseService<T>> SendJson<T>(HttpMethod method, string path, HttpContent? content = null)
+  {
+    var result = new ResponseService<T>();
+    try
+    {
+      using var request = new HttpRequestMessage(method, $"{_iaUrl}/{path}") { Content = content };
+      using var response = await Http.SendAsync(request);
+      if (!response.IsSuccessStatusCode)
+      {
+        await ReadError(result, response);
+        return result;
+      }
+      var body = await response.Content.ReadAsStringAsync();
+      var data = JsonSerializer.Deserialize<T>(body, SerializeOptions);
+      if (data is null) throw new InvalidDataException("DrIA a renvoyé une réponse vide.");
+      result.SetSuccessful(data);
+    }
+    catch (Exception ex) { SetFailure(result, ex); }
+    return result;
+  }
+
+  private static byte[] CompatibleJsonExport(byte[] bytes)
+  {
+    using var document = JsonDocument.Parse(bytes);
+    return Encoding.UTF8.GetBytes(IamlStudyCompatibility.PreparePayload(document.RootElement).GetRawText());
+  }
+
+  private async Task<ResponseService<IFormFile>> Download(string path, string fileName, HttpContent? content = null, Func<byte[], byte[]>? prepare = null)
+  {
+    var result = new ResponseService<IFormFile>();
+    try
+    {
+      using var request = new HttpRequestMessage(content == null ? HttpMethod.Get : HttpMethod.Post, $"{_iaUrl}/{path}") { Content = content };
+      using var response = await Http.SendAsync(request);
+      if (!response.IsSuccessStatusCode)
+      {
+        await ReadError(result, response);
+        return result;
+      }
+      var bytes = await response.Content.ReadAsByteArrayAsync();
+      if (prepare != null) bytes = prepare(bytes);
+      // Own the memory stream for the lifetime of the returned file. Do not return
+      // a stream disposed with the upstream response.
+      var stream = new MemoryStream(bytes, writable: false);
+      var file = new FormFile(stream, 0, bytes.Length, "file", fileName)
       {
         Headers = new HeaderDictionary(),
-        ContentType = httpResponse.Content.Headers.ContentType?.ToString() ?? "application/octet-stream"
+        ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream"
       };
-      response.SetSuccessful(formFile);
-      return response;
+      result.SetSuccessful(file);
     }
-    catch (Exception exception)
-    {
-      response.AddError("Download Model route : " + exception.Message);
-      return response;
-    }
+    catch (Exception ex) { SetFailure(result, ex); }
+    return result;
   }
 
-  async public Task<ResponseService<ExplainModelOutDTO>> ExplainModel(byte[] projectFile, byte[] modelFile)
+  private static async Task ReadError(ResponseServiceAbstract result, HttpResponseMessage response)
   {
-    var response = new ResponseService<ExplainModelOutDTO>();
+    result.HttpStatusCode = (int)response.StatusCode;
+    var body = await response.Content.ReadAsStringAsync();
+    var error = $"DrIA : HTTP {(int)response.StatusCode}.";
     try
     {
-      using (var http = new HttpClient())
-      {
-        var requestContent = new MultipartFormDataContent
-        {
-            { new ByteArrayContent(projectFile), "dataset", "filedataset" },
-            { new ByteArrayContent(modelFile), "pipeline", "filepipeline" }
-        };
-        var httpResponse = await http.PostAsync($"{_ia_url}/explain", requestContent);
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<ExplainModelOutDTO>(httpResponseBody, _serializeOptions)!);
-      }
-      return response;
+      using var json = JsonDocument.Parse(body);
+      if (json.RootElement.TryGetProperty("error", out var message) && message.ValueKind == JsonValueKind.String)
+        error = message.GetString()!;
     }
-    catch (Exception exception)
-    {
-      response.AddError("Explain Model route : " + exception.Message);
-      return response;
-    }
+    catch (JsonException) { /* Upstream proxy responses need not be JSON. */ }
+    result.Error = error;
+    result.AddError(error);
   }
 
-  async public Task<ResponseService<GetModelTextExplanationOutDTO>> GetTextExplanation(string processRemoteId, int modelRemoteId)
+  private static ResponseService<T> Failure<T>(Exception error)
   {
-    var response = new ResponseService<GetModelTextExplanationOutDTO>();
-    try
-    {
-      using (var http = new HttpClient())
-      {
-        var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{processRemoteId}/model/{modelRemoteId}/explanations");
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<GetModelTextExplanationOutDTO>(httpResponseBody, _serializeOptions)!);
-      }
-      return response;
-    }
-    catch (Exception exception)
-    {
-      response.AddError("Get Text Explanation route : " + exception.Message);
-      return response;
-    }
+    var response = new ResponseService<T>();
+    SetFailure(response, error);
+    return response;
   }
 
-  async public Task<ResponseService<SplitOutDTO>> Split(IFormFile file, Project project)
+  private static void SetFailure(ResponseServiceAbstract result, Exception error)
   {
-    var response = new ResponseService<SplitOutDTO>();
-    byte[] formatedFile;
-    if (project.DatasetHasIdColumnList.Length == 0)
-    {
-      formatedFile = await IFormFileToByteArray(file);
-    }
-    else
-    {
-      formatedFile = await FormatFileForPipeline(file, project);
-    }
-    try
-    {
-      using (var http = new HttpClient())
-      {
-        var requestContent = new MultipartFormDataContent
-        {
-            { new ByteArrayContent(formatedFile), "dataset", file.FileName },
-            { new StringContent(project.CsvColumnToPredict), "dataset_target" },
-        };
-        if (project.RowDepedencies) requestContent.Add(new StringContent(string.Join(",", project.RowDepedenciesLinked)), "groups_columns");
-        var httpResponse = await http.PostAsync($"{_ia_url}/split", requestContent);
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<SplitOutDTO>(httpResponseBody, _serializeOptions)!);
-      }
-      return response;
-    }
-    catch (Exception exception)
-    {
-      response.AddError("Split route : " + exception.Message);
-      return response;
-    }
+    result.HttpStatusCode = error is HttpRequestException or TaskCanceledException ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status400BadRequest;
+    result.Error = error is HttpRequestException or TaskCanceledException ? "Le service de DrIA est indisponible ou n'a pas répondu à temps." : error.Message;
+    result.AddError(result.Error);
   }
 
-  async public Task<ResponseService<GetSplitStatusOutDTO>> GetSplitStatus(string splitProcessId)
+  private static JsonObject StudyConfiguration(string json, int? maxDuration = null)
   {
-    var response = new ResponseService<GetSplitStatusOutDTO>();
-    try
+    if (JsonNode.Parse(json) is not JsonObject study || study["schema_version"] is not JsonValue version || !version.TryGetValue<int>(out var value) || value != 1)
+      throw new ArgumentException("Cette configuration utilise l'ancien format de DrIA. Générez une nouvelle étude avec schema_version: 1.");
+    IamlStudyCompatibility.PrepareStudy(study);
+    if (maxDuration.HasValue)
     {
-      using (var http = new HttpClient())
-      {
-        var httpResponse = await http.GetAsync($"{_ia_url}/split/{splitProcessId}/status");
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<GetSplitStatusOutDTO>(httpResponseBody, _serializeOptions)!);
-      }
-      return response;
+      if (maxDuration.Value is < 60 or > 3600) throw new ArgumentException("Le budget de recherche doit être compris entre 60 et 3600 secondes.");
+      if (study["options"] == null) study["options"] = new JsonObject();
+      if (study["options"] is not JsonObject options) throw new ArgumentException("Les options de l'étude doivent être un objet JSON.");
+      options["max_duration"] = maxDuration.Value;
+      if (options["max_stage_duration"] is JsonValue stageDuration && stageDuration.TryGetValue<int>(out var stageBudget) && stageBudget > maxDuration.Value)
+        options["max_stage_duration"] = maxDuration.Value;
     }
-    catch (Exception exception)
-    {
-      response.AddError("Get Split Status route : " + exception.Message);
-      return response;
-    }
+    return study;
   }
 
-  async public Task<ResponseService<IFormFile>> GetSplitTrainFile(string splitProcessId)
+  private static MultipartFormDataContent DataContent(RunPipelineFileDTO train, RunPipelineFileDTO? test, string target, string[] groups, string[] ids, string? time, string? eventValue)
   {
-    var response = new ResponseService<IFormFile>();
-    try
+    if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("La colonne cible est obligatoire.");
+    if (time == target) throw new ArgumentException("Les colonnes d'événement et de temps doivent être distinctes.");
+    if (groups.Any(name => name == target || name == time))
+      throw new ArgumentException("Les colonnes de groupes doivent être distinctes des colonnes cibles.");
+    var excluded = ids.Concat(groups).Except([target, time ?? ""]).ToArray();
+    // External training groups keep validation grouped while both feature files
+    // share the fitted model's schema, including during independent evaluation.
+    var groupFile = groups.Length > 0 ? SelectCsv(train.File, groups) : null;
+    var content = new MultipartFormDataContent
     {
-      MemoryStream trainStream;
-      using (var http = new HttpClient())
-      {
-        var httpResponse = await http.GetAsync($"{_ia_url}/split/{splitProcessId}/train");
-        httpResponse.EnsureSuccessStatusCode();
-        var content = await httpResponse.Content.ReadAsByteArrayAsync();
-        trainStream = new MemoryStream(content);
-        var formFile = new FormFile(baseStream: trainStream, baseStreamOffset: 0, length: content.Length, name: "", fileName: $"Train{splitProcessId}.csv")
-        {
-          Headers = new HeaderDictionary()
-        };
-        formFile.ContentType = httpResponse.Content.Headers.ContentType?.MediaType?.ToString() ?? "text/csv";
-        response.SetSuccessful(formFile);
-      }
-      return response;
-    }
-    catch (Exception exception)
-    {
-      response.AddError("Get Split Train File route : " + exception.Message);
-      return response;
-    }
-  }
-
-  async public Task<ResponseService<IFormFile>> GetSplitTestFile(string splitProcessId)
-  {
-    var response = new ResponseService<IFormFile>();
-    MemoryStream testStream;
-    try
-    {
-      using (var http = new HttpClient())
-      {
-        var httpResponse = await http.GetAsync($"{_ia_url}/split/{splitProcessId}/test");
-        httpResponse.EnsureSuccessStatusCode();
-        var content = await httpResponse.Content.ReadAsByteArrayAsync();
-        testStream = new MemoryStream(content);
-        var formFile = new FormFile(baseStream: testStream, baseStreamOffset: 0, length: content.Length, name: "", fileName: $"Test{splitProcessId}.csv")
-        {
-          Headers = new HeaderDictionary()
-        };
-        formFile.ContentType = httpResponse.Content.Headers.ContentType?.MediaType?.ToString() ?? "text/csv";
-        response.SetSuccessful(formFile);
-        return response;
-      }
-    }
-    catch (Exception exception)
-    {
-      response.AddError("Get Split Test File route : " + exception.Message);
-      return response;
-    }
-  }
-
-  public async Task<ResponseService<IFormFile>> DownloadModelFile(string jobId, int modelRemoteId)
-  {
-    var response = new ResponseService<IFormFile>();
-    MemoryStream stream;
-    try
-    {
-      using (var http = new HttpClient())
-      {
-        var httpResponse = await http.GetAsync($"{_ia_url}/jobs/{jobId}/model/{modelRemoteId}/download");
-        httpResponse.EnsureSuccessStatusCode();
-        var content = await httpResponse.Content.ReadAsByteArrayAsync();
-        stream = new MemoryStream(content);
-        var formFile = new FormFile(baseStream: stream, baseStreamOffset: 0, length: content.Length, name: "", fileName: $"{jobId}_{modelRemoteId}.pickle")
-        {
-          Headers = new HeaderDictionary()
-        };
-        formFile.ContentType = httpResponse.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
-        response.SetSuccessful(formFile);
-        return response;
-      }
-    }
-    catch (Exception exception)
-    {
-      response.AddError("Download Model File route : " + exception.Message);
-      return response;
-    }
-  }
-
-  public async Task<ResponseService<Dictionary<string, Plot>>> GetExplainShapPlots(string explainProcessRemoteId)
-  {
-    var response = new ResponseService<Dictionary<string, Plot>>();
-    try
-    {
-      using (var http = new HttpClient())
-      {
-        var httpResponse = await http.GetAsync($"{_ia_url}/explain/{explainProcessRemoteId}/shap_plots?format=json");
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<Dictionary<string, Plot>>(httpResponseBody, _serializeOptions)!);
-      }
-      return response;
-    }
-    catch (Exception exception)
-    {
-      response.AddError("Get Explain ShapPlots route : " + exception.Message);
-      return response;
-    }
-  }
-
-  public async Task<ResponseService<GetModelFeaturesInDTO>> GetExplainFeatures(string explainProcessRemoteId)
-  {
-    var response = new ResponseService<GetModelFeaturesInDTO>();
-    try
-    {
-      using (var http = new HttpClient())
-      {
-        var httpResponse = await http.GetAsync($"{_ia_url}/explain/{explainProcessRemoteId}/features");
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<GetModelFeaturesInDTO>(httpResponseBody, _serializeOptions)!);
-      }
-      return response;
-    }
-    catch (Exception exception)
-    {
-      response.AddError("Get Explain Features route : " + exception.Message);
-      return response;
-    }
-  }
-
-  public async Task<ResponseService<ExplainStatusOutDTO>> GetExplainStatus(string explainProcessRemoteId)
-  {
-    var response = new ResponseService<ExplainStatusOutDTO>();
-    try
-    {
-      using (var http = new HttpClient())
-      {
-        var httpResponse = await http.GetAsync($"{_ia_url}/explain/{explainProcessRemoteId}/status");
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        response.SetSuccessful(JsonSerializer.Deserialize<ExplainStatusOutDTO>(httpResponseBody, _serializeOptions)!);
-      }
-      return response;
-    }
-    catch (Exception exception)
-    {
-      response.AddError("Get Explain Status route : " + exception.Message);
-      return response;
-    }
-  }
-
-  public async Task<ResponseService<ProjectFileFormated>> PredictValueUsingAiModel(FileStorageResponseGet modelFile, ProjectFileFormated dataTable, string columnToPredict)
-  {
-    var serviceResponse = new ResponseService<ProjectFileFormated>();
-    var jsonRowToPredict = new List<Dictionary<string, object>>();
-
-    var columnsWithoutTheOneToPredict = dataTable.Columns.Where(col => col.Label != columnToPredict).ToList(); // Remove the column to predict
-
-    foreach (var row in dataTable.Rows)
-    {
-      var serializedKvp = new Dictionary<string, object>();
-
-      foreach (var keyValuePair in row)
-      {
-        var key = keyValuePair.Key;
-        var value = keyValuePair.Value;
-        var initialColLabel = columnsWithoutTheOneToPredict.FirstOrDefault(col => col.Name == key)?.Label;
-
-        if (initialColLabel != null)
-        {
-          serializedKvp[initialColLabel] = value;
-        }
-      }
-
-      jsonRowToPredict.Add(serializedKvp);
-    }
-
-    using (var http = new HttpClient())
-    {
-      var requestContent = new MultipartFormDataContent
-        {
-          { new ByteArrayContent(modelFile.FileBytes!), "pipeline", "model" },
-          { new StringContent(JsonSerializer.Serialize(jsonRowToPredict), Encoding.UTF8, "application/json"), "json_row" }
-        };
-      var httpResponse = await http.PostAsync($"{_ia_url}/predict", requestContent);
-      httpResponse.EnsureSuccessStatusCode();
-      string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-      var predictResponse = JsonSerializer.Deserialize<PredictWithModelAiResponseDTO>(httpResponseBody);
-
-      if (predictResponse == null)
-      {
-        serviceResponse.AddError("Prediction response is null.");
-        return serviceResponse;
-      }
-
-      ProjectFileFormated dataTableWithPrediction;
-
-      int index = 0;
-      foreach (var predictionRowValue in predictResponse.prediction)
-      {
-        dataTable.Rows[index][columnToPredict.Replace(" ", "")] = predictionRowValue;
-        index++;
-      }
-
-      serviceResponse.SetSuccessful(dataTable);
-    }
-
-    // Return the service response
-    return serviceResponse;
-  }
-
-  public async Task<ResponseService<GetProjectBaselineMetricsInDTO>> GetProjectBaselineMetrics(RunPipelineFileDTO runPipelineTrainFileDTO, RunPipelineFileDTO runPipelineTestFileDTO, StartProjectInDTO project)
-  {
-    var serviceResponse = new ResponseService<GetProjectBaselineMetricsInDTO>();
-    try
-    {
-      using (var http = new HttpClient())
-      {
-        var requestContent = new MultipartFormDataContent
-        {
-            { new ByteArrayContent(runPipelineTrainFileDTO.File), "train_dataset", runPipelineTrainFileDTO.FileName },
-            { new ByteArrayContent(runPipelineTestFileDTO.File), "test_dataset", runPipelineTestFileDTO.FileName },
-            { new StringContent(project.CsvColumnToPredict), "dataset_target" },
-        };
-        if (project.RowDepedencies) requestContent.Add(new StringContent(string.Join(",", project.RowDepedenciesLinked)), "groups_columns");
-        if (project.SurvivalModel) requestContent.Add(new StringContent(project.SurvivalModelDatasetTargetTime!), "dataset_target_time");
-        var httpResponse = await http.PostAsync($"{_ia_url}/baseline", requestContent);
-        httpResponse.EnsureSuccessStatusCode();
-        string httpResponseBody = await httpResponse.Content.ReadAsStringAsync();
-        var genBaselineResponse = JsonSerializer.Deserialize<GetProjectBaselineMetricsInDTO>(httpResponseBody);
-
-        if (genBaselineResponse == null)
-        {
-          serviceResponse.AddError("Error generating baseline metrics.");
-          return serviceResponse;
-        }
-
-        // Remove the status from the json
-        GetProjectBaselineMetricsInDTO baselineMetrics = new GetProjectBaselineMetricsInDTO { metrics_info = genBaselineResponse.metrics_info, metrics = genBaselineResponse.metrics, main_metrics = genBaselineResponse.main_metrics };
-
-        serviceResponse.SetSuccessful(baselineMetrics);
-      }
-
-      // Return the service response
-      return serviceResponse;
-    }
-    catch (Exception exception)
-    {
-      serviceResponse.AddError("Get Project Baseline File route : " + exception.Message);
-      return serviceResponse;
-    }
-  }
-
-
-  private static string SerializeToSnakeLowerCase(string pipeline)
-  {
-    var deserializeOptions = new JsonSerializerOptions
-    {
-      PropertyNameCaseInsensitive = true,
-      PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-      Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
+      { new ByteArrayContent(FilterCsv(train.File, excluded)), "train_dataset", train.FileName },
+      { new StringContent(target), "dataset_target" }
     };
-    var deserializedPipelineSnakeLowerCase = JsonSerializer.Deserialize<ProcessPipeline>(pipeline, deserializeOptions);
-
-    var serializeOptions = new JsonSerializerOptions
-    {
-      PropertyNameCaseInsensitive = true,
-      PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-      Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) }
-    };
-
-    return JsonSerializer.Serialize(deserializedPipelineSnakeLowerCase, serializeOptions);
+    if (test is { File.Length: > 0 }) content.Add(new ByteArrayContent(FilterCsv(test.File, excluded)), "test_dataset", test.FileName);
+    if (groupFile != null) content.Add(new ByteArrayContent(groupFile), "groups", "groups.csv");
+    if (time != null) AddSurvival(content, time, eventValue);
+    return content;
   }
 
-  private async static Task<byte[]> FormatFileForPipeline(IFormFile file, Project project)
+  private static void AddSurvival(MultipartFormDataContent content, string? time, string? eventValue)
   {
-    var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+    if (string.IsNullOrWhiteSpace(time)) throw new ArgumentException("La colonne du temps de survie est obligatoire.");
+    content.Add(new StringContent(time), "dataset_target_time");
+    if (!string.IsNullOrWhiteSpace(eventValue))
     {
-      HasHeaderRecord = true,
-      DetectDelimiter = true
-    };
-
-    using var reader = new StreamReader(file.OpenReadStream());
-    using var csvReader = new CsvReader(reader, config);
-    var records = csvReader.GetRecords<dynamic>().ToList();
-
-    using var memoryStream = new MemoryStream();
-    using var writer = new StreamWriter(memoryStream);
-    using var csvWriter = new CsvWriter(writer, CultureInfo.InvariantCulture);
-
-    // Get the headers of the CSV
-    var headerRow = ((IDictionary<string, object>)records.First()).Keys;
-
-    // Filter columns based on the logic:
-    // Keep all columns except those in DatasetHasIdColumnList, unless they are in RowDepedenciesLinked or they're target for the train
-    var filteredHeaders = headerRow
-        .Where(header =>
-            !project.DatasetHasIdColumnList.Contains(header) || (project.RowDepedenciesLinked.Contains(header) && project.DatasetHasIdColumnList.Contains(header)) || header.Equals(project.CsvColumnToPredict) || header.Equals(project.SurvivalModelDatasetTargetTime)
-        ).ToList();
-
-    // Write the filtered headers to the new CSV
-    foreach (var header in filteredHeaders)
-    {
-      csvWriter.WriteField(header);
+      using var json = JsonDocument.Parse(eventValue);
+      if (json.RootElement.ValueKind is not (JsonValueKind.String or JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False))
+        throw new ArgumentException("La valeur d'événement doit être un texte, un nombre ou un booléen JSON.");
+      content.Add(new StringContent(json.RootElement.GetRawText()), "event_value");
     }
-    csvWriter.NextRecord();
-
-    // Write the filtered records
-    foreach (var record in records)
-    {
-      var recordAsDict = (IDictionary<string, object>)record;
-
-      // Filter the record to only include fields that are in the filteredHeaders
-      var filteredRecord = filteredHeaders.Select(header => recordAsDict[header]).ToList();
-
-      // Write the filtered record to the new CSV
-      foreach (var field in filteredRecord)
-      {
-        csvWriter.WriteField(field);
-      }
-      csvWriter.NextRecord();
-    }
-
-    await writer.FlushAsync();
-
-    // Return the filtered CSV file as a byte array
-    return memoryStream.ToArray();
   }
 
-
-
-
-  public async static Task<byte[]> IFormFileToByteArray(IFormFile file)
+  private static byte[] FilterCsv(byte[] file, IEnumerable<string> excluded)
   {
-    await using var memoryStream = new MemoryStream();
-    await file.CopyToAsync(memoryStream);
-    return memoryStream.ToArray();
+    var excludedColumns = excluded.ToHashSet(StringComparer.Ordinal);
+    if (excludedColumns.Count == 0) return file;
+    return ProjectCsv(file, excludedColumns, null);
   }
 
+  private static byte[] SelectCsv(byte[] file, string[] selected)
+  {
+    if (selected.Length == 0 || selected.Any(string.IsNullOrWhiteSpace) || selected.Distinct(StringComparer.Ordinal).Count() != selected.Length)
+      throw new ArgumentException("Les noms de colonnes de groupes doivent être uniques et non vides.");
+    return ProjectCsv(file, null, selected.ToHashSet(StringComparer.Ordinal));
+  }
+
+  private static byte[] ProjectCsv(byte[] file, HashSet<string>? excluded, HashSet<string>? selected)
+  {
+    using var reader = new StreamReader(new MemoryStream(file));
+    using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true, DetectDelimiter = true });
+    if (!csv.Read() || !csv.ReadHeader()) throw new ArgumentException("Le fichier de données ne contient pas d'en-tête.");
+    var headers = csv.HeaderRecord ?? throw new ArgumentException("Le fichier de données ne contient pas d'en-tête.");
+    if (selected != null)
+    {
+      var missing = selected.Except(headers, StringComparer.Ordinal).ToArray();
+      if (missing.Length > 0) throw new ArgumentException($"Colonnes de groupes absentes du fichier d'entraînement : {string.Join(", ", missing)}.");
+    }
+    var kept = headers.Select((name, index) => (name, index))
+      .Where(c => selected != null ? selected.Contains(c.name) : !excluded!.Contains(c.name)).ToArray();
+    using var memory = new MemoryStream();
+    using var writer = new StreamWriter(memory, new UTF8Encoding(false), leaveOpen: true);
+    using var output = new CsvWriter(writer, CultureInfo.InvariantCulture);
+    foreach (var column in kept) output.WriteField(column.name);
+    output.NextRecord();
+    while (csv.Read())
+    {
+      foreach (var column in kept) output.WriteField(csv.GetField(column.index));
+      output.NextRecord();
+    }
+    writer.Flush();
+    return memory.ToArray();
+  }
+
+  public static async Task<byte[]> IFormFileToByteArray(IFormFile file)
+  {
+    await using var memory = new MemoryStream();
+    await file.CopyToAsync(memory);
+    return memory.ToArray();
+  }
 }

@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Server.Models;
 using static Server.Models.Process;
 
@@ -8,14 +10,20 @@ public record RunPipelineInDTO
   public required byte[] train_dataset = [];
   public byte[]? test_dataset;
   public required string dataset_target = string.Empty;
-  public required Process.ProcessPipeline pipeline;
+  public required ProcessPipeline configuration;
 }
+
 public record RunPipelineOutDTO
 {
-  public required string Id { get; set; }
-  public required string Socket { get; set; }
-  public required EProcessStatut Status { get; set; }
-  public required int MaxDuration { get; set; }
+  public string Id { get; set; } = string.Empty;
+  public string? Socket { get; set; }
+  public EProcessStatut Status { get; set; }
+  public int MaxDuration { get; set; } = 60;
+  public double? TotalTimeout { get; set; }
+  public int? SchemaVersion { get; set; }
+  public string? Mode { get; set; }
+  [JsonIgnore]
+  public string? ConfigurationJson { get; set; }
 }
 
 public record GeneratePipelineOutDTO
@@ -28,32 +36,53 @@ public record GeneratePipelineWebServiceJsonDTO
   public required object Pipeline;
 }
 
+public record MetricObjective
+{
+  public string key { get; init; } = string.Empty;
+  public bool greater_is_better { get; init; }
+}
+
 public record JobStatusOutDTO
 {
-  public required string id { get; init; }
-  public required string socket { get; init; }
-  public required JobStatusOut status { get; init; }
-  public float? best_train_accuracy { get; init; }
-  public float? best_test_accuracy { get; init; }
+  public string id { get; init; } = string.Empty;
+  public string? socket { get; init; }
+  public JobStatusOut status { get; init; } = new();
+  public double? best_train_metric { get; init; }
+  public double? best_test_metric { get; init; }
+  public MetricObjective? objective { get; init; }
+  public string? score_source { get; init; }
+  public string? mode { get; init; }
+  public int? chosen_candidate { get; init; }
+  public string? error { get; init; }
+  public string? cache_error { get; init; }
+  public JsonElement? logs { get; init; }
 }
 
 public record ExplainStatusOutDTO
 {
-  public required string id { get; init; }
-  public required string socket { get; init; }
-  public required JobStatusExplainOut status { get; init; }
+  public string id { get; init; } = string.Empty;
+  public string? socket { get; init; }
+  public JobStatusExplainOut status { get; init; } = new();
+  public JsonElement? report { get; init; }
+  public string? error { get; init; }
+  public string? cache_error { get; init; }
+}
+
+public record ExplainResultsOutDTO : ExplainStatusOutDTO
+{
+  public Dictionary<string, JsonElement> results { get; init; } = [];
 }
 
 public record JobStatusExplainOut
 {
-  public required EExplainStatut current { get; init; } // Change to string for deserialization
-  public required List<JobStatusHistory> history { get; init; } // Change to List
+  public EExplainStatut current { get; init; }
+  public List<JobStatusHistory> history { get; init; } = [];
 }
 
 public record JobStatusOut
 {
-  public required EProcessStatut current { get; init; } // Change to string for deserialization
-  public required List<JobStatusHistory> history { get; init; } // Change to List
+  public EProcessStatut current { get; init; }
+  public List<JobStatusHistory> history { get; init; } = [];
 }
 
 public enum EExplainStatut
@@ -61,106 +90,109 @@ public enum EExplainStatut
   COMPUTING,
   FINISHED,
   CRASHED,
-  QUEUED
+  QUEUED,
+  CACHED
 }
 
 public record JobStatusHistory
 {
-  public required string date { get; init; } // Change type to DateTime
-  public required string status { get; init; } // Change type to string
+  public string date { get; init; } = string.Empty;
+  public string status { get; init; } = string.Empty;
 }
+
 public record CancelJobOutDTO
 {
-  public required string Id;
-  public required EProcessStatut status;
+  public string Id { get; init; } = string.Empty;
+  public EProcessStatut status { get; init; }
 }
 
 public record GetJobMetricsOutDTO
 {
-  public required string id { get; init; }
-  public required Metrics[] metrics { get; init; }
+  public string id { get; init; } = string.Empty;
+  public Metrics[] metrics { get; init; } = [];
 }
 
 public record Metrics
 {
-  public required int id { get; init; }
-  public required Dictionary<string, MetricInfo> metrics_info { get; init; }
-  public required ModelInfo model_info { get; init; }
-  public required string main_metrics { get; init; }
-  public required Dictionary<string, float> metrics_train { get; init; }
-  public required Dictionary<string, float>? metrics_test { get; init; }
-  public required Plot[] plots { get; init; }
+  public int id { get; init; }
+  public Dictionary<string, MetricInfo> metrics_info { get; init; } = [];
+  public ModelInfo model_info { get; init; } = new();
+  public string? main_metric { get; init; }
+  public string? main_metrics { get; init; }
+  public MetricObjective? objective { get; init; }
+  public string? score_source { get; init; }
+  public Dictionary<string, double?> metrics_train { get; init; } = [];
+  public Dictionary<string, double?>? metrics_test { get; init; }
+  public Plot[]? plots { get; init; }
+  public JsonElement? metric_report { get; init; }
+  public JsonElement? evaluation_report { get; init; }
+  public JsonElement? explanation_report { get; init; }
+  public JsonElement? metric_coverage { get; init; }
+  public JsonElement? training_audit { get; init; }
 }
 
 public record MetricInfo
 {
-  public required string name { get; init; }
-  public required string desc { get; init; }
+  public string name { get; init; } = string.Empty;
+  public string desc { get; init; } = string.Empty;
+  public bool? greater_is_better { get; init; }
 }
 
 public record ModelInfo
 {
-  public required string name { get; init; }
-  public required string description { get; init; }
-  public required string description_long { get; init; }
+  public string name { get; init; } = string.Empty;
+  public string description { get; init; } = string.Empty;
+  public string description_long { get; init; } = string.Empty;
 }
 
 public record Plot
 {
-  public required string title { get; init; }
-  public required string description { get; init; }
-  public required string image { get; init; }
+  public string title { get; init; } = string.Empty;
+  public string description { get; init; } = string.Empty;
+  public string image { get; init; } = string.Empty;
 }
-
 
 public record ExplainModelInDTO
 {
   public required IFormFile dataset;
 }
+
 public record ExplainModelOutDTO
 {
-  public required string id { get; init; }
-  public required string socket { get; init; }
-  public required string status { get; init; }
+  public string id { get; init; } = string.Empty;
+  public string? socket { get; init; }
+  public string status { get; init; } = string.Empty;
 }
 
 public record GetModelTextExplanationOutDTO
 {
-  public required string id { get; init; }
-  public required int rid { get; init; }
-  public required string[] explanations { get; init; }
+  public string id { get; init; } = string.Empty;
+  public int rid { get; init; }
+  public string[] explanations { get; init; } = [];
+  public Dictionary<string, JsonElement> results { get; init; } = [];
+  public JsonElement? configured_report { get; init; }
+  public EExplainStatut? status { get; init; }
+  public string? explainer_id { get; init; }
 }
 
+// Split is synchronous. Its identifier is immediately usable for both downloads.
 public record SplitOutDTO
 {
-  public required string id { get; set; }
-  public required string socket { get; set; }
-  public required EProcessStatut status { get; set; }
-}
-
-public record GetSplitStatusOutDTO
-{
-  public required string id { get; init; }
-  public required string socket { get; init; }
-  public required SplitStatus status { get; init; }
-
-  public record SplitStatus
-  {
-    public required EProcessStatut current;
-    public object? history;
-  }
+  public string id { get; set; } = string.Empty;
+  public JsonElement? train { get; set; }
+  public JsonElement? test { get; set; }
 }
 
 public record GetModelFeaturesInDTO
 {
-  public required Model.ModelExplanation.ModelExplainFeature[] features { get; set; }
+  public Dictionary<string, JsonElement> features { get; set; } = [];
 }
 
 public record RunNewProcessDTO
 {
   public required long ProjectId { get; set; }
-  public required ProcessPipeline Pipeline { get; set; } // JSON
-  public required int MaxDuration { get; set; } = 45;
+  public required ProcessPipeline Pipeline { get; set; }
+  public int MaxDuration { get; set; } = 60;
 }
 
 public record RunNewPipelineDTO
@@ -174,7 +206,7 @@ public record RunNewPipelineDTO
 public record GetTrainAndTestFilesOutDTO
 {
   public required RunPipelineFileDTO TrainFile { get; set; }
-  public required RunPipelineFileDTO TestFile { get; set; }
+  public RunPipelineFileDTO? TestFile { get; set; }
 }
 
 public record RunPipelineFileDTO
@@ -185,19 +217,28 @@ public record RunPipelineFileDTO
 
 public record PredictWithModelAiResponseDTO
 {
-  public required string status { get; init; }
-  public required List<object> prediction { get; init; }
+  public string status { get; init; } = string.Empty;
+  public string method { get; init; } = "predict";
+  public JsonElement prediction { get; init; }
+  public JsonElement? classes { get; init; }
 }
 
 public record RestartProcessRequestDTO
 {
-  public required int MaxDuration { get; set; } = 45;
+  public int MaxDuration { get; set; } = 60;
 }
 
 public record GetProjectBaselineMetricsInDTO
 {
+  public string? id { get; init; }
   public string? status { get; init; }
-  public required Dictionary<string, MetricInfo> metrics_info { get; init; }
-  public required Dictionary<string, float> metrics { get; init; }
-  public required string main_metrics { get; init;}
+  public Dictionary<string, MetricInfo> metrics_info { get; init; } = [];
+  public Dictionary<string, double?> metrics { get; init; } = [];
+  public Dictionary<string, double?>? metrics_test { get; init; }
+  public string? main_metric { get; init; }
+  public string? main_metrics { get; init; }
+  public MetricObjective? objective { get; init; }
+  public string? score_source { get; init; }
+  public JsonElement? metric_report { get; init; }
+  public JsonElement? evaluation_report { get; init; }
 }

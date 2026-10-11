@@ -4,10 +4,11 @@ import ModelCardContent from "components/projects/ModelCardContent.vue";
 import ModelInlineContent from "components/projects/ModelInlineContent.vue";
 import { useRouter } from "vue-router";
 import { IModel, IProcess, IProject } from "../models";
+import { compareMetrics, displayServiceText, formatScore, metricKey } from "src/utils/iaml";
 import ProcessCardContent from "./ProcessCardContent.vue";
+import { displayServiceName } from 'src/utils/service-label';
 
 const router = useRouter();
-
 const props = defineProps<{
   processes: IProcess[];
   projectId: number;
@@ -15,74 +16,43 @@ const props = defineProps<{
   baselineModel?: IProject["metricsBaseline"];
 }>();
 
-const lastRunningProcess = computed(() => {
-  if (!props.processes) return null;
-  return props.processes
-    .map((p) => p)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-});
+const bestModel = computed(() => props.processes
+  .flatMap((process) => process.models ?? [])
+  .slice().sort((a, b) => compareMetrics(a.metrics, b.metrics))[0]);
 
-const bestModel = computed(
-  () =>
-    props.processes
-      .map((p) => p.models[0])
-      .sort((a, b) => {
-        if (!a.metrics.metrics_test || !b.metrics.metrics_test) {
-          return (
-            b.metrics.metrics_train[b.metrics.main_metrics] -
-            a.metrics.metrics_train[a.metrics.main_metrics]
-          );
-        }
-        return (
-          b.metrics.metrics_test[b.metrics.main_metrics] -
-          a.metrics.metrics_test[a.metrics.main_metrics]
-        );
-      })[0]
-);
-
-function getParentProcessOfModel(model: IModel) {
-  return props.processes.filter((p) =>
-    p.models.find((m) => JSON.stringify(m) === JSON.stringify(model))
-  )[0];
+function getParentProcessOfModel(model: IModel): IProcess {
+  return props.processes.find((process) => process.models?.some((candidate) => candidate.id === model.id))!;
 }
 
 function forkPipeline() {
+  if (!bestModel.value) return;
   const processId = getParentProcessOfModel(bestModel.value)?.id;
   if (!processId) return;
-  router.push({
-    name: "pipeline-fork",
-    params: { id: props.projectId, processId },
-  });
+  router.push({ name: "pipeline-fork", params: { id: props.projectId, processId } });
 }
 
 function seeBest() {
+  if (!bestModel.value) return;
   const processId = getParentProcessOfModel(bestModel.value)?.id;
   if (!processId) return;
-  router.push({
-    name: "model-show",
-    params: { id: props.projectId, processId, modelId: bestModel.value.id },
-  });
+  router.push({ name: "model-show", params: { id: props.projectId, processId, modelId: bestModel.value.id } });
 }
 
-// computeds
+const baseline = computed(() => props.baselineModel?.metrics?.[0]);
 const sortedMetrics = computed(() => {
-  let metrics = Object.entries(props.baselineModel?.metrics ?? []);
-  metrics = metrics.sort((entryA, entryB) => {
-    if (
-      entryA[0] === (props.baselineModel?.main_metrics ?? "") &&
-      entryB[0] === (props.baselineModel?.main_metrics ?? "")
-    ) {
-      return 0;
-    }
-    if (
-      entryA[0] === (props.baselineModel?.main_metrics ?? "") &&
-      entryB[0] !== (props.baselineModel?.main_metrics ?? "")
-    ) {
-      return -1;
-    }
-    return 1;
-  });
-  return metrics;
+  if (!baseline.value) return [];
+  const scores = baseline.value.metrics_test ?? baseline.value.metrics_train ?? {};
+  return Object.entries(scores)
+    .sort((a, b) => Number(b[0] === metricKey(baseline.value!)) - Number(a[0] === metricKey(baseline.value!)));
+});
+const baselinePending = computed(() => ["QUEUED", "RUNNING"].includes(props.baselineModel?.status?.current ?? ""));
+const baselineSource = computed(() => {
+  const metrics = baseline.value;
+  const greater = metrics?.objective?.greater_is_better ?? (metrics ? metrics.metrics_info?.[metricKey(metrics)]?.greater_is_better : undefined);
+  const direction = greater === undefined ? "" : greater ? "Maximiser." : "Minimiser.";
+  const source = metrics?.metrics_test ? "Jeu de test indépendant."
+    : "Scores sur les données d’entraînement (in_sample), distincts de la validation croisée.";
+  return `${source} ${direction}`;
 });
 </script>
 
@@ -130,11 +100,15 @@ const sortedMetrics = computed(() => {
 
             <div class="row q-col-gutter-x-sm full-width">
               <div class="col-12">
-                <q-icon name="help" class="q-mb-xs" />
+                <q-icon name="help" class="q-mb-xs"><q-tooltip>{{ baselineSource }}</q-tooltip></q-icon>
                 Results of a model without Dr IA optimizations
               </div>
             </div>
             <div class="q-mt-md" v-if="baselineModel">
+              <q-chip v-if="baselineModel.status && !baseline" :icon="baselinePending ? 'hourglass_top' : ['FINISHED', 'CACHED'].includes(baselineModel.status.current) ? 'check' : 'error'">
+                {{ baselineModel.status.current }}
+                <q-tooltip v-if="baselineModel.error">{{ displayServiceText(baselineModel.error) }}</q-tooltip>
+              </q-chip>
               <q-item
                 v-for="item in sortedMetrics"
                 :key="item[0]"
@@ -144,10 +118,10 @@ const sortedMetrics = computed(() => {
                 <q-item-section>
                   <div class="flex row items-center justify-between">
                     <div class="text-weight-medium">
-                      {{ item[1] }}
+                      {{ formatScore(item[1]) }}
                     </div>
                     <div class="text-weight-medium">
-                      {{ baselineModel.metrics_info[item[0]].name }}
+                      {{ displayServiceName(baseline?.metrics_info?.[item[0]]?.name ?? item[0]) }}
                     </div>
                   </div>
                 </q-item-section>
@@ -173,7 +147,7 @@ const sortedMetrics = computed(() => {
             <ProcessCardContent :process="process" :is-loading="isLoading" />
           </template>
 
-          <template v-for="(model, index) in process.models" :key="model.id">
+          <template v-for="(model, index) in process.models ?? []" :key="model.id">
             <q-card-section :class="index === 0 ? 'bg-green-2' : 'bg-blue-1'">
               <ModelInlineContent
                 :process-id="process.id"

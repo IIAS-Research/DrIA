@@ -1,4 +1,5 @@
 
+using System.Text.Json;
 using Server.DTOs;
 using Server.Models;
 using Server.Repositories;
@@ -12,12 +13,14 @@ public class ModelService : ApplicationService
   private readonly ModelRepository _modelRepository;
   private readonly FileStorageService _fileStorageService;
   private readonly IaWebService _iaWebService;
+  private readonly IaPullingExplainService _pullingService;
 
-  public ModelService(ModelRepository modelRepository, FileStorageService fileStorageService, IaWebService iaWebService)
+  public ModelService(ModelRepository modelRepository, FileStorageService fileStorageService, IaWebService iaWebService, IaPullingExplainService pullingService)
   {
     _modelRepository = modelRepository;
     _fileStorageService = fileStorageService;
     _iaWebService = iaWebService;
+    _pullingService = pullingService;
   }
 
   async public Task<ResponseService<Model>> CreateModel(long processId, Metrics metrics, ModelBibliography bibliography, int iaRemoteId)
@@ -71,19 +74,21 @@ public class ModelService : ApplicationService
     return response;
   }
 
-  async public Task<ResponseService<ExplainModelOutDTO>> StartModelExplain(Model modelWithProcess, byte[] projectTestFile)
+  async public Task<ResponseService<ExplainModelOutDTO>> StartModelExplain(Model modelWithProcess, byte[] projectTestFile, JsonElement? options = null)
   {
     var response = new ResponseService<ExplainModelOutDTO>();
 
-    var responseModelFile = await GetModelFileByModelId(modelWithProcess.Id);
-    if (!response.EnsureOtherServiceIsSuccess(responseModelFile)) return response;
-
-    var responseFile = await _fileStorageService.GetFileFromStorageAsync(responseModelFile.Data.StorageFilename);
-    if (!response.EnsureOtherServiceIsSuccess(responseFile)) return response;
-
-    var responseExplanation = await _iaWebService.ExplainModel(projectTestFile, responseFile.Data.FileBytes!);
+    var process = modelWithProcess.Process!;
+    var responseExplanation = await _iaWebService.ExplainCandidate(process.Project!, projectTestFile, process.IaRemoteId, modelWithProcess.IaRemoteId, options);
+    if (!responseExplanation.IsSuccess && responseExplanation.HttpStatusCode == 404)
+    {
+      var file = await GetModelFileById(modelWithProcess.Id);
+      if (!response.EnsureOtherServiceIsSuccess(file)) return response;
+      responseExplanation = await _iaWebService.ExplainModel(projectTestFile, file.Data!.FileBytes!, process.Project!, options);
+    }
     if (!response.EnsureOtherServiceIsSuccess(responseExplanation)) return response;
-
+    await _modelRepository.SaveExplanation(modelWithProcess, new ModelExplanation { id = responseExplanation.Data.id, status = responseExplanation.Data.status });
+    await _pullingService.CreateIaConnection(responseExplanation.Data.id, modelWithProcess.Id).StartPulling();
     response.SetSuccessful(responseExplanation.Data);
     return response;
   }
@@ -92,6 +97,7 @@ public class ModelService : ApplicationService
   {
     var response = new ResponseService();
     await _modelRepository.SaveTextExplanation(model, explanations);
+    response.SetSuccessful();
     return response;
   }
 
@@ -101,6 +107,13 @@ public class ModelService : ApplicationService
     await _modelRepository.SaveExplanation(model, explanation);
     response.SetSuccessful();
     return response;
+  }
+
+  public Task<bool> SaveModelExplanationIfCurrent(Model model, ModelExplanation explanation, string explainerId)
+  {
+    if (string.IsNullOrWhiteSpace(model.Explanation) || JsonSerializer.Deserialize<ModelExplanation>(model.Explanation)?.id != explainerId)
+      return Task.FromResult(false);
+    return _modelRepository.SaveExplanationIfUnchanged(model.Id, model.Explanation, explanation);
   }
 
   async public Task<ResponseService<ModelFile>> GetModelFileByModelId(long modelId)
@@ -148,10 +161,15 @@ public class ModelService : ApplicationService
     else
     {
       var modelFile = await _fileStorageService.GetFileFromStorageAsync(modelFileEntity.StorageFilename);
-      response.EnsureOtherServiceIsSuccess(modelFile);
+      if (!response.EnsureOtherServiceIsSuccess(modelFile)) return response;
       response.SetSuccessful(modelFile.Data);
     }
     return response;
+  }
+
+  public async Task SaveReports(Model model, JsonElement? report, JsonElement? audit, string? markdown)
+  {
+    await _modelRepository.SaveReports(model, report, audit, markdown);
   }
 
 }

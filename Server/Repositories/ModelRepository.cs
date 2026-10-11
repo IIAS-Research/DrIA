@@ -21,6 +21,7 @@ public class ModelRepository(MainDbContext dbContext, IServiceScopeFactory servi
   {
     return await _dbContext.Models
       .Include(m => m.Process)
+      .ThenInclude(p => p!.Project)
       .FirstOrDefaultAsync(m => m.Id == id);
   }
 
@@ -31,6 +32,8 @@ public class ModelRepository(MainDbContext dbContext, IServiceScopeFactory servi
 
   public async Task<Model> CreateModel(long processId, Metrics metrics, ModelBibliography bibliography, int iaRemoteId)
   {
+    var existing = await _dbContext.Models.FirstOrDefaultAsync(m => m.ProcessId == processId && m.IaRemoteId == iaRemoteId);
+    if (existing != null) return existing;
     Model model = new Model
     {
       MetricsJson = JsonSerializer.Serialize(metrics),
@@ -72,9 +75,24 @@ public class ModelRepository(MainDbContext dbContext, IServiceScopeFactory servi
     return model;
   }
 
+  public async Task<bool> SaveExplanationIfUnchanged(long modelId, string expectedExplanation, ModelExplanation explanation)
+  {
+    var json = JsonSerializer.Serialize(explanation);
+    return await _dbContext.Models.Where(m => m.Id == modelId && m.Explanation == expectedExplanation)
+      .ExecuteUpdateAsync(update => update.SetProperty(m => m.Explanation, json)) == 1;
+  }
+
+  public async Task SaveReports(Model model, JsonElement? report, JsonElement? audit, string? markdown)
+  {
+    if (report.HasValue) model.ReportJson = report.Value.GetRawText();
+    if (audit.HasValue) model.AuditJson = audit.Value.GetRawText();
+    if (markdown != null) model.ReportMarkdown = markdown;
+    await _dbContext.SaveChangesAsync();
+  }
+
   public async Task<ModelFile?> GetModelFileByModelId(long modelId)
   {
-    var modelFile = await _dbContext.ModelFiles.FirstAsync(mf => mf.ModelId == modelId);
+    var modelFile = await _dbContext.ModelFiles.FirstOrDefaultAsync(mf => mf.ModelId == modelId);
     return modelFile;
   }
 

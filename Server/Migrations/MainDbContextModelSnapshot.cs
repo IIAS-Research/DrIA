@@ -137,6 +137,15 @@ namespace server.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("ReportJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("AuditJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ReportMarkdown")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp without time zone");
 
@@ -229,6 +238,9 @@ namespace server.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("StatusSnapshotJson")
+                        .HasColumnType("jsonb");
+
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
 
@@ -286,6 +298,9 @@ namespace server.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<string>("SurvivalModelDatasetTargetTime")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SurvivalModelEventValue")
                         .HasColumnType("text");
 
                     b.Property<string>("Title")

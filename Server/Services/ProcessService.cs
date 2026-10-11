@@ -8,15 +8,19 @@ namespace Server.Services;
 public class ProcessService : ApplicationService
 {
     private readonly ProcessRepository _processRepository;
+    private readonly IaPullingModelService _pullingService;
 
-    public ProcessService(ProcessRepository processRepository)
+    public ProcessService(ProcessRepository processRepository, IaPullingModelService pullingService)
     {
         _processRepository = processRepository;
+        _pullingService = pullingService;
     }
 
     async public Task<Process> CreateProcess(RunPipelineOutDTO pipelineResponse, string pipelineData, Project project)
     {
-        return await _processRepository.CreateProcess(pipelineResponse, pipelineData, project);
+        var process = await _processRepository.CreateProcess(pipelineResponse, pipelineData, project);
+        await _pullingService.CreateIaConnection(process.IaRemoteId).StartPulling();
+        return process;
     }
 
     public async Task<ResponseService<ProcessPipeline>> GetProcessPipeline(long processId, long projectId)

@@ -17,12 +17,14 @@ public class ProjectsController : ApplicationController
     private readonly ProjectService _projectService;
     private readonly ProcessService _processService;
     private readonly IaWebService _iaWebService;
+    private readonly IaPullingModelService _pullingService;
 
-    public ProjectsController(UserManager<User> userManager, IaWebService iaWebService, IAuthorizationService authorizationService, ProjectService projectRepository, ProcessService processService) : base(userManager, authorizationService)
+    public ProjectsController(UserManager<User> userManager, IaWebService iaWebService, IAuthorizationService authorizationService, ProjectService projectRepository, ProcessService processService, IaPullingModelService pullingService) : base(userManager, authorizationService)
     {
         _projectService = projectRepository;
         _processService = processService;
         _iaWebService = iaWebService;
+        _pullingService = pullingService;
     }
 
     [HttpGet]
@@ -75,47 +77,68 @@ public class ProjectsController : ApplicationController
 
     [HttpPost]
     // [RequestTimeout(milliseconds: 300000)]
-    public async Task<ActionResult<RunPipelineOutDTO>> RegisterProject([FromForm] StartProjectInDTO projectData)
+    public async Task<IActionResult> RegisterProject([FromForm] StartProjectInDTO projectData)
     {
         User? currentUser = await GetCurrentUser();
-        if (currentUser is null) return BadRequest();
+        if (currentUser is null) return Unauthorized();
+
+        using var study = JsonDocument.Parse(projectData.Pipeline);
+        var validation = await _iaWebService.ValidateConfiguration(study.RootElement);
+        if (!validation.IsSuccess) return ServiceFailure(validation);
+        projectData.Pipeline = validation.Data.GetProperty("configuration").GetRawText();
 
         var responseProject = await _projectService.CreateProject(projectData, currentUser!);
-        if (!responseProject.IsSuccess) return BadRequest(responseProject.Errors);
+        if (!responseProject.IsSuccess) return ServiceFailure(responseProject);
+
+        async Task<IActionResult> RejectRegistration(ApplicationService.ResponseServiceAbstract failed)
+        {
+            await _projectService.DeleteProjectById(responseProject.Data.Id);
+            return ServiceFailure(failed);
+        }
 
         var responseSplit = await _iaWebService.Split(projectData.File, responseProject.Data);
-        if (!responseSplit.IsSuccess) return BadRequest(responseSplit.Errors);
-
-
-
-        // Get and save files
+        if (!responseSplit.IsSuccess) return await RejectRegistration(responseSplit);
         var responseGetTrainFile = await _iaWebService.GetSplitTrainFile(responseSplit.Data.id);
-        if (!responseGetTrainFile.IsSuccess) return BadRequest(responseGetTrainFile.Errors);
-        var responseCreateProjectFileTrain = await _projectService.CreateProjectFile(responseGetTrainFile.Data, responseProject.Data, ProjectFile.EProjectFileType.TRAIN);
-        if (!responseCreateProjectFileTrain.IsSuccess) return BadRequest(responseCreateProjectFileTrain.Errors);
+        if (!responseGetTrainFile.IsSuccess) return await RejectRegistration(responseGetTrainFile);
         var responseGetTestFile = await _iaWebService.GetSplitTestFile(responseSplit.Data.id);
-        if (!responseGetTestFile.IsSuccess) return BadRequest(responseGetTestFile.Errors);
-        var responseCreateProjectFileTest = await _projectService.CreateProjectFile(responseGetTestFile.Data, responseProject.Data, ProjectFile.EProjectFileType.TEST);
-        if (!responseCreateProjectFileTest.IsSuccess) return BadRequest(responseCreateProjectFileTest.Errors);
+        if (!responseGetTestFile.IsSuccess) return await RejectRegistration(responseGetTestFile);
+        IFormFile trainFile = responseGetTrainFile.Data;
+        IFormFile? testFile = responseGetTestFile.Data;
 
+        var responseCreateProjectFileTrain = await _projectService.CreateProjectFile(trainFile, responseProject.Data, ProjectFile.EProjectFileType.TRAIN);
+        if (!responseCreateProjectFileTrain.IsSuccess) return await RejectRegistration(responseCreateProjectFileTrain);
+        if (testFile != null)
+        {
+            var responseCreateProjectFileTest = await _projectService.CreateProjectFile(testFile, responseProject.Data, ProjectFile.EProjectFileType.TEST);
+            if (!responseCreateProjectFileTest.IsSuccess) return await RejectRegistration(responseCreateProjectFileTest);
+        }
 
+        RunPipelineFileDTO runPipelineTrainFileDTO = new() { File = await IaWebService.IFormFileToByteArray(trainFile), FileName = trainFile.FileName };
+        RunPipelineFileDTO? runPipelineTestFileDTO = testFile == null ? null : new() { File = await IaWebService.IFormFileToByteArray(testFile), FileName = testFile.FileName };
 
-        RunPipelineFileDTO runPipelineTrainFileDTO = new() { File = await IaWebService.IFormFileToByteArray(responseGetTrainFile.Data), FileName = responseGetTrainFile.Data.FileName };
-        RunPipelineFileDTO runPipelineTestFileDTO = new() { File = await IaWebService.IFormFileToByteArray(responseGetTestFile.Data), FileName = responseGetTestFile.Data.FileName };
+        var getProjectBaselineMetricsResponse = await _iaWebService.StartBaselineAsync(runPipelineTrainFileDTO, runPipelineTestFileDTO, projectData);
+        if (!getProjectBaselineMetricsResponse.IsSuccess) return await RejectRegistration(getProjectBaselineMetricsResponse);
 
-        var getProjectBaselineMetricsResponse = await _iaWebService.GetProjectBaselineMetrics(runPipelineTrainFileDTO, runPipelineTestFileDTO, projectData);
-        if (!getProjectBaselineMetricsResponse.IsSuccess) return BadRequest(getProjectBaselineMetricsResponse.Errors);
-
-        responseProject.Data.MetricsBaselineJson = JsonSerializer.Serialize(getProjectBaselineMetricsResponse.Data);
+        responseProject.Data.MetricsBaselineJson = JsonSerializer.Serialize(new { id = getProjectBaselineMetricsResponse.Data.Id, status = new { current = getProjectBaselineMetricsResponse.Data.Status.ToString() }, metrics = Array.Empty<object>() });
         var updateProjectResponse = await _projectService.UpdateProjectById(responseProject.Data);
-        if (!updateProjectResponse.IsSuccess) return BadRequest(updateProjectResponse.Errors);
+        if (!updateProjectResponse.IsSuccess)
+        {
+            await _iaWebService.CancelJob(getProjectBaselineMetricsResponse.Data.Id);
+            return await RejectRegistration(updateProjectResponse);
+        }
+        await _pullingService.CreateIaConnection(getProjectBaselineMetricsResponse.Data.Id, responseProject.Data.Id).StartPulling();
 
 
         var responseIaWeb = await _iaWebService.RunPipeline(runPipelineTrainFileDTO, runPipelineTestFileDTO, responseProject.Data, projectData.Pipeline, null);
-        if (!responseIaWeb.IsSuccess) return BadRequest(responseIaWeb.Errors);
+        if (!responseIaWeb.IsSuccess)
+        {
+            await _iaWebService.CancelJob(getProjectBaselineMetricsResponse.Data.Id);
+            _pullingService.DeleteIaConnection(getProjectBaselineMetricsResponse.Data.Id);
+            return await RejectRegistration(responseIaWeb);
+        }
 
         var responseProcess = await _processService.CreateProcess(responseIaWeb.Data, projectData.Pipeline, responseProject.Data);
-        return Ok(new { responseIaWeb.Data.Id, responseIaWeb.Data.Socket, responseIaWeb.Data.Status, projectId = responseProject.Data.Id, responseProcess.MaxDuration });
+        return Accepted(new { responseIaWeb.Data.Id, responseIaWeb.Data.Socket, responseIaWeb.Data.Status, projectId = responseProject.Data.Id, processId = responseProcess.Id, baselineId = getProjectBaselineMetricsResponse.Data.Id, responseProcess.MaxDuration });
     }
 
     [HttpGet("{projectId}/data-sample")]
@@ -148,7 +171,7 @@ public class ProjectsController : ApplicationController
         if (authorizationResult.Succeeded == false) return Unauthorized();
 
         var responseFile = await _projectService.GetProjectFile(projectId, ProjectFile.EProjectFileType.DEFAULT);
-        if (responseFile.IsSuccess == false) return BadRequest(responseFile.Errors);
+        if (responseFile.IsSuccess == false) return ServiceFailure(responseFile);
 
         return File(responseFile.Data.Data, responseFile.Data.MimeType);
     }
@@ -158,7 +181,7 @@ public class ProjectsController : ApplicationController
     public async Task<ActionResult> DeleteProjectById(long id)
     {
       var responseDelete = await _projectService.DeleteProjectById(id);
-      if (!responseDelete.IsSuccess) return BadRequest(responseDelete.Errors);
+      if (!responseDelete.IsSuccess) return ServiceFailure(responseDelete);
 
       return Ok();
     }

@@ -2,12 +2,12 @@ using System.Net.WebSockets;
 using Microsoft.AspNetCore.SignalR;
 using Server.Hubs;
 using SocketIOClient;
+using System.Text.Json;
 
 namespace Server.Services
 {
   public class IAWebSocketService(IHubContext<IaGenerateModelHub> iaStatusHub, IHubContext<IaExplainModelHub> iaMetricHub) : ApplicationService
   {
-    public static readonly string _url = "http://tmp-iias:32845";
     private readonly List<IaConnection> _connections = [];
     private readonly IHubContext<IaGenerateModelHub> _iaStatusHub = iaStatusHub;
     private readonly IHubContext<IaExplainModelHub> _iaMetricHub = iaMetricHub;
@@ -15,7 +15,7 @@ namespace Server.Services
     public IaConnection? GetIaConnection(string jobWebServiceId) =>
         _connections.FirstOrDefault(c => c.JobWebServiceId == jobWebServiceId);
 
-    public IaConnection CreateIaConnection(string jobWebServiceId, Type hubType)
+    public IaConnection CreateIaConnection(string jobWebServiceId, Type hubType, string? socketUrl = null)
     {
       IHubContext<ApplicationHub> hub;
 
@@ -28,7 +28,7 @@ namespace Server.Services
         hub = _iaStatusHub;
       }
 
-      var newConnection = new IaConnection(jobWebServiceId, hub);
+      var newConnection = new IaConnection(jobWebServiceId, hub, socketUrl);
       _connections.Add(newConnection);
       return newConnection;
     }
@@ -52,7 +52,7 @@ namespace Server.Services
     }
   }
 
-  public class IaConnection(string jobWebServiceId, IHubContext<ApplicationHub> hub)
+  public class IaConnection(string jobWebServiceId, IHubContext<ApplicationHub> hub, string? socketUrl = null)
   {
     private SocketIO? _socketIOClient;
     public IHubContext<ApplicationHub> Hub { get; } = hub;
@@ -62,18 +62,23 @@ namespace Server.Services
 
     public async Task ConnectIaWebServiceAndSignalRWebSocketsAsync()
     {
-      Console.WriteLine("Inside ConnectIaWebServiceAndSignalRWebSocketsAsync");
+      // Cached jobs have no socket. Their status and results remain available over HTTP.
+      if (string.IsNullOrWhiteSpace(socketUrl)) return;
       try
       {
-        _socketIOClient = new SocketIO(IAWebSocketService._url, new SocketIOOptions
+        var socketUri = new Uri(socketUrl);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(socketUri.Query)
+            .Select(pair => new KeyValuePair<string, string>(pair.Key, pair.Value.ToString())).ToList();
+        _socketIOClient = new SocketIO(socketUri.GetLeftPart(UriPartial.Authority), new SocketIOOptions
         {
-          Query =
-            [
-                new("job", JobWebServiceId)
-            ],
+          Query = query,
         });
 
         _socketIOClient.On("status", async response => await HandleMessageAsync(response));
+        _socketIOClient.On("logs", async response => await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveLogs", response.GetValue<JsonElement>()));
+        _socketIOClient.On("progress", async response => await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveProgress", response.GetValue<JsonElement>()));
+        _socketIOClient.On("error", async response => await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", response.GetValue<JsonElement>()));
+        _socketIOClient.On("disconnect_request", async _ => await HandleDisconnectionAsync());
         _socketIOClient.OnDisconnected += async (_, __) => await HandleDisconnectionAsync();
         _socketIOClient.OnConnected += (_, __) => IsConnected = true;
 
@@ -82,7 +87,7 @@ namespace Server.Services
 
         await _socketIOClient.ConnectAsync();
         Console.WriteLine($"IsConnected : {IsConnected}");
-        Console.WriteLine($"Connected to: {IAWebSocketService._url}?job={JobWebServiceId}");
+        Console.WriteLine($"Connected to IAML for {JobWebServiceId}");
       }
       catch (Exception ex)
       {
@@ -94,7 +99,7 @@ namespace Server.Services
     private async Task HandleMessageAsync(SocketIOResponse response)
     {
       Console.WriteLine($"Inside HandleMessageAsync: {response}");
-      await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", response.GetValue<string>());
+      await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", response.GetValue<JsonElement>());
 
       // TODO: Save informations in DB when JobStatus is different from what we already have in DB
 

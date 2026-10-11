@@ -39,6 +39,9 @@ public class Project : ApplicationRecord
 
   public string? SurvivalModelDatasetTargetTime { get; set; }
 
+  // JSON scalar: preserve the type of a textual, boolean or numeric event value.
+  public string? SurvivalModelEventValue { get; set; }
+
   [NotMapped] // This ensures Entity Framework doesn't treat this as a mapped column
   public object? MetricsBaseline
   {

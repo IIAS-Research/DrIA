@@ -96,6 +96,7 @@ public partial class Program
     builder.Services.AddTransient<ModelService>();
     builder.Services.AddSingleton<IaPullingModelService>();
     builder.Services.AddSingleton<IaPullingExplainService>();
+    builder.Services.AddHostedService<IaPullingRecoveryService>();
 
     builder.Services.AddSignalR();
 

@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Server.Models;
 
@@ -54,6 +55,14 @@ public class Process : ApplicationRecord
   [Required]
   public required int MaxDuration { get; set; }
 
+  [Column(TypeName = "jsonb")]
+  public string? StatusSnapshotJson { get; set; }
+
+  [NotMapped]
+  public object? StatusSnapshot => string.IsNullOrWhiteSpace(StatusSnapshotJson)
+    ? null
+    : JsonSerializer.Deserialize<object>(StatusSnapshotJson);
+
   [Timestamp]
   public byte[]? CreatedAt { get; set; } = [];
 
@@ -73,28 +82,19 @@ public class Process : ApplicationRecord
     FINISHED,
     CANCELED,
     CRASHED,
-    TIMEOUT
+    TIMEOUT,
+    CACHED
   }
 
   public record ProcessPipeline
   {
-    public string? Step { get; set; }
-    public string? Name { get; set; }
-    public string? Description { get; set; }
-    public bool? Enable { get; set; }
-    public bool? CanBeDisable { get; set; }
-    public Dictionary<string, ProcessPipelineConfiguration>? Configuration { get; set; }
-    public ProcessPipeline[]? Children { get; set; }
-    public ProcessPipeline? StepToMimic { get; set; }
+    [JsonPropertyName("schema_version")]
+    public int? SchemaVersion { get; set; }
 
-    public record ProcessPipelineConfiguration
-    {
-      public object? Default { get; set; }
-      public object? Value { get; set; }
-      public string? Description { get; set; }
-      public List<object>? Range { get; set; }
-      public List<object>? Categorical { get; set; }
-    }
+    // Keep the complete canonical study, including parameter domains and resolved
+    // families. An old pipeline without a version stays identifiable as incompatible.
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement> Fields { get; set; } = [];
   }
 
 }

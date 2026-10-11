@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Server.DTOs;
 
 namespace Server.Models;
@@ -48,6 +49,17 @@ public class Model
   public string? Explanation { get; set; }
 
   public string[] TextExplanation { get; set; } = [];
+
+  [Column(TypeName = "jsonb")]
+  [JsonIgnore]
+  public string? ReportJson { get; set; }
+
+  [Column(TypeName = "jsonb")]
+  [JsonIgnore]
+  public string? AuditJson { get; set; }
+
+  [JsonIgnore]
+  public string? ReportMarkdown { get; set; }
 
   [NotMapped] // This ensures Entity Framework doesn't treat this as a mapped column
   public object? Metrics
@@ -97,13 +109,20 @@ public class Model
 
   public record ModelExplanation
   {
-    public required Dictionary<string, Plot> plots { get; set; }
-    public required ModelExplainFeature[] features { get; set; }
+    public string? id { get; set; }
+    public string? status { get; set; }
+    public Dictionary<string, JsonElement> results { get; set; } = [];
+    public JsonElement? report { get; set; }
+    public JsonElement? configured_report { get; set; }
+    public string? error { get; set; }
+    public string? cache_error { get; set; }
+    public Dictionary<string, Plot> plots { get; set; } = [];
+    public ModelExplainFeature[] features { get; set; } = [];
 
     public record ModelExplainFeature
     {
       public required string name { get; set; }
-      public required float value { get; set; }
+      public required JsonElement value { get; set; }
     }
   }
 

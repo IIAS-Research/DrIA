@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Nodes;
 using Server.DAL.Db;
 using Server.DTOs;
 using Server.Models;
@@ -16,7 +17,7 @@ public class ProcessRepository(MainDbContext dbContext)
       Date = DateTime.Now,
       Duration = 0L,
       Status = pipelineResponse.Status,
-      PipelineJson = pipelineData,
+      PipelineJson = pipelineResponse.ConfigurationJson ?? pipelineData,
       ProjectId = project.Id,
       IaRemoteId = pipelineResponse.Id,
       MaxDuration = pipelineResponse.MaxDuration
@@ -40,6 +41,10 @@ public class ProcessRepository(MainDbContext dbContext)
     if (process != null)
     {
       process.Status = statut;
+      var snapshot = JsonNode.Parse(process.StatusSnapshotJson ?? "{}")!.AsObject();
+      snapshot["id"] = processRemoteId;
+      snapshot["status"] = new JsonObject { ["current"] = statut.ToString() };
+      process.StatusSnapshotJson = snapshot.ToJsonString();
       await _dbContext.SaveChangesAsync();
     }
   }
@@ -48,6 +53,8 @@ public class ProcessRepository(MainDbContext dbContext)
   {
     return await _dbContext.Processes.FirstOrDefaultAsync(p => p.IaRemoteId == processRemoteId);
   }
+
+  public Task<Process?> GetProcessById(long id) => _dbContext.Processes.Include(p => p.Project).FirstOrDefaultAsync(p => p.Id == id);
 
   public async Task<ProcessPipeline?> GetProcessPipeline(long processId, long projectId)
   {

@@ -5,6 +5,7 @@ public static class Configuration
   public static readonly string ConnectionString = "ConnectionString";
   public static readonly string JwtPrivateKey = "JwtPrivateKey";
   public static readonly string PathMainStorage = "PathMainStorage";
+  public static readonly string IamlBaseUrl = "Iaml:BaseUrl";
 
   public static void EnsureSecretsAreOk(IConfiguration config)
   {

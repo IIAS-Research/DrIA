@@ -6,10 +6,14 @@ public abstract class ApplicationService
   {
     public bool IsSuccess { get; set; } = false;
     public List<string> Errors { get; set; } = [];
+    public int? HttpStatusCode { get; set; }
+    public string? Error { get; set; }
 
     public void AddError(string error)
     {
       Errors.Add(error);
+      Error ??= error;
+      IsSuccess = false;
     }
 
     public bool EnsureOtherServiceIsSuccess(ResponseServiceAbstract anotherResponseService)
@@ -17,6 +21,8 @@ public abstract class ApplicationService
       if (!anotherResponseService.IsSuccess)
       {
         Errors = anotherResponseService.Errors;
+        Error = anotherResponseService.Error;
+        HttpStatusCode = anotherResponseService.HttpStatusCode;
         return false;
       }
       return true;
@@ -46,7 +52,7 @@ public abstract class ApplicationService
 
   public class ResponseService<T> : ResponseServiceAbstract
   {
-    public T Data { get; set; }
+    public T Data { get; set; } = default!;
 
     public void SetSuccessful(T data)
     {

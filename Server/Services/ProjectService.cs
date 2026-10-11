@@ -42,11 +42,10 @@ public class ProjectService : ApplicationService
   async public Task<ResponseService<Project>> CreateProject(StartProjectInDTO projectData, User user)
   {
     var response = new ResponseService<Project>();
-    Project project = await _projectRepository.CreateProject(projectData, user);
-
     var responseWriteFile = await WriteProjectFile(projectData.File, ProjectFile.EProjectFileType.DEFAULT);
     if (!response.EnsureOtherServiceIsSuccess(responseWriteFile)) return response;
 
+    Project project = await _projectRepository.CreateProject(projectData, user);
     await _projectRepository.CreateProjectFile(project, responseWriteFile.Data.OriginalFilename, responseWriteFile.Data.FilePath, responseWriteFile.Data.MimeType, ProjectFile.EProjectFileType.DEFAULT);
     response.SetSuccessful(project);
     return response;
@@ -132,11 +131,7 @@ public class ProjectService : ApplicationService
       return response;
     }
 
-    var columnToPredictByProjectId = project.CsvColumnToPredict;
-
-    var datasetTargetTime = project.SurvivalModelDatasetTargetTime;
-
-    var responseFormated = GetNFirstLineOfFile(responseGetFile.Data.Data, rowCount, columnToPredictByProjectId, datasetTargetTime);
+    var responseFormated = GetNFirstLineOfFile(responseGetFile.Data.Data, rowCount, project);
     if (!responseFormated.IsSuccess)
     {
       response.Errors = responseFormated.Errors;
@@ -218,7 +213,7 @@ public class ProjectService : ApplicationService
     return response;
   }
 
-  private static ResponseService<ProjectFileFormated> GetNFirstLineOfFile(byte[] dataFile, int rowCount, string colToPredict, string? datasetTargetTimeToRemove)
+  private static ResponseService<ProjectFileFormated> GetNFirstLineOfFile(byte[] dataFile, int rowCount, Project project)
   {
     var response = new ResponseService<ProjectFileFormated>();
     var fileFormated = new ProjectFileFormated() { };
@@ -230,26 +225,27 @@ public class ProjectService : ApplicationService
 
     using var reader = new StreamReader(new MemoryStream(dataFile));
     using var csvReader = new CsvReader(reader, config);
-    var records = csvReader.GetRecords<dynamic>().ToList();
-    var headerRow = ((IDictionary<string, object>)records.First()).Keys;
-    foreach (var headerCell in headerRow.Where(hr => hr != datasetTargetTimeToRemove))
+    if (!csvReader.Read() || !csvReader.ReadHeader())
+    {
+      response.AddError("Le fichier CSV ne contient pas d’en-tête.");
+      return response;
+    }
+    var headerRow = csvReader.HeaderRecord ?? [];
+    foreach (var headerCell in headerRow)
     {
       var newColumn = new ProjectFileFormated.ProjectFileFormatedColumn
       {
         Label = headerCell,
-        Name = headerCell.Replace(" ", ""),
-        IsColToPredict = headerCell == colToPredict ? true : false
+        Name = headerCell,
+        IsColToPredict = headerCell == project.CsvColumnToPredict || (project.SurvivalModel && headerCell == project.SurvivalModelDatasetTargetTime),
+        IsGroupColumn = project.RowDepedencies && project.RowDepedenciesLinked.Contains(headerCell),
+        IsIdColumn = project.DatasetHasIdColumn && project.DatasetHasIdColumnList.Contains(headerCell)
       };
       fileFormated.Columns.Add(newColumn);
     }
-    for (var i = 0; i < rowCount; i++)
+    for (var i = 0; i < rowCount && csvReader.Read(); i++)
     {
-      var recordAsDict = (IDictionary<string, object>)records[i];
-      if (recordAsDict == null)
-      {
-        continue;
-      }
-      fileFormated.Rows.Add(recordAsDict.ToDictionary(entry => entry.Key.Replace(" ", ""), entry => entry.Value));
+      fileFormated.Rows.Add(headerRow.ToDictionary(name => name, name => (object)(csvReader.GetField(name) ?? "")));
     }
 
     response.SetSuccessful(fileFormated);
@@ -298,6 +294,8 @@ public class ProjectService : ApplicationService
       public string Label { get; set; } = string.Empty;
       public string Name { get; set; } = string.Empty;
       public required bool IsColToPredict { get; set; } = false;
+      public bool IsGroupColumn { get; set; }
+      public bool IsIdColumn { get; set; }
     }
   }
 

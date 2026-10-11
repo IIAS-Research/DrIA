@@ -3,6 +3,7 @@ import { QCarousel } from "quasar";
 import { ref } from "vue";
 import { IModel, IPlot } from "../models";
 import { computed } from "vue";
+import { metricKey } from "src/utils/iaml";
 
 // props
 const propsComponent = defineProps<{
@@ -14,12 +15,12 @@ const slide = ref(1);
 const carousel = ref<InstanceType<typeof QCarousel>>();
 const currentPlotIndex = ref(0);
 const currentPlot = ref<IPlot | undefined>(
-  propsComponent.model.metrics.plots.at(currentPlotIndex.value)
+  propsComponent.model.metrics.plots?.at(currentPlotIndex.value)
 );
 
 // functions
 function changePlot(index: number) {
-  currentPlot.value = propsComponent.model.metrics.plots[index];
+  currentPlot.value = propsComponent.model.metrics.plots?.[index];
   currentPlotIndex.value = index;
   carousel.value?.goTo(currentPlotIndex.value);
 }
@@ -32,10 +33,10 @@ const sortedMetrics = computed(() => {
   );
   metrics = metrics.sort(
     (entryA, entryB) => {
-      if (entryA[0] === propsComponent.model.metrics.main_metrics && entryB[0] === propsComponent.model.metrics.main_metrics) {
+      if (entryA[0] === metricKey(propsComponent.model.metrics) && entryB[0] === metricKey(propsComponent.model.metrics)) {
         return 0;
       }
-      if (entryA[0] === propsComponent.model.metrics.main_metrics && entryB[0] !== propsComponent.model.metrics.main_metrics) {
+      if (entryA[0] === metricKey(propsComponent.model.metrics) && entryB[0] !== metricKey(propsComponent.model.metrics)) {
         return -1;
       }
       return 1;
@@ -61,7 +62,7 @@ const sortedMetrics = computed(() => {
             <q-item-section>
               <div class="flex row items-center justify-between">
                 <div class="text-weight-medium">
-                  {{ propsComponent.model.metrics.metrics_info[item[0]].name }}
+                  {{ propsComponent.model.metrics.metrics_info?.[item[0]]?.name ?? item[0] }}
                   :
                 </div>
                 <div class="text-weight-medium">
@@ -76,7 +77,7 @@ const sortedMetrics = computed(() => {
                   anchor="center right"
                   self="center left"
                 >
-                  {{ propsComponent.model.metrics.metrics_info[item[0]].desc }}
+                  {{ propsComponent.model.metrics.metrics_info?.[item[0]]?.desc }}
                 </q-tooltip>
               </q-icon>
             </q-item-section>
@@ -94,7 +95,7 @@ const sortedMetrics = computed(() => {
             class="carousel-slide rounded-borders q-card"
           >
             <q-carousel-slide
-              v-for="(_, index) in propsComponent.model.metrics.plots"
+              v-for="(_, index) in propsComponent.model.metrics.plots ?? []"
               :key="index"
               :name="index"
               class="flex flex-center"
@@ -122,7 +123,7 @@ const sortedMetrics = computed(() => {
                 class="q-carousel__navigation-inner flex flex-center no-wrap"
               >
                 <button
-                  v-for="(_, index) in propsComponent.model.metrics.plots"
+                  v-for="(_, index) in propsComponent.model.metrics.plots ?? []"
                   :key="index"
                   @click="changePlot(index)"
                   class="q-btn q-btn-item non-selectable no-outline q-btn--flat q-btn--round q-btn--actionable q-focusable q-hoverable q-btn--dense q-carousel__navigation-icon"

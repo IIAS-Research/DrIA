@@ -42,7 +42,8 @@ public class ProjectRepository(MainDbContext dbContext)
       UserId = user.Id,
       SurvivalModel = projectData.SurvivalModel,
       SurvivalModelDatasetTargetTime = projectData.SurvivalModelDatasetTargetTime,
-      MetricsBaselineJson = JsonSerializer.Serialize("")
+      SurvivalModelEventValue = projectData.SurvivalModelEventValue,
+      MetricsBaselineJson = "null"
     };
     await _dbContext.Projects.AddRangeAsync(project);
     await _dbContext.SaveChangesAsync();
@@ -64,6 +65,7 @@ public class ProjectRepository(MainDbContext dbContext)
     projectToUpdate.DatasetHasIdColumnList = project.DatasetHasIdColumnList;
     projectToUpdate.SurvivalModel = project.SurvivalModel;
     projectToUpdate.SurvivalModelDatasetTargetTime = project.SurvivalModelDatasetTargetTime;
+    projectToUpdate.SurvivalModelEventValue = project.SurvivalModelEventValue;
     projectToUpdate.MetricsBaselineJson = project.MetricsBaselineJson;
 
     // Save the updated project to the database

@@ -1,4 +1,5 @@
-using System.Net.WebSockets;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Timers;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -8,151 +9,177 @@ using Server.Models;
 using Server.Repositories;
 
 namespace Server.Services;
+
 public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
 {
-  public IaPullingModelService(IServiceScopeFactory scopeFactory, IHubContext<IaGenerateModelHub> hub) : base(scopeFactory, hub)
-  { }
+  public IaPullingModelService(IServiceScopeFactory scopeFactory, IHubContext<IaGenerateModelHub> hub) : base(scopeFactory, hub) { }
 
-  public IaConnectionModelPulling CreateIaConnection(string jobWebServiceId)
+  public IaConnectionModelPulling CreateIaConnection(string jobWebServiceId, long? baselineProjectId = null)
   {
-    var newConnection = new IaConnectionModelPulling(jobWebServiceId, _hub, _scopeFactory);
-    _connections.Add(newConnection);
-    return newConnection;
+    lock (_connections)
+    {
+      if (_connections.FirstOrDefault(c => c.JobWebServiceId == jobWebServiceId) is IaConnectionModelPulling existing) return existing;
+      var connection = new IaConnectionModelPulling(jobWebServiceId, _hub, _scopeFactory, baselineProjectId);
+      _connections.Add(connection);
+      return connection;
+    }
   }
 
   public class IaConnectionModelPulling : IaConnectionPulling<IaGenerateModelHub>
   {
-    public IaConnectionModelPulling(string jobWebServiceId, IHubContext<IaGenerateModelHub> hub, IServiceScopeFactory scopeFactory)
-    : base(jobWebServiceId, hub, scopeFactory) { }
+    private readonly long? _baselineProjectId;
+    public IaConnectionModelPulling(string jobWebServiceId, IHubContext<IaGenerateModelHub> hub, IServiceScopeFactory scopeFactory, long? baselineProjectId = null)
+      : base(jobWebServiceId, hub, scopeFactory) => _baselineProjectId = baselineProjectId;
 
     protected override async Task RunInterval(object source, ElapsedEventArgs elapseArg)
     {
-      using (var scope = ScopeFactory.CreateScope())
+      using var scope = ScopeFactory.CreateScope();
+      var ia = scope.ServiceProvider.GetRequiredService<IaWebService>();
+      var db = scope.ServiceProvider.GetRequiredService<MainDbContext>();
+      var response = await ia.GetJobStatus(JobWebServiceId);
+      if (!response.IsSuccess)
       {
-        var iaWebService = scope.ServiceProvider.GetRequiredService<IaWebService>();
-        var dbContext = scope.ServiceProvider.GetRequiredService<MainDbContext>();
-
-        var responseGetStatus = await iaWebService.GetJobStatus(JobWebServiceId);
-
-        if (!responseGetStatus.IsSuccess)
+        if (response.HttpStatusCode is 404 or 409)
         {
-          Console.WriteLine($"Get Job Status in Pulling Model Failed => {responseGetStatus.Errors}");
-          var responseWs = new ResponseService();
-          responseWs.EnsureOtherServiceIsSuccess(responseGetStatus);
-          await SendErrorsToWs(responseWs);
+          Status = "CRASHED";
+          if (_baselineProjectId.HasValue)
+          {
+            var project = await db.Projects.FindAsync(_baselineProjectId.Value);
+            if (project != null) project.MetricsBaselineJson = JsonSerializer.Serialize(new { id = JobWebServiceId, status = new { current = Status }, metrics = Array.Empty<object>(), error = string.Join("; ", response.Errors), http_status = response.HttpStatusCode });
+          }
+          else
+          {
+            var process = await db.Processes.FirstOrDefaultAsync(p => p.IaRemoteId == JobWebServiceId);
+            if (process != null)
+            {
+              var unavailableSnapshot = JsonNode.Parse(process.StatusSnapshotJson ?? "{}") as JsonObject ?? new();
+              var modelFiles = await db.Models.Where(m => m.ProcessId == process.Id)
+                .Select(m => db.ModelFiles.Any(f => f.ModelId == m.Id)).ToListAsync();
+              if (!modelFiles.Any(hasFile => hasFile)) process.Status = Process.EProcessStatut.CRASHED;
+              unavailableSnapshot["id"] = JobWebServiceId;
+              var status = unavailableSnapshot["status"] as JsonObject;
+              if (status == null) { status = new JsonObject(); unavailableSnapshot["status"] = status; }
+              status["current"] = process.Status.ToString();
+              unavailableSnapshot["availability_error"] = string.Join("; ", response.Errors);
+              unavailableSnapshot["http_status"] = response.HttpStatusCode;
+              if (unavailableSnapshot["error"] == null) unavailableSnapshot["error"] = string.Join("; ", response.Errors);
+              if (unavailableSnapshot["results_persisted"] == null)
+                unavailableSnapshot["results_persisted"] = modelFiles.Count > 0 && modelFiles.All(hasFile => hasFile);
+              process.StatusSnapshotJson = unavailableSnapshot.ToJsonString();
+            }
+          }
+          await db.SaveChangesAsync();
+          await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", string.Join("; ", response.Errors));
           StopPulling();
+        }
+        else _timer.Start(); // A temporary outage does not make a running job fail.
+        return;
+      }
+
+      Status = response.Data.status.current.ToString();
+      var snapshot = JsonNode.Parse(JsonSerializer.Serialize(response.Data))!.AsObject();
+      snapshot["status"]!["current"] = Status;
+      if (_baselineProjectId.HasValue)
+      {
+        var project = await db.Projects.FindAsync(_baselineProjectId.Value);
+        if (project == null) { StopPulling(); return; }
+        var previous = JsonNode.Parse(project.MetricsBaselineJson);
+        snapshot["metrics"] = previous is JsonObject && previous["metrics"] != null ? previous["metrics"]!.DeepClone() : new JsonArray();
+        project.MetricsBaselineJson = snapshot.ToJsonString();
+      }
+      else
+      {
+        var process = await db.Processes.FirstOrDefaultAsync(p => p.IaRemoteId == JobWebServiceId);
+        if (process == null) { StopPulling(); return; }
+        process.Status = response.Data.status.current;
+        process.StatusSnapshotJson = snapshot.ToJsonString();
+      }
+      await db.SaveChangesAsync();
+      await Hub.Clients.Group(JobWebServiceId).SendAsync("JobStatus", snapshot.Deserialize<JsonElement>());
+
+      if (Status is "FINISHED" or "CACHED")
+      {
+        var completed = await OnProcessFinish();
+        if (!completed.IsSuccess)
+        {
+          // Keep trying incomplete local downloads without duplicating candidates.
+          _timer.Start();
           return;
         }
-
-        Status = responseGetStatus.Data.status.current.ToString();
-
-        // If status has changed, update it in DB
-        var currentProcess = await dbContext.Processes.FirstOrDefaultAsync(p => p.IaRemoteId == responseGetStatus.Data.id);
-
-        if (currentProcess != null && responseGetStatus.Data.status.current != currentProcess.Status)
-        {
-          currentProcess.Status = responseGetStatus.Data.status.current;
-          await dbContext.SaveChangesAsync();
-        }
-
-        Console.WriteLine($"PULLING MODEL => Job status: {Status}");
-        switch (responseGetStatus.Data.status.current)
-        {
-          case Process.EProcessStatut.QUEUED:
-            _timer.Enabled = true;
-            break;
-          case Process.EProcessStatut.RUNNING:
-            _timer.Enabled = true;
-            break;
-          case Process.EProcessStatut.FINISHED:
-            var onProcessFinishResponse = await OnProcessFinish();
-
-            if (!onProcessFinishResponse.IsSuccess)
-            {
-              var responseWs = new ResponseService();
-              responseWs.EnsureOtherServiceIsSuccess(onProcessFinishResponse);
-              await SendErrorsToWs(responseWs);
-              return;
-            }
-            await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", responseGetStatus.Data.status.current.ToString());
-            StopPulling();
-            break;
-          case Process.EProcessStatut.CANCELED:
-            await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", $"Process terminé avec status : {Status}");
-            StopPulling();
-            break;
-          case Process.EProcessStatut.CRASHED:
-            await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", $"Process terminé avec status : {Status}");
-            StopPulling();
-            break;
-          case Process.EProcessStatut.TIMEOUT:
-            await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", $"Process terminé avec status : {Status}");
-            StopPulling();
-            break;
-        }
+        await Hub.Clients.Group(JobWebServiceId).SendAsync("ReceiveMessage", Status);
+        StopPulling();
       }
+      else if (Status is "CRASHED" or "CANCELED" or "TIMEOUT")
+      {
+        await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", response.Data.error ?? $"Traitement terminé : {Status}");
+        StopPulling();
+      }
+      else _timer.Start();
     }
 
     protected override async Task<ResponseService> OnProcessFinish()
     {
-      using (var scope = ScopeFactory.CreateScope())
+      using var scope = ScopeFactory.CreateScope();
+      var ia = scope.ServiceProvider.GetRequiredService<IaWebService>();
+      var db = scope.ServiceProvider.GetRequiredService<MainDbContext>();
+      var response = new ResponseService();
+      var metrics = await ia.RetrieveJobMetric(JobWebServiceId);
+      if (!response.EnsureOtherServiceIsSuccess(metrics)) return response;
+
+      if (_baselineProjectId.HasValue)
       {
-        var processRepository = scope.ServiceProvider.GetRequiredService<ProcessRepository>();
-        var modelService = scope.ServiceProvider.GetRequiredService<ModelService>();
-        var iaWebService = scope.ServiceProvider.GetRequiredService<IaWebService>();
-
-        var responseOnProcessFinish = new ResponseService();
-        // Get metrics
-        var responseGetMetric = await iaWebService.RetrieveJobMetric(JobWebServiceId);
-        if (!responseGetMetric.IsSuccess)
-        {
-          return responseOnProcessFinish;
-        }
-
-        List<Model> modelList = new List<Model>();
-
-        // For each model, download the model file (binary), generate bibliography and save infos in DB
-        foreach (var model in responseGetMetric.Data.metrics)
-        {
-          var idModelProperty = model.GetType().GetProperty("id");
-          var idValue = idModelProperty.GetValue(model);
-
-          // Ensure the idValue is not null and can be parsed to an int
-          if (idValue != null && Int32.TryParse(idValue.ToString(), out int remoteModelId))
-          {
-            if (idModelProperty != null)
-            {
-              // Download model file
-              var downloadModelFileResponse = await iaWebService.DownloadModelFile(responseGetMetric.Data.id, remoteModelId);
-
-              // Generate bibliography of the model
-              var responseBibliography = await iaWebService.GetBibliography(responseGetMetric.Data.id, remoteModelId);
-
-              // Get text explanation
-              var responseTextExplanation = await iaWebService.GetTextExplanation(responseGetMetric.Data.id, remoteModelId);
-
-              // Save all this previous stuff in DB
-              var process = await processRepository.GetProcessByIaRemoteId(responseGetMetric.Data.id);
-              if (process == null || !responseBibliography.IsSuccess) return responseOnProcessFinish;
-
-              var createModelResponse = await modelService.CreateModel(process.Id, model, responseBibliography.Data, remoteModelId);
-              if (!createModelResponse.IsSuccess) return responseOnProcessFinish;
-
-              await modelService.SaveModelTextExplanation(createModelResponse.Data, responseTextExplanation.Data.explanations);
-
-              await modelService.CreateModelFile(downloadModelFileResponse.Data, createModelResponse.Data.Id);
-
-
-              // Add the saved model to the modelList
-              modelList.Add(createModelResponse.Data);
-            }
-          }
-        }
-
-        if (modelList.Count > 0) responseOnProcessFinish.SetSuccessful();
-        return responseOnProcessFinish;
+        var project = await db.Projects.FindAsync(_baselineProjectId.Value);
+        if (project == null) { response.AddError("Projet introuvable."); return response; }
+        var snapshot = JsonNode.Parse(project.MetricsBaselineJson)!.AsObject();
+        snapshot["metrics"] = JsonSerializer.SerializeToNode(metrics.Data.metrics);
+        snapshot["results_persisted"] = true;
+        project.MetricsBaselineJson = snapshot.ToJsonString();
+        await db.SaveChangesAsync();
+        response.SetSuccessful();
+        return response;
       }
+
+      var repository = scope.ServiceProvider.GetRequiredService<ProcessRepository>();
+      var service = scope.ServiceProvider.GetRequiredService<ModelService>();
+      var process = await repository.GetProcessByIaRemoteId(JobWebServiceId);
+      if (process == null) { response.AddError("Traitement introuvable."); return response; }
+      if (metrics.Data.metrics.Length == 0) { response.AddError("Aucun candidat disponible."); return response; }
+
+      foreach (var metric in metrics.Data.metrics)
+      {
+        var existing = await db.Models.FirstOrDefaultAsync(m => m.ProcessId == process.Id && m.IaRemoteId == metric.id);
+        if (existing != null && await db.ModelFiles.AnyAsync(f => f.ModelId == existing.Id))
+        {
+          if (existing.ReportJson == null || existing.AuditJson == null || existing.ReportMarkdown == null) await SaveReports(service, ia, existing);
+          continue;
+        }
+        var file = await ia.DownloadModelFile(JobWebServiceId, metric.id);
+        if (!response.EnsureOtherServiceIsSuccess(file)) return response;
+        var bibliography = await ia.GetBibliography(JobWebServiceId, metric.id);
+        if (!response.EnsureOtherServiceIsSuccess(bibliography)) return response;
+        var created = await service.CreateModel(process.Id, metric, bibliography.Data, metric.id);
+        if (!response.EnsureOtherServiceIsSuccess(created)) return response;
+        var explanation = await ia.GetTextExplanation(JobWebServiceId, metric.id);
+        if (explanation.IsSuccess) await service.SaveModelTextExplanation(created.Data, explanation.Data.explanations);
+        var saved = await service.CreateModelFile(file.Data, created.Data.Id);
+        if (!response.EnsureOtherServiceIsSuccess(saved)) return response;
+        await SaveReports(service, ia, created.Data);
+      }
+      var completeSnapshot = JsonNode.Parse(process.StatusSnapshotJson ?? "{}")!.AsObject();
+      completeSnapshot["results_persisted"] = true;
+      process.StatusSnapshotJson = completeSnapshot.ToJsonString();
+      await db.SaveChangesAsync();
+      response.SetSuccessful();
+      return response;
     }
 
+    private async Task SaveReports(ModelService service, IaWebService ia, Model model)
+    {
+      var report = await ia.GetModelReport(JobWebServiceId, model.IaRemoteId);
+      var audit = await ia.GetModelAudit(JobWebServiceId, model.IaRemoteId);
+      var markdown = await ia.GetModelMarkdownReport(JobWebServiceId, model.IaRemoteId);
+      var text = markdown.IsSuccess ? System.Text.Encoding.UTF8.GetString(await IaWebService.IFormFileToByteArray(markdown.Data)) : null;
+      await service.SaveReports(model, report.IsSuccess ? report.Data : null, audit.IsSuccess ? audit.Data : null, text);
+    }
   }
 }

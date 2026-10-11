@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Server.Models;
+using Server.Services;
 
 namespace Server.Controllers;
 
@@ -19,6 +20,15 @@ public abstract class ApplicationController : ControllerBase
     protected bool IsCurrentUserAuth()
     {
         return User.Identity?.IsAuthenticated ?? false;
+    }
+
+    protected ObjectResult ServiceFailure(ApplicationService.ResponseServiceAbstract response)
+    {
+        return StatusCode(response.HttpStatusCode ?? StatusCodes.Status400BadRequest, new
+        {
+            error = response.Error ?? string.Join("; ", response.Errors),
+            errors = response.Errors
+        });
     }
 
     protected long? GetCurrentUserId()

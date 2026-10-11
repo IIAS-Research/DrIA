@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import { ref } from 'vue';
+import { computed } from 'vue';
+import { formatScore, metricKey, metricScore } from 'src/utils/iaml';
 import { IModel } from '../models';
+import { displayServiceName } from 'src/utils/service-label';
 
 const router = useRouter();
 
@@ -11,13 +13,13 @@ const propsComponent = defineProps<{
   processId: number;
 }>();
 
-const mainMetricName = ref<string | undefined>(
-  propsComponent.model.metrics.metrics_info[propsComponent.model.metrics.main_metrics].name,
-);
-const mainMetricValue = ref<number | undefined>(
-  propsComponent.model.metrics.metrics_test
-    ? propsComponent.model.metrics.metrics_test[propsComponent.model.metrics.main_metrics] : undefined,
-);
+const mainMetricName = computed(() => displayServiceName(propsComponent.model.metrics.metrics_info?.[metricKey(propsComponent.model.metrics)]?.name ?? metricKey(propsComponent.model.metrics)));
+const mainMetricValue = computed(() => metricScore(propsComponent.model.metrics));
+const mainMetricDirection = computed(() => {
+  const metrics = propsComponent.model.metrics;
+  const greater = metrics.objective?.greater_is_better ?? metrics.metrics_info?.[metricKey(metrics)]?.greater_is_better;
+  return greater === undefined ? '' : greater ? 'Maximiser' : 'Minimiser';
+});
 
 function forkPipeline() {
   if (!propsComponent.processId) return;
@@ -38,14 +40,14 @@ function forkPipeline() {
         class="col-5"
       >
         <q-icon name="smart_toy" />
-        {{ model.metrics.model_info.name }}
+        {{ displayServiceName(model.metrics.model_info?.name) }}
       </div>
 
       <div
         class="col-4"
       >
-        <q-icon name="rocket_launch" />
-        {{ mainMetricName }} : {{ mainMetricValue }}
+        <q-icon name="rocket_launch"><q-tooltip>{{ mainMetricDirection }}</q-tooltip></q-icon>
+        {{ mainMetricName }} : {{ formatScore(mainMetricValue) }}
       </div>
 
       <div

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed } from 'vue';
+import { displayServiceText, formatScore, metricKey, metricScore } from 'src/utils/iaml';
 import { formatToDDMMYYYHHmm } from 'src/utils/date';
 import { IProcess } from '../models';
 
@@ -7,15 +8,26 @@ const propsComponent = defineProps<{
   process?: IProcess
 }>();
 
-const mainMetricName = ref<string | undefined>(
-  propsComponent.process?.models[0]?.metrics.metrics_info[propsComponent.process?.models[0]?.metrics.main_metrics].name,
-);
-const mainMetricValue = ref<number | undefined>(
-  propsComponent.process?.models[0]?.metrics.metrics_test
-    ? propsComponent.process?.models[0]?.metrics.metrics_test[propsComponent.process?.models[0]?.metrics.main_metrics]
-    : undefined,
-);
-
+const firstModel = computed(() => propsComponent.process?.models?.[0]);
+const mainMetricName = computed(() => {
+  const metrics = firstModel.value?.metrics;
+  return metrics ? metrics.metrics_info?.[metricKey(metrics)]?.name ?? metricKey(metrics)
+    : propsComponent.process?.statusSnapshot?.objective?.key;
+});
+const mainMetricValue = computed(() => firstModel.value
+  ? metricScore(firstModel.value.metrics)
+  : propsComponent.process?.statusSnapshot?.best_test_metric ?? propsComponent.process?.statusSnapshot?.best_train_metric ?? null);
+const mainMetricDirection = computed(() => {
+  const metrics = firstModel.value?.metrics;
+  const greater = metrics ? metrics.objective?.greater_is_better ?? metrics.metrics_info?.[metricKey(metrics)]?.greater_is_better
+    : propsComponent.process?.statusSnapshot?.objective?.greater_is_better;
+  return greater === undefined ? '' : greater ? 'Maximiser' : 'Minimiser';
+});
+const processError = computed(() => propsComponent.process?.error ?? propsComponent.process?.statusSnapshot?.error);
+const processMessages = computed(() => [...new Set([
+  processError.value,
+  propsComponent.process?.cacheError ?? propsComponent.process?.statusSnapshot?.cache_error,
+].filter((message): message is string => typeof message === 'string' && message.length > 0))].map(displayServiceText).join('\n\n'));
 </script>
 
 <template>
@@ -32,8 +44,8 @@ const mainMetricValue = ref<number | undefined>(
       {{ process?.maxDuration }}s
     </div>
     <div class="col-5">
-      <q-icon name="rocket_launch" />
-      Best {{ mainMetricName }} : {{ mainMetricValue }}
+      <q-icon name="rocket_launch"><q-tooltip>{{ mainMetricDirection }}</q-tooltip></q-icon>
+      Best {{ mainMetricName }} : {{ formatScore(mainMetricValue) }}
     </div>
     <div class="col-2">
       <q-chip
@@ -41,6 +53,7 @@ const mainMetricValue = ref<number | undefined>(
         square
         :color="{
           'FINISHED': 'green',
+          'CACHED': 'green',
           'CANCELED': 'red',
           'CRASHED': 'red',
           'QUEUED': 'blue',
@@ -50,6 +63,7 @@ const mainMetricValue = ref<number | undefined>(
         text-color="white"
         :icon="{
           'FINISHED': 'check',
+          'CACHED': 'check',
           'CANCELED': 'close',
           'CRASHED': 'error',
           'QUEUED': 'hourglass_top',
@@ -58,7 +72,7 @@ const mainMetricValue = ref<number | undefined>(
 
         }[process.status]"
         :label="process?.status"
-      />
+      ><q-tooltip v-if="processMessages">{{ processMessages }}</q-tooltip></q-chip>
     </div>
 
     <!-- <q-space />
