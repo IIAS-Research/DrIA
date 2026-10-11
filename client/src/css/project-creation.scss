@@ -1,0 +1,48 @@
+// Creation and navigation keep their existing palette.
+.project-creation-colors,
+.dria-navigation-colors {
+  --project-brand: #6ec3c2;
+  --q-primary: #285a55;
+  --q-secondary: #3a6b66;
+  --q-accent: var(--project-brand);
+  --project-paper: #f8f7f2;
+  --project-surface: #ffffff;
+  --project-border: #dcded5;
+  --project-tint: #edf5f2;
+  --project-selection-surface: #e4f2ee;
+  --project-selection-ink: #203b3c;
+  --project-ink: #203b3c;
+  --project-muted: #626b68;
+  --project-shadow: rgba(32, 59, 60, .07);
+
+  .text-grey-7,
+  .text-grey-8 {
+    color: var(--project-muted) !important;
+  }
+}
+
+// Project consultation: neutral surfaces with the original logo green.
+.project-workspace-colors {
+  --project-brand: #6ec3c2;
+  --q-primary: #287f83;
+  --q-secondary: #386477;
+  --q-accent: var(--project-brand);
+  --project-paper: #f5f7fa;
+  --project-surface: #ffffff;
+  --project-border: #e0e7ed;
+  --project-tint: #eef8f8;
+  --project-selection-surface: #e8f5f5;
+  --project-selection-ink: #236c70;
+  --project-ink: #243746;
+  --project-muted: #657786;
+  --project-shadow: rgba(36, 55, 70, .05);
+  --project-error-ink: #a33548;
+  --project-error-surface: #fff4f6;
+  --project-error-border: #efd2d9;
+  --project-warning-ink: #84621c;
+
+  .text-grey-7,
+  .text-grey-8 {
+    color: var(--project-muted) !important;
+  }
+}

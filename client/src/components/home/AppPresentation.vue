@@ -50,7 +50,7 @@ const baiddySubtitles: Array<string> = [
         class="main_title q-ml-md"
         style="font-size: 60px;"
       >
-        Dr.IA
+        DrIA
       </p>
     </div>
     <VueTyper

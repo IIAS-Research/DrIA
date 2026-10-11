@@ -23,16 +23,9 @@ export async function deleteProject(projectId: IProject['id']) {
   }
 }
 export async function getUserProjects(): Promise<IProject[]> {
-  try {
-    const response = (await api.get(`${projectUrl}/me`))?.data;
-    return response;
-  } catch (error) {
-    console.error('Error fetching projects:', error);
-    notifyApiError(error);
-    return [];
-  }
+  // Navigation handles loading errors separately from an empty project list.
+  return (await api.get<IProject[]>(`${projectUrl}/me`)).data;
 }
-
 export async function GetProjectWithNestedDataById(projectId: IProject['id']): Promise<IProject> {
   const response: IProject = (await api.get(`${projectUrl}/${projectId}/nested-data`)).data;
   response.processes = response.processes.map((p) => {
