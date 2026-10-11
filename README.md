@@ -1,25 +1,47 @@
 # DrIA
 
-DrIA accompagne les médecins dans la création de modèles d’intelligence artificielle à partir de leurs données. Son parcours guidé permet d’importer un fichier CSV, d’explorer les données, d’entraîner des modèles, de comprendre leurs résultats et d’essayer des prédictions. Les calculs sont réalisés par le webservice IAML.
+DrIA helps physicians create AI models from their data. Its guided workflow lets you upload a CSV file, explore the data, train models, understand the results and try predictions. Computation is handled by the IAML web service.
 
-## Lancement local
+## Run with Docker
 
-Prérequis : SDK .NET 8, Node.js 18 et PostgreSQL. Une base PostgreSQL doit être disponible, et le webservice IAML doit fonctionner sur `http://localhost:8000`.
+Requirements: Docker with Docker Compose.
 
-Depuis la racine du projet, configurer puis lancer le serveur en remplaçant les valeurs entre chevrons :
+```bash
+cp .env.example .env
+```
+
+In `.env`, set `POSTGRES_PASSWORD`, `JWT_SECRET` and `DRIA_ADMIN_PASSWORD`. The JWT secret must contain at least 32 characters. The administrator password must contain at least 6 characters, including an uppercase letter, a lowercase letter, a digit and a special character. You can also configure the initial account's email address and the application port. Existing accounts keep their credentials.
+
+```bash
+docker compose up -d --build
+```
+
+Open [http://localhost:8080](http://localhost:8080) and sign in with the configured credentials. Compose starts DrIA, PostgreSQL and the [IAML web service](https://hub.docker.com/r/rudymerieux/iaml-service), with persistent storage for files and results. The IAML image is currently available for x86-64.
+
+To stop the application and keep its data:
+
+```bash
+docker compose down
+```
+
+## Run locally
+
+Requirements: .NET 8 SDK, Node.js 18 and PostgreSQL. A PostgreSQL database must be available, and the IAML web service must be running at `http://localhost:8000`.
+
+From the project root, configure and start the server, replacing the values in angle brackets:
 
 ```bash
 cd Server
-dotnet user-secrets set "ConnectionString" "Host=localhost;Database=dr_ia_dev;Username=<utilisateur>;Password=<mot-de-passe>"
-dotnet user-secrets set "JwtPrivateKey" "<clé aléatoire d'au moins 32 caractères>"
+dotnet user-secrets set "ConnectionString" "Host=localhost;Database=dr_ia_dev;Username=<username>;Password=<password>"
+dotnet user-secrets set "JwtPrivateKey" "<random secret of at least 32 characters>"
 dotnet user-secrets set "PathMainStorage" "$PWD/Storage"
 dotnet user-secrets set "Iaml:BaseUrl" "http://localhost:8000"
 dotnet run --launch-profile http
 ```
 
-Le serveur est accessible sur `http://localhost:3000` et initialise la base au démarrage.
+The server is available at `http://localhost:3000` and initializes the database on startup.
 
-Dans un second terminal, depuis la racine du projet, lancer l’interface :
+In a second terminal, start the web interface from the project root:
 
 ```bash
 cd client
@@ -27,13 +49,13 @@ npm ci
 npm run dev
 ```
 
-Ouvrir [http://localhost:9000](http://localhost:9000).
+Open [http://localhost:9000](http://localhost:9000).
 
-## Compte local
+## Local account
 
-Un compte administrateur est créé automatiquement pour le lancement en développement :
+An administrator account is created automatically when running in development:
 
-- Adresse : `admin@dria.local`
-- Mot de passe : `DrIA-Dev123!`
+- Email: `admin@dria.local`
+- Password: `DrIA-Dev123!`
 
-Si ce compte existe déjà, ses identifiants sont conservés.
+If this account already exists, its credentials are preserved.
