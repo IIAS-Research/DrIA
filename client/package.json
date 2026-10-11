@@ -23,8 +23,7 @@
     "tsparticles": "^2.9.3",
     "vue": "^3.0.0",
     "vue-router": "^4.0.0",
-    "vue3-particles": "^2.9.3",
-    "vue3-typer": "^1.0.0"
+    "vue3-particles": "^2.9.3"
   },
   "devDependencies": {
     "@quasar/app-vite": "^1.0.0",

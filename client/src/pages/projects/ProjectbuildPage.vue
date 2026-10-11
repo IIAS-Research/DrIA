@@ -105,9 +105,6 @@ async function submitProject(projectForm: IProjectForm, file: File) {
 .presentation :deep(img) {
   height: 46px;
 }
-.presentation :deep(.vue-typer) {
-  display: none !important;
-}
 .creation-content {
   width: 100%;
   min-width: 0;

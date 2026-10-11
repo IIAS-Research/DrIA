@@ -7,13 +7,15 @@ import { useUserStore } from 'stores/user-store';
 import { useQuasar } from 'quasar';
 import DrawerContent from 'components/layout/DrawerContent.vue';
 import ParticlesBackground from 'components/home/ParticlesBackground.vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { expireSession, isSessionExpired } from 'src/utils/session';
 import { apiError } from 'src/utils/iaml';
 
 const userStore = useUserStore();
 const $q = useQuasar();
 const router = useRouter();
+const route = useRoute();
+const isLoginPage = computed(() => route.name === 'login');
 
 const leftDrawerOpen = ref(false);
 const userName = computed(() => [userStore.currentUser?.firstName, userStore.currentUser?.lastName]
@@ -108,9 +110,10 @@ async function logout() {
     </q-drawer>
 
     <q-page-container>
-      <ParticlesBackground />
+      <ParticlesBackground v-if="!isLoginPage" />
       <div
         class="router-view"
+        :class="{ 'router-view-login': isLoginPage }"
       >
         <router-view />
       </div>
@@ -124,6 +127,7 @@ async function logout() {
   margin: auto;
   padding-bottom: 200px;
 }
+.router-view-login { max-width: none; margin: 0; padding-bottom: 0; }
 .menu-trigger-row { position: relative; z-index: 2; width: fit-content; max-width: 100%; padding: 16px; }
 .menu-trigger { max-width: 100%; padding: 8px 12px; color: var(--project-ink); background: var(--project-surface); border: 1px solid var(--project-border); border-radius: 10px; }
 .menu-trigger .q-btn__content { flex-wrap: nowrap; gap: 10px; }

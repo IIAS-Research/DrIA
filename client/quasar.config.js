@@ -41,7 +41,6 @@ module.exports = configure((/* ctx */) => ({
   boot: [
     'axios',
     'particles',
-    'vue-typer',
   ],
 
   // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
