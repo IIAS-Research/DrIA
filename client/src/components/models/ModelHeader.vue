@@ -1,98 +1,71 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { formatToDDMMYYYHHmm } from 'src/utils/date';
 import { IModel } from '../models';
+import { displayServiceName } from 'src/utils/service-label';
 
-// props
-const propsComponent = defineProps<{
+const props = defineProps<{
   model: IModel;
-  routeParams: {
-    projectId: number;
-    processId: number;
-    modelId: number;
-  }
+  routeParams: { projectId: number; processId: number; modelId: number };
+  returnView?: 'overview' | 'training' | 'data' | 'configuration';
 }>();
+const created = computed(() => props.model.date && Number.isFinite(Date.parse(props.model.date))
+  ? formatToDDMMYYYHHmm(props.model.date) : undefined);
+const evaluationSource = computed(() => {
+  if (props.model.metrics.metrics_test && Object.values(props.model.metrics.metrics_test).some((score) => typeof score === 'number' && Number.isFinite(score)))
+    return 'Évalué sur un jeu de test indépendant';
+  if (props.model.metrics.score_source === 'cross_validation') return 'Évalué par validation croisée';
+  if (props.model.metrics.score_source === 'in_sample') return 'Évalué sur les données d’entraînement';
+  return 'Consultez la source des scores dans les résultats';
+});
 </script>
 
 <template>
-  <div class="flex-center column">
-    <div class="flex row items-start justify-center full-width">
-      <div class="flex column col-6 q-pr-xl q-mr-xl">
-        <h4 class="no-margin q-pb-lg text-weight-medium">
-          {{ propsComponent.model.metrics.model_info.name }}
-        </h4>
-        <q-card class="q-pa-md">
-          {{ propsComponent.model.metrics.model_info.description }}
-        </q-card>
-      </div>
-
-      <div class="flex column q-pl-xl q-ml-xl col-2">
-        <div class="flex column q-gutter-y-md">
-          <q-item
-            clickable
-            class="bg-secondary text-white shadow-3 q-pa-md"
-            style="width: 300px"
-          >
-            <q-item-section>
-              <div class="flex row items-center justify-between">
-                <div class="text-weight-bolder text-body1">
-                  Date :
-                </div>
-                <div class="text-weight-bolder text-body1">
-                  {{ formatToDDMMYYYHHmm(propsComponent.model.date) }}
-                </div>
-              </div>
-            </q-item-section>
-          </q-item>
-
-          <q-item
-            clickable
-            class="bg-secondary text-white shadow-3 q-pa-md"
-            style="width: 300px"
-          >
-            <q-item-section>
-              <div class="flex row items-center justify-between">
-                <div class="text-weight-bolder text-body1">
-                  {{ propsComponent.model.metrics.metrics_info[propsComponent.model.metrics.main_metrics].name }}
-                </div>
-                <div class="text-weight-bolder text-body1">
-                  {{
-                    propsComponent.model.metrics.metrics_test ? 
-                    propsComponent.model.metrics.metrics_test[propsComponent.model.metrics.main_metrics] : "?"
-                  }}
-                </div>
-              </div>
-            </q-item-section>
-          </q-item>
-        </div>
-
-        <q-btn
-          color="blue-8"
-          label="Tester le modèle"
-          class="q-mt-md"
-          :to="{ name: 'model-test', params: { 
-            id: routeParams.projectId, processId: routeParams.processId, modelId: routeParams.modelId } }"
-        />
+  <header class="model-header">
+    <div class="model-identity">
+      <span class="model-eyebrow">Modèle entraîné</span>
+      <h1>{{ displayServiceName(model.metrics.model_info?.name) || `Modèle nº ${model.id}` }}</h1>
+      <p v-if="model.metrics.model_info?.description" class="model-description">{{ model.metrics.model_info.description }}</p>
+      <div class="model-metadata">
+        <span v-if="created"><q-icon name="event" size="16px" />{{ created }}</span>
+        <span><q-icon name="fact_check" size="16px" />{{ evaluationSource }}</span>
       </div>
     </div>
-  </div>
+    <div class="model-primary-action">
+      <q-btn
+        unelevated
+        no-caps
+        color="primary"
+        icon="science"
+        label="Essayer une prédiction"
+        :to="{
+          name: 'model-test',
+          params: { id: routeParams.projectId, processId: routeParams.processId, modelId: routeParams.modelId },
+          query: { returnView: returnView ?? 'training' },
+        }"
+      />
+      <p>Essayer une prédiction sur des observations.</p>
+    </div>
+  </header>
 </template>
 
 <style scoped>
-.model-info-card {
-  word-break: break-word;
-  line-height: 1.4em;
-  padding: 16px 20px;
-}
-.model-info-card-left {
-  color: #000000;
-  background: #dfdfdf;
-  border: 2px solid #000000;
-}
-.model-info-card-right {
-  color: #000000;
-  background: #ffffff;
-  border-top: 2px solid #000000;
-  border-right: 2px solid #000000;
-  border-bottom: 2px solid #000000;
+.model-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 28px; min-width: 0; }
+.model-identity { flex: 1 1 auto; min-width: 0; }
+.model-eyebrow { display: block; font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--q-primary); }
+h1 { margin: 8px 0 10px; font-size: clamp(25px, 2.8vw, 35px); line-height: 1.2; font-weight: 600; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.model-description { margin: 0; max-width: 780px; font-size: 14px; line-height: 1.65; color: var(--project-muted); overflow-wrap: anywhere; }
+.model-metadata { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 20px; margin-top: 18px; color: var(--project-muted); font-size: 12px; }
+.model-metadata span { display: flex; align-items: center; gap: 7px; }
+.model-metadata .q-icon { flex-shrink: 0; color: var(--q-primary); }
+.model-primary-action { flex: 0 1 240px; padding-top: 14px; min-width: 0; }
+.model-primary-action .q-btn { min-height: 44px; max-width: 100%; border-radius: 9px; }
+.model-primary-action p { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: var(--project-muted); }
+@media (max-width: 700px) {
+  .model-header { flex-direction: column; gap: 18px; }
+  .model-primary-action { flex: 0 0 auto; padding-top: 0; width: 100%; }
+  .model-primary-action .q-btn { width: 100%; }
+  .model-primary-action p { text-align: center; }
+  .model-metadata { margin-top: 14px; gap: 8px; flex-direction: column; align-items: flex-start; }
 }
 </style>
