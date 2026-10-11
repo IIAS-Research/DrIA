@@ -101,6 +101,8 @@ public partial class Program
     builder.Services.AddSingleton<IaPullingModelService>();
     builder.Services.AddSingleton<IaPullingExplainService>();
     builder.Services.AddHostedService<IaPullingRecoveryService>();
+    builder.Services.AddKeyedSingleton<Microsoft.Extensions.Caching.Memory.IMemoryCache>("prediction-explanations", (_, _) =>
+      new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions { SizeLimit = 256 }));
 
     builder.Services.AddSignalR();
 

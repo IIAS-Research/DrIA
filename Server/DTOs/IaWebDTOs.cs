@@ -164,6 +164,14 @@ public record ExplainModelOutDTO
   public string status { get; init; } = string.Empty;
 }
 
+public record PredictionExplanationOutputDTO
+{
+  public required string kind { get; init; }
+  [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+  public JsonElement? classLabel { get; init; }
+  public required double value { get; init; }
+}
+
 public record GetModelTextExplanationOutDTO
 {
   public string id { get; init; } = string.Empty;

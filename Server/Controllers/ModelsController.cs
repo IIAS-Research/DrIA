@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Server.Models;
 using Server.Services;
 using Server.Authorization;
@@ -18,12 +19,16 @@ public class ModelsController : ApplicationController
   private readonly ModelService _models;
   private readonly IaWebService _ia;
   private readonly ProjectService _projects;
+  private readonly IMemoryCache _predictionExplanations;
+  private record ObservationExplanationTicket(long ModelId, string ExplainerId);
 
-  public ModelsController(UserManager<User> users, IAuthorizationService authorization, ModelService models, IaWebService ia, ProjectService projects) : base(users, authorization)
+  public ModelsController(UserManager<User> users, IAuthorizationService authorization, ModelService models, IaWebService ia, ProjectService projects,
+    [FromKeyedServices("prediction-explanations")] IMemoryCache predictionExplanations) : base(users, authorization)
   {
     _models = models;
     _ia = ia;
     _projects = projects;
+    _predictionExplanations = predictionExplanations;
   }
 
   private async Task<Model?> OwnedModel(long id)
@@ -120,6 +125,133 @@ public class ModelsController : ApplicationController
       response = await _ia.PredictWithArtifact(file.Data!, request);
     }
     return response.IsSuccess ? Ok(response.Data) : ServiceFailure(response);
+  }
+
+  [HttpPost("{id:long}/prediction-explanation")]
+  public async Task<IActionResult> StartPredictionExplanation(long id, [FromBody] JsonElement request)
+  {
+    var model = await OwnedModel(id);
+    if (model == null) return NotFound(new { error = "Modèle introuvable." });
+    var project = model.Process!.Project!;
+    if (project.SurvivalModel)
+      return BadRequest(new { error = "L’explication locale SHAP n’est pas disponible pour les modèles de survie." });
+    if (!TryObservationRows(request, project.CsvColumnToPredict, out var rows))
+      return BadRequest(new { error = "Fournissez exactement une observation dans json_row, avec des valeurs simples et sans colonne cible." });
+
+    var file = await _models.GetModelFileById(id);
+    if (!file.IsSuccess) return ServiceFailure(file);
+    var prediction = await _ia.PredictWithArtifact(file.Data!, JsonSerializer.SerializeToElement(new { json_row = rows, method = "predict_proba" }));
+    var probability = true;
+    // Kernel SHAP explains probability column 1 when this method exists.
+    // Other errors must remain visible, rather than changing the explained output.
+    if (!prediction.IsSuccess && prediction.HttpStatusCode == StatusCodes.Status400BadRequest
+      && prediction.Error == "The model does not support predict_proba.")
+    {
+      probability = false;
+      prediction = await _ia.PredictWithArtifact(file.Data!, JsonSerializer.SerializeToElement(new { json_row = rows, method = "predict" }));
+    }
+    if (!prediction.IsSuccess) return ServiceFailure(prediction);
+    if (!TryExplainedOutput(prediction.Data, probability, out var output))
+      return StatusCode(StatusCodes.Status502BadGateway, new { error = "DrIA n’a pas fourni une sortie numérique compatible avec cette explication." });
+
+    var explanation = await _ia.ExplainObservation(file.Data!, rows);
+    if (!explanation.IsSuccess) return ServiceFailure(explanation);
+    if (string.IsNullOrWhiteSpace(explanation.Data.id)
+      || explanation.Data.status is not ("QUEUED" or "COMPUTING" or "FINISHED" or "CACHED" or "CRASHED"))
+      return StatusCode(StatusCodes.Status502BadGateway, new { error = "DrIA n’a pas fourni un état d’explication valide." });
+
+    var ticket = Guid.NewGuid().ToString("N");
+    var key = PredictionExplanationKey(ticket);
+    // Store only the two identifiers, never the observation or generated image.
+    _predictionExplanations.Set(key, new ObservationExplanationTicket(id, explanation.Data.id), new MemoryCacheEntryOptions
+    {
+      AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(20),
+      Size = 1
+    });
+    if (!_predictionExplanations.TryGetValue(key, out ObservationExplanationTicket? _))
+      return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Le suivi de l’explication est indisponible. Réessayez dans quelques instants." });
+    return Accepted(new { ticket, status = explanation.Data.status, output, nsamples = 64 });
+  }
+
+  [HttpGet("{id:long}/prediction-explanation/{ticket}")]
+  public async Task<IActionResult> PredictionExplanation(long id, string ticket)
+  {
+    if (await OwnedModel(id) == null) return NotFound(new { error = "Modèle introuvable." });
+    if (!Guid.TryParseExact(ticket, "N", out _)
+      || !_predictionExplanations.TryGetValue(PredictionExplanationKey(ticket), out ObservationExplanationTicket? stored)
+      || stored == null || stored.ModelId != id)
+      return NotFound(new { error = "Cette explication est introuvable ou a expiré." });
+
+    var response = await _ia.GetExplainStatus(stored.ExplainerId);
+    if (!response.IsSuccess)
+      return response.HttpStatusCode == StatusCodes.Status404NotFound
+        ? Ok(new { status = "UNAVAILABLE", message = "Cette explication n’est plus disponible." })
+        : ServiceFailure(response);
+    var status = response.Data.status.current.ToString();
+    if (status == "CRASHED")
+      return Ok(new { status, message = "L’explication de cette observation n’a pas pu être calculée." });
+    if (status is not ("FINISHED" or "CACHED")) return Ok(new { status });
+
+    var plots = await _ia.GetExplainShapPlots(stored.ExplainerId, plots: "waterfall", ps: "0");
+    if (!plots.IsSuccess)
+      return plots.HttpStatusCode is StatusCodes.Status400BadRequest or StatusCodes.Status404NotFound
+        ? Ok(new { status = "UNAVAILABLE", message = "DrIA n’a pas produit de graphique SHAP pour cette observation." })
+        : ServiceFailure(plots);
+    if (!plots.Data.TryGetValue("waterfall", out var plot) || plot == null || !IsPng(plot.image))
+      return Ok(new { status = "UNAVAILABLE", message = "DrIA n’a pas produit de graphique SHAP pour cette observation." });
+    return Ok(new { status, plot });
+  }
+
+  private static string PredictionExplanationKey(string ticket) => "prediction-explanation:" + ticket;
+
+  private static bool TryObservationRows(JsonElement request, string target, out JsonElement rows)
+  {
+    rows = default;
+    if (request.ValueKind != JsonValueKind.Object || request.EnumerateObject().Count() != 1
+      || !request.TryGetProperty("json_row", out rows) || rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() != 1
+      || rows[0].ValueKind != JsonValueKind.Object) return false;
+    var columns = new HashSet<string>(StringComparer.Ordinal);
+    foreach (var field in rows[0].EnumerateObject())
+    {
+      if (string.IsNullOrWhiteSpace(field.Name) || field.Name == target || !columns.Add(field.Name)) return false;
+      if (field.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Array or JsonValueKind.Undefined) return false;
+      if (field.Value.ValueKind == JsonValueKind.Number
+        && (!field.Value.TryGetDouble(out var value) || !double.IsFinite(value))) return false;
+    }
+    return columns.Count > 0;
+  }
+
+  private static bool TryExplainedOutput(JsonElement response, bool probability, out PredictionExplanationOutputDTO? output)
+  {
+    output = null;
+    if (response.ValueKind != JsonValueKind.Object || !response.TryGetProperty("prediction", out var predictions)
+      || predictions.ValueKind != JsonValueKind.Array || predictions.GetArrayLength() != 1) return false;
+    var predicted = predictions[0];
+    JsonElement? classLabel = null;
+    if (probability)
+    {
+      if (predicted.ValueKind != JsonValueKind.Array || predicted.GetArrayLength() < 2
+        || !response.TryGetProperty("classes", out var classes) || classes.ValueKind != JsonValueKind.Array
+        || classes.GetArrayLength() != predicted.GetArrayLength()
+        || classes[1].ValueKind is not (JsonValueKind.String or JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False)) return false;
+      classLabel = classes[1].Clone();
+      predicted = predicted[1];
+    }
+    if (predicted.ValueKind != JsonValueKind.Number || !predicted.TryGetDouble(out var value)
+      || !double.IsFinite(value) || (probability && (value < 0 || value > 1))) return false;
+    output = new PredictionExplanationOutputDTO { kind = probability ? "probability" : "value", classLabel = classLabel, value = value };
+    return true;
+  }
+
+  private static bool IsPng(string? image)
+  {
+    if (string.IsNullOrWhiteSpace(image)) return false;
+    try
+    {
+      var bytes = Convert.FromBase64String(image);
+      return bytes.AsSpan().StartsWith(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
+    }
+    catch (FormatException) { return false; }
   }
 
   [HttpPost("{id:long}/evaluate")]

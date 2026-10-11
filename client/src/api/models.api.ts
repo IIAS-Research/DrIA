@@ -31,3 +31,25 @@ export async function predictValueUsingAiModel(modelId: number, request: {
 }, signal?: AbortSignal): Promise<IPrediction> {
   return (await api.post(`${modelUrl}/${modelId}/predict`, request, { signal })).data;
 }
+
+export interface LocalExplanationOutput {
+  kind: 'probability' | 'value';
+  classLabel?: string | number | boolean;
+  value: number;
+}
+export interface LocalExplanationJob {
+  ticket: string;
+  status: string;
+  output: LocalExplanationOutput;
+  nsamples: number;
+}
+export interface LocalExplanationResult {
+  status: string;
+  plot?: { title: string; description: string; image: string };
+}
+export async function startPredictionExplanation(modelId: number, row: Record<string, string | null>, signal?: AbortSignal): Promise<LocalExplanationJob> {
+  return (await api.post(`${modelUrl}/${modelId}/prediction-explanation`, { json_row: [row] }, { signal })).data;
+}
+export async function getPredictionExplanation(modelId: number, ticket: string, signal?: AbortSignal): Promise<LocalExplanationResult> {
+  return (await api.get(`${modelUrl}/${modelId}/prediction-explanation/${encodeURIComponent(ticket)}`, { signal })).data;
+}

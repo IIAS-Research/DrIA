@@ -167,6 +167,23 @@ public class IaWebService : ApplicationService
     return await SendJson<ExplainModelOutDTO>(HttpMethod.Post, "explain", content);
   }
 
+  public async Task<ResponseService<ExplainModelOutDTO>> ExplainObservation(FileStorageResponseGet model, JsonElement rows)
+  {
+    try
+    {
+      // The JSON dataset preserves codes such as "001", strings and nulls.
+      // CSV would let pandas infer different values before schema conversion.
+      using var content = new MultipartFormDataContent
+      {
+        { new ByteArrayContent(model.FileBytes!), "pipeline", "pyiaml_model.pickle" },
+        { new StringContent(rows.GetRawText(), Encoding.UTF8, "application/json"), "dataset" },
+        { new StringContent("{\"nsamples\":64}", Encoding.UTF8, "application/json"), "options" }
+      };
+      return await SendJson<ExplainModelOutDTO>(HttpMethod.Post, "explain", content);
+    }
+    catch (Exception ex) { return Failure<ExplainModelOutDTO>(ex); }
+  }
+
   public async Task<ResponseService<ExplainModelOutDTO>> ExplainModel(byte[] dataset, byte[] model, Project project, JsonElement? options = null)
   {
     try
