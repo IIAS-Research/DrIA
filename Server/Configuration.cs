@@ -17,10 +17,14 @@ public static class Configuration
     };
     foreach (string secret in secretsToCheck)
     {
-      if (config[secret] is null)
+      if (string.IsNullOrWhiteSpace(config[secret]))
       {
         throw new Exception($"Secret '{secret}' is not defined!");
       }
+    }
+    if (System.Text.Encoding.UTF8.GetByteCount(config[JwtPrivateKey]!) < 32)
+    {
+      throw new InvalidOperationException("JwtPrivateKey must contain at least 32 bytes.");
     }
   }
 }

@@ -1,0 +1,134 @@
+name: dria
+
+x-iaml-image: &iaml-image
+  image: ${IAML_IMAGE:-rudymerieux/iaml-service:0.2.0}
+  platform: linux/amd64
+
+services:
+  web:
+    image: ${DRIA_WEB_IMAGE:-dria-web:local}
+    build:
+      context: ./client
+    ports:
+      - "${DRIA_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api:
+    image: ${DRIA_API_IMAGE:-dria-api:local}
+    build:
+      context: ./Server
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionString: "Host=database;Port=5432;Database=dria;Username=dria"
+      Database__Password: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      JwtPrivateKey: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      PathMainStorage: /var/lib/dria
+      Iaml__BaseUrl: http://iaml:8000
+      BootstrapAdmin__Email: ${DRIA_ADMIN_EMAIL:-admin@dria.local}
+      BootstrapAdmin__Password: ${DRIA_ADMIN_PASSWORD:?Set DRIA_ADMIN_PASSWORD in .env}
+    volumes:
+      - dria-files:/var/lib/dria
+    depends_on:
+      database:
+        condition: service_healthy
+      iaml:
+        condition: service_healthy
+    restart: unless-stopped
+
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: dria
+      POSTGRES_USER: dria
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  garage-secrets:
+    <<: *iaml-image
+    command: ["/app/.venv/bin/python", "/deploy/garage_bootstrap.py", "secrets"]
+    volumes:
+      - ./deployment/iaml:/deploy:ro
+      - garage-secrets:/run/garage-secrets
+    restart: "no"
+
+  garage:
+    image: dxflrs/garage:v2.4.1
+    command: ["/garage", "server", "--single-node"]
+    environment:
+      GARAGE_RPC_SECRET_FILE: /run/garage-secrets/rpc-secret
+      GARAGE_ADMIN_TOKEN_FILE: /run/garage-secrets/admin-token
+    volumes:
+      - ./deployment/iaml/garage.toml:/etc/garage.toml:ro
+      - garage-secrets:/run/garage-secrets:ro
+      - garage-metadata:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+    depends_on:
+      garage-secrets:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  garage-init:
+    <<: *iaml-image
+    command: ["/app/.venv/bin/python", "/deploy/garage_bootstrap.py", "init"]
+    environment:
+      GARAGE_ADMIN_ENDPOINT: http://garage:3903
+      S3_ENDPOINT: garage:3900
+      S3_REGION: garage
+      S3_BUCKET: dria-iaml
+      S3_CREDENTIALS_FILE: /run/iaml-storage/s3.json
+    volumes:
+      - ./deployment/iaml:/deploy:ro
+      - garage-secrets:/run/garage-secrets:ro
+      - iaml-credentials:/run/iaml-storage
+    depends_on:
+      garage:
+        condition: service_healthy
+    restart: "no"
+
+  iaml:
+    <<: *iaml-image
+    environment:
+      S3_ENABLED: "true"
+      S3_ENDPOINT: garage:3900
+      S3_REGION: garage
+      S3_SECURE: "false"
+      S3_BUCKET: dria-iaml
+      S3_CREDENTIALS_FILE: /run/iaml-storage/s3.json
+      WEBSOCKET_URL: http://iaml:8000/
+    volumes:
+      - iaml-credentials:/run/iaml-storage:ro
+    depends_on:
+      garage-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  dria-files:
+  garage-secrets:
+  garage-metadata:
+  garage-data:
+  iaml-credentials:

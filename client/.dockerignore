@@ -1,0 +1,10 @@
+node_modules
+.quasar
+dist
+.git
+.env
+.env.*
+*.log
+.DS_Store
+.idea
+.vscode

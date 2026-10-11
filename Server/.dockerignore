@@ -1,0 +1,10 @@
+bin/
+obj/
+Storage/
+.vs/
+*.user
+*.log
+appsettings.Development.json
+appsettings.Production.json
+.env
+.env.*

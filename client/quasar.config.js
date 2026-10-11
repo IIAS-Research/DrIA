@@ -13,10 +13,12 @@
 
 const configTargetApi = {
   development: 'http://localhost:3000/api',
-  production: 'https://dria.domchurs.ad/api'
+  production: '/api'
 };
 
-const API = process.env.NODE_ENV ? configTargetApi[process.env.NODE_ENV] : 'http://localhost:3000/api';
+const API = process.env.DRIA_API_URL
+  || configTargetApi[process.env.NODE_ENV]
+  || configTargetApi.development;
 
 const { configure } = require('quasar/wrappers');
 

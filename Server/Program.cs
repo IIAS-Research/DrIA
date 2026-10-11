@@ -37,11 +37,8 @@ public partial class Program
       var services = scope.ServiceProvider;
       var dbContext = services.GetRequiredService<MainDbContext>();
       dbContext.Database.Migrate();
-      if (!app.Environment.IsProduction())
-      {
-        var userManager = services.GetRequiredService<UserManager<User>>();
-        await DatabaseSeed.Run(userManager);
-      }
+      var userManager = services.GetRequiredService<UserManager<User>>();
+      await DatabaseSeed.Run(userManager, app.Configuration, app.Environment.IsDevelopment());
     }
 
     app.UseSwagger(c =>
@@ -64,6 +61,10 @@ public partial class Program
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers().RequireAuthorization();
+    app.MapGet("/api/health", async Task<IResult> (MainDbContext db, CancellationToken cancellationToken) =>
+        await db.Database.CanConnectAsync(cancellationToken)
+            ? Results.Ok(new { status = "ok" })
+            : Results.StatusCode(StatusCodes.Status503ServiceUnavailable)).AllowAnonymous();
     app.MapHub<IaGenerateModelHub>("/api/ws/generateModel").RequireAuthorization();
     app.MapHub<IaExplainModelHub>("/api/ws/explainModel").RequireAuthorization();
     app.Run();
@@ -71,6 +72,15 @@ public partial class Program
 
   private static void RunBeforeStart(WebApplicationBuilder builder)
   {
+    var databasePassword = builder.Configuration["Database:Password"];
+    if (databasePassword != null)
+    {
+      var connection = new Npgsql.NpgsqlConnectionStringBuilder(builder.Configuration[Configuration.ConnectionString])
+      {
+        Password = databasePassword
+      };
+      builder.Configuration[Configuration.ConnectionString] = connection.ConnectionString;
+    }
     Configuration.EnsureSecretsAreOk(builder.Configuration);
     FileStorageService.EnsureStorageDirectoryAreCreated(builder.Configuration);
     AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
