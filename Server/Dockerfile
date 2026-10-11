@@ -6,6 +6,13 @@ COPY . .
 RUN dotnet publish server.csproj -c Release -o /out --no-restore /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+# x-release-please-start-version
+ARG DRIA_VERSION=0.7.3
+# x-release-please-end
+ARG DRIA_REVISION=local
+LABEL org.opencontainers.image.title="DrIA API" \
+    org.opencontainers.image.version="${DRIA_VERSION}" \
+    org.opencontainers.image.revision="${DRIA_REVISION}"
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \

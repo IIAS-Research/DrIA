@@ -10,6 +10,13 @@ ENV DRIA_API_URL=${DRIA_API_URL}
 RUN npm run build
 
 FROM nginx:stable-alpine AS runtime
+# x-release-please-start-version
+ARG DRIA_VERSION=0.7.3
+# x-release-please-end
+ARG DRIA_REVISION=local
+LABEL org.opencontainers.image.title="DrIA Web" \
+    org.opencontainers.image.version="${DRIA_VERSION}" \
+    org.opencontainers.image.revision="${DRIA_REVISION}"
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/spa /usr/share/nginx/html
 

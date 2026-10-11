@@ -1,0 +1,272 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing stable release tag to publish again, such as v1.0.0
+        required: true
+        type: string
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.event.repository.default_branch }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref == format('refs/heads/{0}', github.event.repository.default_branch)) ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == github.event.repository.default_branch &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
+    outputs:
+      created: ${{ steps.validate.outputs.created }}
+      tag: ${{ steps.validate.outputs.tag }}
+      sha: ${{ steps.validate.outputs.sha }}
+      ci_run_id: ${{ steps.validate.outputs.ci_run_id }}
+      latest: ${{ steps.validate.outputs.latest }}
+    steps:
+      - name: Check that CI validated the current default branch commit
+        id: head
+        if: github.event_name == 'workflow_run'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const {data: branch} = await github.rest.repos.getBranch({
+              ...context.repo,
+              branch: context.payload.repository.default_branch,
+            });
+            const current = branch.commit.sha === run.head_sha;
+            core.setOutput('current', String(current));
+            if (!current) {
+              core.notice('The default branch has advanced since this CI run; release preparation skipped.');
+            }
+
+      - name: Prepare a release PR or create its tag and GitHub release
+        id: release
+        if: steps.head.outputs.current == 'true'
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ github.token }}
+          target-branch: ${{ github.event.repository.default_branch }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Run CI on the release PR
+        if: steps.release.outputs.prs_created == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          RELEASE_PRS: ${{ steps.release.outputs.prs }}
+        with:
+          script: |
+            for (const candidate of JSON.parse(process.env.RELEASE_PRS || '[]')) {
+              const {data: pr} = await github.rest.pulls.get({
+                ...context.repo,
+                pull_number: candidate.number,
+              });
+              if (pr.state !== 'open' || pr.base.ref !== context.payload.repository.default_branch ||
+                  pr.head.repo?.full_name !== context.payload.repository.full_name) {
+                throw new Error('The release PR must be open in this repository and target its default branch.');
+              }
+              const {data} = await github.rest.actions.listWorkflowRuns({
+                ...context.repo,
+                workflow_id: 'ci.yml',
+                head_sha: pr.head.sha,
+                per_page: 100,
+              });
+              const existing = data.workflow_runs.some(run =>
+                run.head_sha === pr.head.sha &&
+                (run.conclusion === 'success' ||
+                 (run.event === 'workflow_dispatch' &&
+                  ['queued', 'in_progress', 'pending', 'requested', 'waiting'].includes(run.status)))
+              );
+              if (existing) {
+                core.notice(`CI already exists for release PR #${pr.number}.`);
+                continue;
+              }
+              await github.rest.actions.createWorkflowDispatch({
+                ...context.repo,
+                workflow_id: 'ci.yml',
+                ref: pr.head.ref,
+              });
+              core.notice(`CI dispatched for release PR #${pr.number}.`);
+            }
+
+      - name: Verify the release tag and find its successful CI run
+        id: validate
+        if: steps.release.outputs.release_created == 'true' || github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag_name || inputs.tag }}
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        with:
+          script: |
+            const manual = context.eventName === 'workflow_dispatch';
+            const tag = process.env.RELEASE_TAG;
+            const version = tag?.replace(/^v/, '');
+            if (!/^v\d+\.\d+\.\d+$/.test(tag)) {
+              throw new Error('Expected a stable release tag such as v1.0.0.');
+            }
+            if (!manual && version !== process.env.RELEASE_VERSION) {
+              throw new Error('Release tag and version do not agree.');
+            }
+            const {data: release} = await github.rest.repos.getReleaseByTag({
+              ...context.repo,
+              tag,
+            });
+            if (release.draft || release.prerelease || release.tag_name !== tag) {
+              throw new Error('Publishing requires an existing stable, published GitHub release.');
+            }
+            const {data: reference} = await github.rest.git.getRef({
+              ...context.repo,
+              ref: `tags/${tag}`,
+            });
+            let target = reference.object;
+            while (target.type === 'tag') {
+              const {data: annotation} = await github.rest.git.getTag({
+                ...context.repo,
+                tag_sha: target.sha,
+              });
+              target = annotation.object;
+            }
+            if (target.type !== 'commit' || (!manual && target.sha !== process.env.RELEASE_SHA)) {
+              throw new Error('The release tag does not point to the release commit.');
+            }
+            const sha = target.sha;
+            const {data: versionFile} = await github.rest.repos.getContent({
+              ...context.repo,
+              path: 'version.txt',
+              ref: sha,
+            });
+            if (Array.isArray(versionFile) || !('content' in versionFile) ||
+                Buffer.from(versionFile.content, 'base64').toString('utf8').trim() !== version) {
+              throw new Error('version.txt does not match the release tag.');
+            }
+            const {data} = await github.rest.actions.listWorkflowRuns({
+              ...context.repo,
+              workflow_id: 'ci.yml',
+              branch: context.payload.repository.default_branch,
+              event: 'push',
+              head_sha: sha,
+              status: 'success',
+              per_page: 100,
+            });
+            const run = data.workflow_runs.find(candidate =>
+              candidate.head_sha === sha && candidate.conclusion === 'success' &&
+              candidate.event === 'push' &&
+              candidate.head_branch === context.payload.repository.default_branch &&
+              candidate.head_repository?.full_name === context.payload.repository.full_name
+            );
+            if (!run) {
+              throw new Error('No successful push CI run on the default branch exists for this exact release commit.');
+            }
+            const {data: latest} = await github.rest.repos.getLatestRelease(context.repo);
+            core.setOutput('tag', tag);
+            core.setOutput('sha', sha);
+            core.setOutput('ci_run_id', String(run.id));
+            core.setOutput('latest', String(latest.tag_name === tag));
+            core.setOutput('created', 'true');
+
+  publish:
+    needs: prepare
+    if: needs.prepare.outputs.created == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      RELEASE_SHA: ${{ needs.prepare.outputs.sha }}
+      PUBLISH_LATEST: ${{ needs.prepare.outputs.latest }}
+    steps:
+      - name: Download the images from the successful CI run
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dria-images
+          path: dist
+          run-id: ${{ needs.prepare.outputs.ci_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Verify the tested image manifest
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          dist = Path('dist')
+          if set(path.name for path in dist.iterdir()) != {'images.tar', 'manifest.json'}:
+              raise SystemExit('Expected only images.tar and manifest.json in the CI artifact.')
+          tag = os.environ['RELEASE_TAG']
+          if not re.fullmatch(r'v\d+\.\d+\.\d+', tag):
+              raise SystemExit('Expected a stable semantic version tag.')
+          manifest = json.loads((dist / 'manifest.json').read_text())
+          if manifest.get('revision') != os.environ['RELEASE_SHA'] or manifest.get('version') != tag[1:]:
+              raise SystemExit('The CI artifact does not match the release version and commit.')
+          if set(manifest.get('images', {})) != {'api', 'web'}:
+              raise SystemExit('Expected exactly the API and Web images.')
+          for name, details in manifest['images'].items():
+              if details.get('source') != f'dria-{name}:local' or not re.fullmatch(r'sha256:[0-9a-f]{64}', details.get('id', '')):
+                  raise SystemExit(f'Invalid {name} image identity in the CI manifest.')
+          PY
+
+      - name: Load and verify the tested images
+        run: |
+          docker load --input dist/images.tar
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          manifest = json.loads(Path('dist/manifest.json').read_text())
+          for name, details in manifest['images'].items():
+              images = json.loads(subprocess.check_output(['docker', 'image', 'inspect', details['source']]))
+              if len(images) != 1 or images[0]['Id'] != details['id']:
+                  raise SystemExit(f'The loaded {name} image does not match the tested image ID.')
+              labels = images[0].get('Config', {}).get('Labels', {}) or {}
+              if labels.get('org.opencontainers.image.version') != manifest['version'] or labels.get('org.opencontainers.image.revision') != os.environ['RELEASE_SHA']:
+                  raise SystemExit(f'The loaded {name} image labels do not match this release.')
+          PY
+
+      - name: Sign in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Publish the validated API and Web images
+        run: |
+          image_prefix="ghcr.io/${GITHUB_REPOSITORY,,}"
+          version="${RELEASE_TAG#v}"
+          for component in api web; do
+            source="dria-${component}:local"
+            destination="${image_prefix}-${component}"
+            docker tag "$source" "${destination}:${version}"
+            docker push "${destination}:${version}"
+            if [ "$PUBLISH_LATEST" = "true" ]; then
+              docker tag "$source" "${destination}:latest"
+              docker push "${destination}:latest"
+            fi
+          done

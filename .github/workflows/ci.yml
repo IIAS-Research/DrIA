@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.ref != format('refs/heads/{0}', github.event.repository.default_branch) }}
+
+jobs:
+  frontend:
+    name: Frontend tests and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '8.0.x'
+      - name: Check application version
+        run: python3 .github/scripts/check_version.py
+      - run: dotnet restore dr-ia.sln
+      - run: dotnet test dr-ia.sln --configuration Release --no-restore --logger trx --results-directory TestResults --collect:'XPlat Code Coverage'
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: backend-test-results
+          path: TestResults/
+          retention-days: 14
+          if-no-files-found: warn
+
+  compose:
+    name: Compose integration
+    needs: [frontend, backend]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      COMPOSE_PROJECT_NAME: dria-ci
+      COMPOSE_FILE: compose.yaml
+      COMPOSE_ENV_FILES: .env.ci
+      DRIA_EMAIL: ci@dria.local
+      DRIA_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Prepare isolated deployment
+        run: |
+          python3 - <<'PY'
+          import os
+          import secrets
+          from pathlib import Path
+
+          password = 'Ci-' + secrets.token_hex(16) + '!'
+          values = {
+              'DRIA_PORT': '18080',
+              'DRIA_ADMIN_EMAIL': os.environ['DRIA_EMAIL'],
+              'DRIA_ADMIN_PASSWORD': password,
+              'POSTGRES_PASSWORD': secrets.token_hex(32),
+              'JWT_SECRET': secrets.token_hex(32),
+          }
+          for key in ('DRIA_ADMIN_PASSWORD', 'POSTGRES_PASSWORD', 'JWT_SECRET'):
+              print('::add-mask::' + values[key])
+          path = Path('.env.ci')
+          path.touch(mode=0o600)
+          path.write_text(''.join(f'{key}={value}\n' for key, value in values.items()))
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('DRIA_PASSWORD=' + password + '\n')
+              output.write('DRIA_VERSION=' + Path('version.txt').read_text().strip() + '\n')
+          PY
+      - name: Build application images
+        run: docker compose build --build-arg DRIA_VERSION --build-arg DRIA_REVISION
+      - name: Start complete deployment
+        run: docker compose up -d --wait --wait-timeout 240
+      - name: Test training and prediction
+        run: python3 .github/scripts/compose_smoke.py --base-url http://localhost:18080 --state /tmp/dria-ci-state.json
+      - name: Recreate containers with persisted data
+        run: |
+          docker compose down
+          docker compose up -d --no-build --pull never --wait --wait-timeout 240
+      - name: Test data and model persistence
+        run: python3 .github/scripts/compose_smoke.py --base-url http://localhost:18080 --state /tmp/dria-ci-state.json --after-restart
+      - name: Export tested images
+        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        run: python3 .github/scripts/export_images.py
+      - name: Upload tested images
+        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dria-images
+          path: artifacts/images/
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
+      - name: Collect deployment logs
+        if: failure()
+        run: |
+          mkdir -p artifacts/logs
+          docker compose ps -a > artifacts/logs/containers.txt
+          docker compose logs --no-color > artifacts/logs/compose.log
+      - name: Upload deployment logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: compose-logs
+          path: artifacts/logs/
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Remove isolated deployment
+        if: always()
+        run: |
+          if [ -f .env.ci ]; then
+            docker compose down --volumes --remove-orphans
+            rm -f .env.ci
+          fi
