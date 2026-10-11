@@ -16,7 +16,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 
 public partial class Program
 {
-  public static void Main(string[] args)
+  public static async Task Main(string[] args)
   {
     var builder = WebApplication.CreateBuilder(args);
 
@@ -36,7 +36,7 @@ public partial class Program
       if (!app.Environment.IsProduction())
       {
         var userManager = services.GetRequiredService<UserManager<User>>();
-        DatabaseSeed.Run(userManager);
+        await DatabaseSeed.Run(userManager);
       }
     }
 
@@ -60,8 +60,8 @@ public partial class Program
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers().RequireAuthorization();
-    app.MapHub<IaGenerateModelHub>("/api/ws/generateModel");
-    app.MapHub<IaExplainModelHub>("/api/ws/explainModel");
+    app.MapHub<IaGenerateModelHub>("/api/ws/generateModel").RequireAuthorization();
+    app.MapHub<IaExplainModelHub>("/api/ws/explainModel").RequireAuthorization();
     app.Run();
   }
 
@@ -121,6 +121,18 @@ public partial class Program
         }).AddJwtBearer(options =>
         {
           options.TokenValidationParameters = AuthService.GetAuthServiceTokenValidationParameters(builder.Configuration);
+          options.Events = new JwtBearerEvents
+          {
+            OnMessageReceived = context =>
+            {
+              var accessToken = context.Request.Query["access_token"];
+              if (!string.IsNullOrEmpty(accessToken) && context.HttpContext.Request.Path.StartsWithSegments("/api/ws"))
+              {
+                context.Token = accessToken;
+              }
+              return Task.CompletedTask;
+            }
+          };
         });
     builder.Services.AddAuthorization();
     builder.Services.AddCors(options =>

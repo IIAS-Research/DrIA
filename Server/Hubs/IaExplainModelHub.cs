@@ -1,18 +1,44 @@
 using Server.Services;
+using Server.DAL.Db;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Server.Hubs;
 
 public class IaExplainModelHub : ApplicationHub
 {
   private readonly IaPullingExplainService _iaPullingService;
-  public IaExplainModelHub(IaPullingExplainService iaPullingService)
+  private readonly MainDbContext _dbContext;
+  public IaExplainModelHub(IaPullingExplainService iaPullingService, MainDbContext dbContext)
   {
     _iaPullingService = iaPullingService;
+    _dbContext = dbContext;
   }
   public virtual async Task JoinGroup(string jobWebServiceId, long localModelId)
   {
     try
     {
+      if (!long.TryParse(Context.User?.Identity?.Name, out var userId))
+      {
+        throw new HubException("Authentification requise.");
+      }
+      var explanation = await _dbContext.Models
+          .Where(model => model.Id == localModelId && model.Process!.Project!.UserId == userId)
+          .Select(model => model.Explanation)
+          .FirstOrDefaultAsync();
+      if (string.IsNullOrWhiteSpace(explanation))
+      {
+        throw new HubException("Cette analyse est introuvable ou inaccessible.");
+      }
+      using var document = JsonDocument.Parse(explanation);
+      var metadata = document.RootElement;
+      var storedId = metadata.TryGetProperty("id", out var id) ? id.GetString()
+          : metadata.TryGetProperty("explainer_id", out var explainerId) ? explainerId.GetString() : null;
+      if (storedId != jobWebServiceId)
+      {
+        throw new HubException("Cette analyse est introuvable ou inaccessible.");
+      }
       Console.WriteLine("Triggered JoinGroup");
       var connection = _iaPullingService.GetIaConnection(jobWebServiceId);
       connection ??= _iaPullingService.CreateIaConnection(jobWebServiceId, localModelId);

@@ -9,6 +9,7 @@ namespace Server.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class IaWebServiceController(UserManager<User> userManager, IaWebService iaWebService, IAuthorizationService authorizationService) : ApplicationController(userManager, authorizationService)
 {
   private readonly IaWebService _iaWebService = iaWebService;

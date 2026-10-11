@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import AppPresentation from 'components/home/AppPresentation.vue';
-import { QForm, useQuasar } from 'quasar';
 import { useUserStore } from 'stores/user-store';
-import { reactive } from 'vue';
-import { useRouter } from 'vue-router';
+import { reactive, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 const userStore = useUserStore();
 const router = useRouter();
+const route = useRoute();
+const submitting = ref(false);
 
 const login = reactive({
   email: '',
@@ -14,8 +15,22 @@ const login = reactive({
 });
 
 async function submit() {
-  await userStore.login(login);
-  router.push({ name: 'home' });
+  if (submitting.value) return;
+  submitting.value = true;
+  try {
+    if (!await userStore.login(login)) return;
+    const redirect = route.query.redirect;
+    if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')) {
+      const destination = router.resolve(redirect);
+      if (destination.matched.length && destination.name !== 'login') {
+        await router.replace(redirect);
+        return;
+      }
+    }
+    await router.replace({ name: 'home' });
+  } finally {
+    submitting.value = false;
+  }
 }
 </script>
 
@@ -33,7 +48,7 @@ async function submit() {
           :rules="[(val, rules) => rules.email(val) || `Format d'adresse email invalide`]" lazy-rules />
         <q-input v-model="login.password" type="password" label="Mot de passe" filled lazy-rules />
 
-        <q-btn color="primary" type="submit" label="Connexion" class="full-width q-mt-md" />
+        <q-btn color="primary" type="submit" label="Connexion" class="full-width q-mt-md" :loading="submitting" />
       </q-form>
     </div>
   </q-page>

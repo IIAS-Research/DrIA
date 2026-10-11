@@ -1,19 +1,33 @@
 <script setup lang="ts">
 import {
-  onMounted, ref,
+  onMounted, onUnmounted, ref,
 } from 'vue';
 import { useUserStore } from 'stores/user-store';
 import { useQuasar } from 'quasar';
 import DrawerContent from 'components/layout/DrawerContent.vue';
 import ParticlesBackground from 'components/home/ParticlesBackground.vue';
+import { useRouter } from 'vue-router';
+import { expireSession, isSessionExpired } from 'src/utils/session';
+import { apiError } from 'src/utils/iaml';
 
 const userStore = useUserStore();
 const $q = useQuasar();
+const router = useRouter();
 
 const leftDrawerOpen = ref(false);
 const alreadyNotifiedAccessTokenWillExpireSoon = ref(false);
+let sessionInterval: ReturnType<typeof setInterval> | undefined;
 
 async function checkJwtValidity() {
+  if (!userStore.accessToken) {
+    alreadyNotifiedAccessTokenWillExpireSoon.value = false;
+    return;
+  }
+  if (userStore.checkIfAccessTokenIsExpired()) {
+    await expireSession(userStore, router);
+    alreadyNotifiedAccessTokenWillExpireSoon.value = false;
+    return;
+  }
   if (!userStore.checkIfAccessTokenWillExpireSoon()) return;
   if (alreadyNotifiedAccessTokenWillExpireSoon.value) return;
   const timeoutBeforeAccessTokenIsExpired = (new Date(userStore.accessTokenExpirationTime * 1000).getTime()
@@ -29,7 +43,11 @@ async function checkJwtValidity() {
         label: 'Rester connecter',
         color: 'primary',
         handler: async () => {
-          await userStore.refreshToken(); alreadyNotifiedAccessTokenWillExpireSoon.value = false;
+          try {
+            if (await userStore.refreshToken()) alreadyNotifiedAccessTokenWillExpireSoon.value = false;
+          } catch (error) {
+            if (!isSessionExpired(error)) $q.notify({ type: 'negative', message: apiError(error) });
+          }
         },
       },
     ],
@@ -37,10 +55,17 @@ async function checkJwtValidity() {
   alreadyNotifiedAccessTokenWillExpireSoon.value = true;
 }
 
-onMounted(async () => {
-  userStore.setUserInfosFromCookies();
-  setInterval(checkJwtValidity, 2 * 60 * 1000); // Check every 2 minutes
+onMounted(() => {
+  sessionInterval = setInterval(checkJwtValidity, 2 * 60 * 1000);
 });
+onUnmounted(() => { if (sessionInterval) clearInterval(sessionInterval); });
+
+async function logout() {
+  userStore.logout();
+  alreadyNotifiedAccessTokenWillExpireSoon.value = false;
+  leftDrawerOpen.value = false;
+  await router.replace({ name: 'login' });
+}
 
 </script>
 
@@ -66,6 +91,7 @@ onMounted(async () => {
       </div>
     </div>
     <q-drawer
+      v-if="userStore.isUserConnected"
       v-model="leftDrawerOpen"
       side="left"
       behavior="mobile"
@@ -73,7 +99,7 @@ onMounted(async () => {
     >
       <!-- drawer content -->
       <DrawerContent
-        @click="async () => { await userStore.logout(); leftDrawerOpen = false }"
+        @click="logout"
         :is-user-connected="userStore.isUserConnected"
         :is-user-admin="userStore.isUserAdmin"
       />

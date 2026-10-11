@@ -1,18 +1,28 @@
 using Server.Services;
+using Server.DAL.Db;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Server.Hubs;
 
 public class IaGenerateModelHub : ApplicationHub
 {
   private readonly IaPullingModelService _iaPullingService;
-  public IaGenerateModelHub(IaPullingModelService iaPullingService)
+  private readonly MainDbContext _dbContext;
+  public IaGenerateModelHub(IaPullingModelService iaPullingService, MainDbContext dbContext)
   {
     _iaPullingService = iaPullingService;
+    _dbContext = dbContext;
   }
   public virtual async Task JoinGroup(string jobWebServiceId)
   {
     try
     {
+      if (!long.TryParse(Context.User?.Identity?.Name, out var userId) ||
+          !await _dbContext.Processes.AnyAsync(process => process.IaRemoteId == jobWebServiceId && process.Project!.UserId == userId))
+      {
+        throw new HubException("Ce traitement est introuvable ou inaccessible.");
+      }
       Console.WriteLine("Triggered JoinGroup");
       var connection = _iaPullingService.GetIaConnection(jobWebServiceId);
       connection ??= _iaPullingService.CreateIaConnection(jobWebServiceId);

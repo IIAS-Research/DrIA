@@ -1,5 +1,5 @@
 import { api } from 'src/boot/axios';
-import { notify } from 'src/utils/notify';
+import { notifyApiError } from 'src/utils/iaml';
 
 const adminUrl = 'Admin';
 
@@ -9,7 +9,7 @@ export async function getPullingData(): Promise<IPullingData | undefined> {
     return response;
   } catch (error) {
     console.error('Error fetching pulling data:', error);
-    notify('negative', String(error));
+    notifyApiError(error);
   }
 }
 
@@ -19,7 +19,7 @@ Promise<void> {
     await api.delete(`${adminUrl}/DeleteConnection/${jobServiceId}`);
   } catch (error) {
     console.error('Error deleting pulling connection:', error);
-    notify('negative', String(error));
+    notifyApiError(error);
     return undefined;
   }
 }

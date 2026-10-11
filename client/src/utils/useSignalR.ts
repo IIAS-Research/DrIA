@@ -1,13 +1,12 @@
 import { ref } from 'vue';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
-
+import { useUserStore } from 'src/stores/user-store';
 export function useSignalR(hubName: 'generateModel' | 'explainModel') {
   // refs
   const connection = ref<HubConnection | null>(null);
   const isConnected = ref(false);
   const receivedMessageRef = ref<any>();
   const errorDialog = ref(false);
-
   // functions
   function disconnect() {
     if (!connection.value) {
@@ -16,49 +15,47 @@ export function useSignalR(hubName: 'generateModel' | 'explainModel') {
     connection.value
       .stop()
       .then(() => {
-        console.log('Disconnected from SignalR');
-        isConnected.value = false;
-      })
+      console.log('Disconnected from SignalR');
+      isConnected.value = false;
+    })
       .catch((error: Error) => console.error('Error disconnecting:', error));
   }
-
   async function connect(...args: any[]) {
     const url = `${process.env.API}/ws/${hubName}`;
     connection.value = new HubConnectionBuilder()
-      .withUrl(url)
+      .withUrl(url, { accessTokenFactory: () => useUserStore().accessToken ?? '' })
       .withAutomaticReconnect()
       .build();
-
+    connection.value.onreconnected(async () => {
+      await connection.value?.invoke('JoinGroup', ...args);
+      isConnected.value = true;
+    });
     // connection.value.onreconnecting((error) => {
     //   console.log('Reconnecting...', error);
     //   isConnected.value = false;
     // });
-
     // connection.value.onreconnected((connectionId) => {
     //   console.log('Reconnected:', connectionId);
     //   isConnected.value = true;
     // });
-
     connection.value.on('ReceiveMessage', (message) => {
       console.log('Received message:', message);
       receivedMessageRef.value = message;
     });
-
     connection.value.on('StopMessage', (message) => {
       console.log('Stop message:', message);
       errorDialog.value = true;
       disconnect();
     });
-
     try {
       await connection.value.start();
       await connection.value.invoke('JoinGroup', ...args);
       isConnected.value = true;
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error connecting to SignalR:', error);
     }
   }
-
   return {
     connect,
     disconnect,

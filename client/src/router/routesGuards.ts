@@ -8,9 +8,8 @@ export function mustBeAuth(
   next: NavigationGuardNext,
 ): void {
   const store = useUserStore();
-  if (!store.isUserConnected) {
-    // notify('negative', 'Vous devez être authentifié pour accéder à cette ressource 😡');
-    next({ name: 'login' });
+  if (!store.checkIfUserIsConnected()) {
+    next({ name: 'login', query: { redirect: to.fullPath } });
   } else next();
 }
 
@@ -20,7 +19,7 @@ export function mustNotBeAuth(
   next: NavigationGuardNext,
 ): void {
   const store = useUserStore();
-  if (store.isUserConnected) {
+  if (store.checkIfUserIsConnected()) {
     next({ name: 'home' });
   } else next();
 }
