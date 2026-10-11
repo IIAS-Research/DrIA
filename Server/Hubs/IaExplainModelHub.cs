@@ -21,7 +21,7 @@ public class IaExplainModelHub : ApplicationHub
     {
       if (!long.TryParse(Context.User?.Identity?.Name, out var userId))
       {
-        throw new HubException("Authentification requise.");
+        throw new HubException("Authentication required.");
       }
       var explanation = await _dbContext.Models
           .Where(model => model.Id == localModelId && model.Process!.Project!.UserId == userId)
@@ -29,7 +29,7 @@ public class IaExplainModelHub : ApplicationHub
           .FirstOrDefaultAsync();
       if (string.IsNullOrWhiteSpace(explanation))
       {
-        throw new HubException("Cette analyse est introuvable ou inaccessible.");
+        throw new HubException("This analysis could not be found or is not accessible.");
       }
       using var document = JsonDocument.Parse(explanation);
       var metadata = document.RootElement;
@@ -37,7 +37,7 @@ public class IaExplainModelHub : ApplicationHub
           : metadata.TryGetProperty("explainer_id", out var explainerId) ? explainerId.GetString() : null;
       if (storedId != jobWebServiceId)
       {
-        throw new HubException("Cette analyse est introuvable ou inaccessible.");
+        throw new HubException("This analysis could not be found or is not accessible.");
       }
       Console.WriteLine("Triggered JoinGroup");
       var connection = _iaPullingService.GetIaConnection(jobWebServiceId);

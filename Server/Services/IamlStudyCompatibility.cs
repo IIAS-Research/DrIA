@@ -16,7 +16,7 @@ public static class IamlStudyCompatibility
     RepairDefaultGaussianProcessAlpha(study);
     if (study["options"] == null) study["options"] = new JsonObject();
     if (study["options"] is not JsonObject options)
-      throw new ArgumentException("Les options de l'étude doivent être un objet JSON.");
+      throw new ArgumentException("Study options must be a JSON object.");
     // Parallel study execution is a server policy, including for imported studies
     // and restarting configurations saved before this policy was introduced.
     options["max_workers"] = MaxWorkers;

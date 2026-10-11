@@ -40,7 +40,7 @@ public class IaPullingRecoveryService(IServiceScopeFactory scopeFactory, IaPulli
       }
       catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
       {
-        logger.LogWarning(ex, "Impossible de reprendre le suivi IAML ; nouvel essai dans 30 secondes.");
+        logger.LogWarning(ex, "Could not resume IAML monitoring; retrying in 30 seconds.");
       }
       await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
     }

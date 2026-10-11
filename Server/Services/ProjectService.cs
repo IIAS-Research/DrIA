@@ -150,7 +150,7 @@ public class ProjectService : ApplicationService
     var project = await _projectRepository.GetProjectById(projectId);
     if (projectFileTrain == null || (projectFileTest == null && project?.EvaluationMode != "cross_validation"))
     {
-      responseService.AddError("Les fichiers nécessaires à l’apprentissage et à l’évaluation du projet sont introuvables.");
+      responseService.AddError("The files required to train and evaluate this project could not be found.");
       return responseService;
     }
     var getTrainFileResponse = await _fileStorageService.GetFileFromStorageAsync(projectFileTrain.StorageFilename);
@@ -229,7 +229,7 @@ public class ProjectService : ApplicationService
     using var csvReader = new CsvReader(reader, config);
     if (!csvReader.Read() || !csvReader.ReadHeader())
     {
-      response.AddError("Le fichier CSV ne contient pas d’en-tête.");
+      response.AddError("The CSV file does not contain a header.");
       return response;
     }
     var headerRow = csvReader.HeaderRecord ?? [];

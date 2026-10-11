@@ -111,7 +111,7 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
       }
       else if (Status is "CRASHED" or "CANCELED" or "TIMEOUT")
       {
-        await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", response.Data.error ?? $"Traitement terminé : {Status}");
+        await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", response.Data.error ?? $"Training run finished: {Status}");
         StopPulling();
       }
       else _timer.Start();
@@ -129,7 +129,7 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
       if (_baselineProjectId.HasValue)
       {
         var project = await db.Projects.FindAsync(_baselineProjectId.Value);
-        if (project == null) { response.AddError("Projet introuvable."); return response; }
+        if (project == null) { response.AddError("Project not found."); return response; }
         var snapshot = JsonNode.Parse(project.MetricsBaselineJson)!.AsObject();
         snapshot["metrics"] = JsonSerializer.SerializeToNode(metrics.Data.metrics);
         snapshot["results_persisted"] = true;
@@ -142,8 +142,8 @@ public class IaPullingModelService : IaPullingService<IaGenerateModelHub>
       var repository = scope.ServiceProvider.GetRequiredService<ProcessRepository>();
       var service = scope.ServiceProvider.GetRequiredService<ModelService>();
       var process = await repository.GetProcessByIaRemoteId(JobWebServiceId);
-      if (process == null) { response.AddError("Traitement introuvable."); return response; }
-      if (metrics.Data.metrics.Length == 0) { response.AddError("Aucun candidat disponible."); return response; }
+      if (process == null) { response.AddError("Training run not found."); return response; }
+      if (metrics.Data.metrics.Length == 0) { response.AddError("No candidate is available."); return response; }
 
       foreach (var metric in metrics.Data.metrics)
       {

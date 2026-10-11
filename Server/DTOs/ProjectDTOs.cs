@@ -77,35 +77,35 @@ public record StartProjectInDTO : IValidatableObject
       _ = RowDepedenciesLinked;
       _ = DatasetHasIdColumnList;
       if (RowDepedencies && RowDepedenciesLinked.Length == 0)
-        errors.Add(new ValidationResult("Sélectionnez la colonne de regroupement des observations.", [nameof(RowDepedenciesLinkedString)]));
+        errors.Add(new ValidationResult("Select the column used to group observations.", [nameof(RowDepedenciesLinkedString)]));
       using var study = System.Text.Json.JsonDocument.Parse(Pipeline);
       if (study.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object || !study.RootElement.TryGetProperty("schema_version", out var version) || version.ValueKind != System.Text.Json.JsonValueKind.Number || !version.TryGetInt32(out var number) || number != 1)
-        errors.Add(new ValidationResult("La configuration doit être une étude de DrIA avec schema_version: 1.", [nameof(Pipeline)]));
+        errors.Add(new ValidationResult("The configuration must be a DrIA study with schema_version: 1.", [nameof(Pipeline)]));
       if (!string.IsNullOrWhiteSpace(SurvivalModelEventValue))
       {
         using var scalar = System.Text.Json.JsonDocument.Parse(SurvivalModelEventValue);
         if (scalar.RootElement.ValueKind is not (System.Text.Json.JsonValueKind.String or System.Text.Json.JsonValueKind.Number or System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
-          errors.Add(new ValidationResult("La valeur d’événement doit être un scalaire JSON.", [nameof(SurvivalModelEventValue)]));
+          errors.Add(new ValidationResult("The event value must be a JSON scalar.", [nameof(SurvivalModelEventValue)]));
       }
       if (!string.IsNullOrWhiteSpace(CreationContextJson))
       {
         using var context = System.Text.Json.JsonDocument.Parse(CreationContextJson);
         if (context.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object)
-          errors.Add(new ValidationResult("Le contexte de création doit être un objet JSON.", [nameof(CreationContextJson)]));
+          errors.Add(new ValidationResult("The creation context must be a JSON object.", [nameof(CreationContextJson)]));
       }
     }
     catch (System.Text.Json.JsonException)
     {
-      errors.Add(new ValidationResult("La configuration, les listes de colonnes et la valeur d’événement doivent utiliser un JSON valide."));
+      errors.Add(new ValidationResult("The configuration, column lists and event value must use valid JSON."));
     }
     if (SurvivalModel && (string.IsNullOrWhiteSpace(SurvivalModelDatasetTargetTime) || SurvivalModelDatasetTargetTime == CsvColumnToPredict))
-      errors.Add(new ValidationResult("Le temps de survie doit utiliser une colonne distincte de l’événement.", [nameof(SurvivalModelDatasetTargetTime)]));
+      errors.Add(new ValidationResult("Survival time must use a different column from the event.", [nameof(SurvivalModelDatasetTargetTime)]));
     if (EvaluationMode is not ("split" or "external" or "cross_validation"))
-      errors.Add(new ValidationResult("Le mode d’évaluation est inconnu.", [nameof(EvaluationMode)]));
+      errors.Add(new ValidationResult("Unknown evaluation mode.", [nameof(EvaluationMode)]));
     if (EvaluationMode == "external" && TestFile == null)
-      errors.Add(new ValidationResult("Importez le fichier réservé à l’évaluation.", [nameof(TestFile)]));
+      errors.Add(new ValidationResult("Upload the file reserved for evaluation.", [nameof(TestFile)]));
     if (EvaluationMode != "external" && TestFile != null)
-      errors.Add(new ValidationResult("Le fichier d’évaluation est réservé au mode de test séparé.", [nameof(TestFile)]));
+      errors.Add(new ValidationResult("The evaluation file can only be used with a separate test set.", [nameof(TestFile)]));
     return errors;
   }
 

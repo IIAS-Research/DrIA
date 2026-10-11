@@ -30,7 +30,7 @@ public class ProcessService : ApplicationService
         var pipeline = await _processRepository.GetProcessPipeline(processId, projectId);
         if (pipeline == null)
         {
-            responseService.AddError("No result found for the provided informations");
+            responseService.AddError("No results found for the provided information");
         }
         else
         {

@@ -38,7 +38,7 @@ public class ProcessesController : ApplicationController
   public async Task<IActionResult> GetProcessPipeline(long processId, [FromQuery] long projectId)
   {
     var process = await OwnedProcess(processId);
-    if (process == null || process.ProjectId != projectId) return NotFound(new { error = "Traitement introuvable." });
+    if (process == null || process.ProjectId != projectId) return NotFound(new { error = "Training run not found." });
     var response = await _processes.GetProcessPipeline(processId, projectId);
     return response.IsSuccess ? Ok(response.Data) : ServiceFailure(response);
   }
@@ -47,7 +47,7 @@ public class ProcessesController : ApplicationController
   public async Task<IActionResult> GetStatus(long id)
   {
     var process = await OwnedProcess(id);
-    if (process == null) return NotFound(new { error = "Traitement introuvable." });
+    if (process == null) return NotFound(new { error = "Training run not found." });
     var response = await _ia.GetJobStatus(process.IaRemoteId);
     if (!response.IsSuccess && response.HttpStatusCode == 404 && process.StatusSnapshotJson != null && process.Status is Process.EProcessStatut.FINISHED or Process.EProcessStatut.CACHED or Process.EProcessStatut.CANCELED or Process.EProcessStatut.CRASHED or Process.EProcessStatut.TIMEOUT)
       return Ok(process.StatusSnapshot);
@@ -58,7 +58,7 @@ public class ProcessesController : ApplicationController
   public async Task<IActionResult> Cancel(long id)
   {
     var process = await OwnedProcess(id);
-    if (process == null) return NotFound(new { error = "Traitement introuvable." });
+    if (process == null) return NotFound(new { error = "Training run not found." });
     var response = await _ia.CancelJob(process);
     if (!response.IsSuccess) return ServiceFailure(response);
     await _repository.UpdateProcessStatus(process.IaRemoteId, response.Data.status);
@@ -69,7 +69,7 @@ public class ProcessesController : ApplicationController
   public async Task<IActionResult> GetMetrics(long id)
   {
     var process = await OwnedProcess(id);
-    if (process == null) return NotFound(new { error = "Traitement introuvable." });
+    if (process == null) return NotFound(new { error = "Training run not found." });
     var response = await _ia.RetrieveJobMetric(process.IaRemoteId);
     return response.IsSuccess ? Ok(response.Data) : ServiceFailure(response);
   }
@@ -78,7 +78,7 @@ public class ProcessesController : ApplicationController
   public async Task<IActionResult> GetHistory(long id)
   {
     var process = await OwnedProcess(id);
-    if (process == null) return NotFound(new { error = "Traitement introuvable." });
+    if (process == null) return NotFound(new { error = "Training run not found." });
     var response = await _ia.GetJobHistory(process.IaRemoteId);
     return response.IsSuccess ? Ok(response.Data) : ServiceFailure(response);
   }
@@ -87,7 +87,7 @@ public class ProcessesController : ApplicationController
   public async Task<IActionResult> GetAudit(long id)
   {
     var process = await OwnedProcess(id);
-    if (process == null) return NotFound(new { error = "Traitement introuvable." });
+    if (process == null) return NotFound(new { error = "Training run not found." });
     var response = await _ia.GetJobAudit(process.IaRemoteId);
     return response.IsSuccess ? Ok(response.Data) : ServiceFailure(response);
   }
@@ -111,7 +111,7 @@ public class ProcessesController : ApplicationController
   public async Task<IActionResult> RestartProcess(long id, [FromBody] RestartProcessRequestDTO request)
   {
     var previous = await OwnedProcess(id);
-    if (previous == null) return NotFound(new { error = "Traitement introuvable." });
+    if (previous == null) return NotFound(new { error = "Training run not found." });
     var files = await _projects.GetTrainAndTestFiles(previous.ProjectId);
     if (!files.IsSuccess) return ServiceFailure(files);
     var response = await _ia.RunPipeline(files.Data.TrainFile, files.Data.TestFile, previous.Project!, previous.PipelineJson, request.MaxDuration);

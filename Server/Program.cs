@@ -13,11 +13,13 @@ using Server.Hubs;
 using SwaggerThemes;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.HttpOverrides;
+using System.Globalization;
 
 public partial class Program
 {
   public static async Task Main(string[] args)
   {
+    CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.GetCultureInfo("en-US");
     var builder = WebApplication.CreateBuilder(args);
     const long maxUploadSize = 100L * 1024L * 1024L;
     builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = maxUploadSize);
@@ -48,7 +50,7 @@ public partial class Program
     app.UseSwaggerThemes(Theme.UniversalDark);
     app.UseSwaggerUI(c =>
     {
-      c.SwaggerEndpoint("/api/swagger/v1/swagger.json", "API Swagger");
+      c.SwaggerEndpoint("/api/swagger/v1/swagger.json", "Swagger API");
       c.RoutePrefix = "api/swagger";
     });
 

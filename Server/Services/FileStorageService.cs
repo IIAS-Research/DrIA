@@ -238,7 +238,7 @@ public class FileStorageService : ApplicationService
       var responseService = new ResponseService();
       if (formfile.Length == 0)
       {
-        responseService.AddError("File is tempty");
+        responseService.AddError("File is empty");
       }
       if (!PermittedExtensions.Contains(Path.GetExtension(formfile.FileName), StringComparer.OrdinalIgnoreCase))
       {

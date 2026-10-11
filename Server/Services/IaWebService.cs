@@ -30,7 +30,7 @@ public class IaWebService : ApplicationService
   {
     _iaUrl = (configuration[Configuration.IamlBaseUrl] ?? "http://localhost:8000").TrimEnd('/');
     if (!Uri.TryCreate(_iaUrl, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
-      throw new ArgumentException("Iaml:BaseUrl doit être une URL HTTP ou HTTPS absolue.");
+      throw new ArgumentException("Iaml:BaseUrl must be an absolute HTTP or HTTPS URL.");
   }
 
   public async Task<ResponseService<ProcessPipeline?>> GeneratePipeline()
@@ -242,7 +242,7 @@ public class IaWebService : ApplicationService
   {
     try
     {
-      if (request.ValueKind != JsonValueKind.Object) throw new ArgumentException("La requête de prédiction doit être un objet JSON.");
+      if (request.ValueKind != JsonValueKind.Object) throw new ArgumentException("The prediction request must be a JSON object.");
       using var content = new MultipartFormDataContent
       {
         { new ByteArrayContent(model.FileBytes!), "pipeline", "pyiaml_model.pickle" }
@@ -250,9 +250,9 @@ public class IaWebService : ApplicationService
       foreach (var field in request.EnumerateObject())
       {
         if (field.Name is not ("json_row" or "method" or "target" or "times"))
-          throw new ArgumentException($"Champ de prédiction non pris en charge : {field.Name}.");
+          throw new ArgumentException($"Unsupported prediction field: {field.Name}.");
         if (field.Name == "method" && field.Value.ValueKind != JsonValueKind.String)
-          throw new ArgumentException("La méthode de prédiction doit être une chaîne de caractères.");
+          throw new ArgumentException("The prediction method must be a string.");
         var value = field.Name == "method" ? field.Value.GetString()! : field.Value.GetRawText();
         content.Add(new StringContent(value, Encoding.UTF8, "application/json"), field.Name);
       }
@@ -272,7 +272,7 @@ public class IaWebService : ApplicationService
       var predicted = await PredictWithArtifact(modelFile, request);
       if (!response.EnsureOtherServiceIsSuccess(predicted)) return response;
       var values = predicted.Data.GetProperty("prediction").EnumerateArray().ToArray();
-      if (values.Length != table.Rows.Count) throw new InvalidDataException("Le nombre de prédictions ne correspond pas au nombre d'observations.");
+      if (values.Length != table.Rows.Count) throw new InvalidDataException("The number of predictions does not match the number of observations.");
       var outputKey = table.Columns.FirstOrDefault(c => c.Label == targetColumn)?.Name ?? targetColumn;
       for (var i = 0; i < values.Length; i++) table.Rows[i][outputKey] = values[i].Clone();
       response.SetSuccessful(table);
@@ -290,14 +290,14 @@ public class IaWebService : ApplicationService
       // of the IAML API. Groups stay available for IAML to extract separately.
       var excluded = form.TryGetValue("excluded_columns", out var excludedValue)
         ? JsonSerializer.Deserialize<string[]>(excludedValue.ToString())
-          ?? throw new ArgumentException("La liste des colonnes exclues doit être un tableau JSON.")
+          ?? throw new ArgumentException("The list of excluded columns must be a JSON array.")
         : [];
       if (excluded.Any(string.IsNullOrWhiteSpace))
-        throw new ArgumentException("Les colonnes exclues doivent avoir un nom non vide.");
+        throw new ArgumentException("Excluded columns must have non-empty names.");
       var target = form["dataset_target"].ToString();
       var time = form["dataset_target_time"].ToString();
       if (excluded.Contains(target, StringComparer.Ordinal) || (!string.IsNullOrEmpty(time) && excluded.Contains(time, StringComparer.Ordinal)))
-        throw new ArgumentException("Les colonnes à prédire et de durée de suivi ne peuvent pas être exclues des statistiques.");
+        throw new ArgumentException("The target and follow-up time columns cannot be excluded from statistics.");
       using var content = new MultipartFormDataContent();
       foreach (var file in form.Files)
       {
@@ -356,7 +356,7 @@ public class IaWebService : ApplicationService
       }
       var body = await response.Content.ReadAsStringAsync();
       var data = JsonSerializer.Deserialize<T>(body, SerializeOptions);
-      if (data is null) throw new InvalidDataException("DrIA a renvoyé une réponse vide.");
+      if (data is null) throw new InvalidDataException("DrIA returned an empty response.");
       result.SetSuccessful(data);
     }
     catch (Exception ex) { SetFailure(result, ex); }
@@ -401,7 +401,7 @@ public class IaWebService : ApplicationService
   {
     result.HttpStatusCode = (int)response.StatusCode;
     var body = await response.Content.ReadAsStringAsync();
-    var error = $"DrIA : HTTP {(int)response.StatusCode}.";
+    var error = $"DrIA: HTTP {(int)response.StatusCode}.";
     try
     {
       using var json = JsonDocument.Parse(body);
@@ -423,20 +423,20 @@ public class IaWebService : ApplicationService
   private static void SetFailure(ResponseServiceAbstract result, Exception error)
   {
     result.HttpStatusCode = error is HttpRequestException or TaskCanceledException ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status400BadRequest;
-    result.Error = error is HttpRequestException or TaskCanceledException ? "Le service de DrIA est indisponible ou n'a pas répondu à temps." : error.Message;
+    result.Error = error is HttpRequestException or TaskCanceledException ? "The DrIA service is unavailable or did not respond in time." : error.Message;
     result.AddError(result.Error);
   }
 
   private static JsonObject StudyConfiguration(string json, int? maxDuration = null)
   {
     if (JsonNode.Parse(json) is not JsonObject study || study["schema_version"] is not JsonValue version || !version.TryGetValue<int>(out var value) || value != 1)
-      throw new ArgumentException("Cette configuration utilise l'ancien format de DrIA. Générez une nouvelle étude avec schema_version: 1.");
+      throw new ArgumentException("This configuration uses the previous DrIA format. Generate a new study with schema_version: 1.");
     IamlStudyCompatibility.PrepareStudy(study);
     if (maxDuration.HasValue)
     {
-      if (maxDuration.Value is < 60 or > 3600) throw new ArgumentException("Le budget de recherche doit être compris entre 60 et 3600 secondes.");
+      if (maxDuration.Value is < 60 or > 3600) throw new ArgumentException("The search time limit must be between 60 and 3600 seconds.");
       if (study["options"] == null) study["options"] = new JsonObject();
-      if (study["options"] is not JsonObject options) throw new ArgumentException("Les options de l'étude doivent être un objet JSON.");
+      if (study["options"] is not JsonObject options) throw new ArgumentException("Study options must be a JSON object.");
       options["max_duration"] = maxDuration.Value;
       if (options["max_stage_duration"] is JsonValue stageDuration && stageDuration.TryGetValue<int>(out var stageBudget) && stageBudget > maxDuration.Value)
         options["max_stage_duration"] = maxDuration.Value;
@@ -446,10 +446,10 @@ public class IaWebService : ApplicationService
 
   private static MultipartFormDataContent DataContent(RunPipelineFileDTO train, RunPipelineFileDTO? test, string target, string[] groups, string[] ids, string? time, string? eventValue)
   {
-    if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("La colonne cible est obligatoire.");
-    if (time == target) throw new ArgumentException("Les colonnes d'événement et de temps doivent être distinctes.");
+    if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("The target column is required.");
+    if (time == target) throw new ArgumentException("The event and time columns must be different.");
     if (groups.Any(name => name == target || name == time))
-      throw new ArgumentException("Les colonnes de groupes doivent être distinctes des colonnes cibles.");
+      throw new ArgumentException("Grouping columns must be different from target columns.");
     var excluded = ids.Concat(groups).Except([target, time ?? ""]).ToArray();
     // External training groups keep validation grouped while both feature files
     // share the fitted model's schema, including during independent evaluation.
@@ -467,13 +467,13 @@ public class IaWebService : ApplicationService
 
   private static void AddSurvival(MultipartFormDataContent content, string? time, string? eventValue)
   {
-    if (string.IsNullOrWhiteSpace(time)) throw new ArgumentException("La colonne du temps de survie est obligatoire.");
+    if (string.IsNullOrWhiteSpace(time)) throw new ArgumentException("The survival time column is required.");
     content.Add(new StringContent(time), "dataset_target_time");
     if (!string.IsNullOrWhiteSpace(eventValue))
     {
       using var json = JsonDocument.Parse(eventValue);
       if (json.RootElement.ValueKind is not (JsonValueKind.String or JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False))
-        throw new ArgumentException("La valeur d'événement doit être un texte, un nombre ou un booléen JSON.");
+        throw new ArgumentException("The event value must be a JSON string, number or boolean.");
       content.Add(new StringContent(json.RootElement.GetRawText()), "event_value");
     }
   }
@@ -488,7 +488,7 @@ public class IaWebService : ApplicationService
   private static byte[] SelectCsv(byte[] file, string[] selected)
   {
     if (selected.Length == 0 || selected.Any(string.IsNullOrWhiteSpace) || selected.Distinct(StringComparer.Ordinal).Count() != selected.Length)
-      throw new ArgumentException("Les noms de colonnes de groupes doivent être uniques et non vides.");
+      throw new ArgumentException("Grouping column names must be unique and non-empty.");
     return ProjectCsv(file, null, selected.ToHashSet(StringComparer.Ordinal));
   }
 
@@ -496,12 +496,12 @@ public class IaWebService : ApplicationService
   {
     using var reader = new StreamReader(new MemoryStream(file));
     using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true, DetectDelimiter = true });
-    if (!csv.Read() || !csv.ReadHeader()) throw new ArgumentException("Le fichier de données ne contient pas d'en-tête.");
-    var headers = csv.HeaderRecord ?? throw new ArgumentException("Le fichier de données ne contient pas d'en-tête.");
+    if (!csv.Read() || !csv.ReadHeader()) throw new ArgumentException("The data file does not contain a header.");
+    var headers = csv.HeaderRecord ?? throw new ArgumentException("The data file does not contain a header.");
     if (selected != null)
     {
       var missing = selected.Except(headers, StringComparer.Ordinal).ToArray();
-      if (missing.Length > 0) throw new ArgumentException($"Colonnes de groupes absentes du fichier d'entraînement : {string.Join(", ", missing)}.");
+      if (missing.Length > 0) throw new ArgumentException($"Grouping columns missing from the training file: {string.Join(", ", missing)}.");
     }
     var kept = headers.Select((name, index) => (name, index))
       .Where(c => selected != null ? selected.Contains(c.name) : !excluded!.Contains(c.name)).ToArray();

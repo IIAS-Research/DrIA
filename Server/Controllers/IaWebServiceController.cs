@@ -64,7 +64,7 @@ public class IaWebServiceController(UserManager<User> userManager, IaWebService 
   [HttpPost("pipeline/export")]
   public async Task<IActionResult> Export([FromBody] JsonElement request, [FromQuery] string format = "json")
   {
-    if (format is not ("json" or "python")) return BadRequest(new { error = "Le format doit être json ou python." });
+    if (format is not ("json" or "python")) return BadRequest(new { error = "The format must be json or python." });
     var response = await _iaWebService.ExportConfiguration(request, format);
     if (!response.IsSuccess) return ServiceFailure(response);
     var file = response.Data;
@@ -92,8 +92,8 @@ public class IaWebServiceController(UserManager<User> userManager, IaWebService 
         var response = await _iaWebService.GetStatistics(document.RootElement, plots);
         return response.IsSuccess ? Ok(response.Data) : ServiceFailure(response);
       }
-      catch (JsonException) { return BadRequest(new { error = "Le corps JSON n'est pas valide." }); }
+      catch (JsonException) { return BadRequest(new { error = "The JSON body is invalid." }); }
     }
-    return StatusCode(StatusCodes.Status415UnsupportedMediaType, new { error = "Utilisez multipart/form-data ou application/json." });
+    return StatusCode(StatusCodes.Status415UnsupportedMediaType, new { error = "Use multipart/form-data or application/json." });
   }
 }

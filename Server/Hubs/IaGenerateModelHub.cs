@@ -21,7 +21,7 @@ public class IaGenerateModelHub : ApplicationHub
       if (!long.TryParse(Context.User?.Identity?.Name, out var userId) ||
           !await _dbContext.Processes.AnyAsync(process => process.IaRemoteId == jobWebServiceId && process.Project!.UserId == userId))
       {
-        throw new HubException("Ce traitement est introuvable ou inaccessible.");
+        throw new HubException("This training run could not be found or is not accessible.");
       }
       Console.WriteLine("Triggered JoinGroup");
       var connection = _iaPullingService.GetIaConnection(jobWebServiceId);

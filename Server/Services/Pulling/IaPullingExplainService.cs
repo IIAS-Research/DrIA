@@ -63,7 +63,7 @@ public class IaPullingExplainService : IaPullingService<IaExplainModelHub>
       {
         var partial = await OnProcessFinish();
         if (!partial.IsSuccess) await SaveState(service, Status, response.Data.error, response.Data.report, response.Data.cache_error);
-        await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", response.Data.error ?? "L’analyse a échoué.");
+        await Hub.Clients.Group(JobWebServiceId).SendAsync("StopMessage", response.Data.error ?? "Analysis failed.");
         StopPulling();
       }
       else

@@ -26,9 +26,9 @@ public static class ProjectCreationValidation
           var actual = InferPredictionKind(trainFile, project.CsvColumnToPredict);
           if (actual != requested)
           {
-            var actualLabel = actual == "quantity" ? "une quantité" : "une catégorie";
-            var requestedLabel = requested == "quantity" ? "une quantité" : "une catégorie";
-            throw new ArgumentException($"DrIA interprète la cible du fichier d’apprentissage comme {actualLabel}, alors que vous avez choisi {requestedLabel}. Le découpage peut modifier cette détection. Choisissez la validation interne seule ou adaptez le codage de la cible, puis réessayez.");
+            var actualLabel = actual == "quantity" ? "a quantity" : "a category";
+            var requestedLabel = requested == "quantity" ? "a quantity" : "a category";
+            throw new ArgumentException($"DrIA detects the training target as {actualLabel}, but you selected {requestedLabel}. Splitting the data can change this detection. Choose internal validation only or adjust the target encoding, then try again.");
           }
         }
       }
@@ -37,7 +37,7 @@ public static class ProjectCreationValidation
     catch (Exception exception) when (exception is ArgumentException or JsonException or CsvHelperException or InvalidDataException)
     {
       response.HttpStatusCode = StatusCodes.Status400BadRequest;
-      response.AddError(exception is CsvHelperException ? "La cible du fichier d’apprentissage ne peut pas être lue. Vérifiez le fichier CSV." : exception.Message);
+      response.AddError(exception is CsvHelperException ? "The training target could not be read. Check the CSV file." : exception.Message);
     }
     return response;
   }
@@ -48,7 +48,7 @@ public static class ProjectCreationValidation
     using var reader = new StreamReader(stream);
     using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true, DetectDelimiter = true });
     if (!csv.Read() || !csv.ReadHeader() || !(csv.HeaderRecord ?? []).Contains(target, StringComparer.Ordinal))
-      throw new ArgumentException("La colonne à prédire est absente du fichier d’apprentissage.");
+      throw new ArgumentException("The target column is missing from the training file.");
     var numeric = true;
     var fractional = false;
     var nonFinite = false;
@@ -73,8 +73,8 @@ public static class ProjectCreationValidation
       // Above ten distinct values, the exact cardinality is no longer needed.
       if (distinctNumbers.Count <= 10) distinctNumbers.Add(number);
     }
-    if (populatedCount == 0) throw new ArgumentException("La colonne à prédire ne contient aucune valeur renseignée.");
-    if (numeric && nonFinite) throw new ArgumentException("La cible contient une valeur numérique non finie. Corrigez-la avant de lancer l’apprentissage.");
+    if (populatedCount == 0) throw new ArgumentException("The target column does not contain any values.");
+    if (numeric && nonFinite) throw new ArgumentException("The target contains a non-finite numeric value. Correct it before starting training.");
     return numeric && (fractional || distinctNumbers.Count > 10 || distinctNumbers.Count > populatedCount * 0.2) ? "quantity" : "category";
   }
 
@@ -86,17 +86,17 @@ public static class ProjectCreationValidation
       var train = Inspect(project.File, project, null);
       if (project.EvaluationMode == "external")
       {
-        if (project.TestFile == null) throw new ArgumentException("Importez le fichier réservé à l’évaluation.");
+        if (project.TestFile == null) throw new ArgumentException("Upload the file reserved for evaluation.");
         var test = Inspect(project.TestFile, project, train.Headers);
         if (train.Groups.Overlaps(test.Groups))
-          throw new ArgumentException("Certains patients apparaissent dans les deux fichiers. Réservez des patients différents pour l’apprentissage et l’évaluation.");
+          throw new ArgumentException("Some patients appear in both files. Use different patients for training and evaluation.");
       }
       response.SetSuccessful();
     }
     catch (Exception exception) when (exception is ArgumentException or CsvHelperException or InvalidDataException)
     {
       response.HttpStatusCode = StatusCodes.Status400BadRequest;
-      response.AddError(exception is CsvHelperException ? "Le fichier CSV contient une ligne mal formée. Vérifiez les séparateurs et le nombre de colonnes." : exception.Message);
+      response.AddError(exception is CsvHelperException ? "The CSV file contains a malformed row. Check the separators and number of columns." : exception.Message);
     }
     return response;
   }
@@ -106,22 +106,22 @@ public static class ProjectCreationValidation
     using var stream = file.OpenReadStream();
     using var reader = new StreamReader(stream);
     using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true, DetectDelimiter = true });
-    if (!csv.Read() || !csv.ReadHeader()) throw new ArgumentException("Le fichier CSV ne contient pas d’en-tête.");
+    if (!csv.Read() || !csv.ReadHeader()) throw new ArgumentException("The CSV file does not contain a header.");
     var headers = csv.HeaderRecord ?? [];
     if (headers.Length == 0 || headers.Any(string.IsNullOrWhiteSpace) || headers.Distinct(StringComparer.Ordinal).Count() != headers.Length)
-      throw new ArgumentException("Chaque colonne du fichier CSV doit avoir un nom unique et non vide.");
+      throw new ArgumentException("Each CSV column must have a unique, non-empty name.");
     if (expectedHeaders != null && !headers.ToHashSet(StringComparer.Ordinal).SetEquals(expectedHeaders))
-      throw new ArgumentException("Le fichier d’évaluation doit contenir les mêmes colonnes que le fichier d’apprentissage.");
+      throw new ArgumentException("The evaluation file must contain the same columns as the training file.");
 
     var groups = project.RowDepedencies ? project.RowDepedenciesLinked : [];
     var excluded = project.DatasetHasIdColumn ? project.DatasetHasIdColumnList : [];
     var targets = project.SurvivalModel ? new[] { project.CsvColumnToPredict, project.SurvivalModelDatasetTargetTime! } : [project.CsvColumnToPredict];
     var missing = targets.Concat(groups).Concat(excluded).Except(headers, StringComparer.Ordinal).ToArray();
-    if (missing.Length > 0) throw new ArgumentException($"Colonnes absentes du fichier CSV : {string.Join(", ", missing)}.");
+    if (missing.Length > 0) throw new ArgumentException($"Columns missing from the CSV file: {string.Join(", ", missing)}.");
     if (targets.Intersect(groups.Concat(excluded), StringComparer.Ordinal).Any())
-      throw new ArgumentException("Une colonne à prédire ou de durée de suivi ne peut pas être exclue ni servir au regroupement des patients.");
+      throw new ArgumentException("A target or follow-up time column cannot be excluded or used to group patients.");
     if (!headers.Except(targets.Concat(groups).Concat(excluded), StringComparer.Ordinal).Any())
-      throw new ArgumentException("Conservez au moins une information pour réaliser la prédiction.");
+      throw new ArgumentException("Keep at least one feature to make predictions.");
 
     var groupValues = new HashSet<string>(StringComparer.Ordinal);
     var groupProfiles = groups.Select(_ => new GroupColumnProfile()).ToArray();
@@ -130,19 +130,19 @@ public static class ProjectCreationValidation
     {
       rowCount++;
       if (csv.Parser.Count != headers.Length)
-        throw new ArgumentException($"La ligne {rowCount + 1} du fichier CSV ne contient pas le nombre de colonnes attendu.");
+        throw new ArgumentException($"Row {rowCount + 1} of the CSV file does not contain the expected number of columns.");
       if (targets.Any(target => string.IsNullOrWhiteSpace(csv.GetField(target))))
-        throw new ArgumentException($"Le résultat à prédire ou la durée de suivi est manquant à la ligne {rowCount + 1} du fichier CSV.");
+        throw new ArgumentException($"The target or follow-up time is missing on row {rowCount + 1} of the CSV file.");
       if (groups.Length > 0)
       {
         var values = groups.Select(group => csv.GetField(group) ?? string.Empty).ToArray();
         if (values.Any(string.IsNullOrWhiteSpace))
-          throw new ArgumentException($"L’identifiant de regroupement est manquant à la ligne {rowCount + 1} du fichier CSV.");
+          throw new ArgumentException($"The grouping identifier is missing on row {rowCount + 1} of the CSV file.");
         for (var index = 0; index < values.Length; index++) groupProfiles[index].Observe(values[index]);
         groupValues.Add(JsonSerializer.Serialize(values));
       }
     }
-    if (rowCount == 0) throw new ArgumentException("Le fichier CSV ne contient aucune observation.");
+    if (rowCount == 0) throw new ArgumentException("The CSV file does not contain any observations.");
     // pandas infers each complete column independently for each CSV. Only the
     // comparison keys are normalized; the original files remain untouched.
     var normalizedGroups = groupValues.Select(key =>

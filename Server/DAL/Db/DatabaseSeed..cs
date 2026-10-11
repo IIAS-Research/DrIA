@@ -33,7 +33,7 @@ public static class DatabaseSeed
     {
       UserName = email,
       FirstName = "Admin",
-      LastName = configured ? "DrIA" : "Développement",
+      LastName = configured ? "DrIA" : "Development",
       IsAdmin = true,
       Email = email,
       EmailConfirmed = true

@@ -204,7 +204,7 @@ public class ProjectsController : ApplicationController
             "test" => EProjectFileType.TEST,
             _ => null
         };
-        if (fileType == null) return BadRequest(new { error = "Le jeu de données demandé doit être train ou test." });
+        if (fileType == null) return BadRequest(new { error = "The requested dataset must be train or test." });
 
         var responseProject = await _projectService.GetProjectById(projectId);
         if (!responseProject.IsSuccess) return NotFound(responseProject.Errors);
