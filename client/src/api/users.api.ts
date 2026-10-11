@@ -3,7 +3,7 @@ import { ICreateUserDTO, IUser } from 'src/components/models';
 import { notify } from 'src/utils/notify';
 import { notifyApiError } from 'src/utils/iaml';
 
-const defaultMessageForSuccessServerInteraction = 'Vos modifications ont biens été prises en compte';
+const defaultMessageForSuccessServerInteraction = 'Your changes have been saved';
 
 export async function findAllUsers(): Promise<IUser[] | undefined> {
   try {

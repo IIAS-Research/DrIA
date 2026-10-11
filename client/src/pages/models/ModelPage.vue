@@ -40,10 +40,10 @@ const reports = computed(() => {
   const metrics = model.value?.metrics;
   if (!metrics) return [];
   return [
-    { title: 'Rapport des métriques', value: metrics.metric_report },
-    { title: 'Rapport d’évaluation', value: metrics.evaluation_report },
-    { title: 'Rapport des analyses', value: metrics.explanation_report },
-    { title: 'Audit de l’entraînement', value: metrics.training_audit },
+    { title: 'Metric report', value: metrics.metric_report },
+    { title: 'Evaluation report', value: metrics.evaluation_report },
+    { title: 'Analysis report', value: metrics.explanation_report },
+    { title: 'Training audit', value: metrics.training_audit },
   ].filter((report) => report.value !== null && report.value !== undefined);
 });
 
@@ -76,9 +76,9 @@ function reportJson(value: unknown): string {
 <template>
   <q-page class="model-page project-workspace-colors">
     <div class="model-workspace">
-      <nav class="model-breadcrumb" aria-label="Retour au projet">
-        <q-btn flat no-caps dense icon="arrow_back" label="Retour au projet" :to="projectLocation" />
-        <span v-if="model">Entraînement nº {{ routeParams.processId }} · Modèle nº {{ model.id }}</span>
+      <nav class="model-breadcrumb" aria-label="Back to project">
+        <q-btn flat no-caps dense icon="arrow_back" label="Back to project" :to="projectLocation" />
+        <span v-if="model">Training run #{{ routeParams.processId }} · Model #{{ model.id }}</span>
       </nav>
 
       <template v-if="model">
@@ -91,26 +91,26 @@ function reportJson(value: unknown): string {
           active-color="primary"
           indicator-color="primary"
           class="model-tabs"
-          aria-label="Explorer le modèle"
+          aria-label="Explore the model"
         >
-          <q-tab name="performance" label="Résultats" icon="assessment" />
-          <q-tab name="explanation" label="Explicabilité" icon="psychology" />
-          <q-tab name="methodology" label="Pipeline et méthodes" icon="schema" />
+          <q-tab name="performance" label="Results" icon="assessment" />
+          <q-tab name="explanation" label="Explainability" icon="psychology" />
+          <q-tab name="methodology" label="Pipeline and methods" icon="schema" />
         </q-tabs>
 
-        <section v-show="view === 'performance'" class="model-panel" aria-label="Résultats du modèle">
+        <section v-show="view === 'performance'" class="model-panel" aria-label="Model results">
           <ModelPerformance :model="model" :explanation="explanation" @request-analysis="view = 'explanation'" />
         </section>
 
-        <section v-show="view === 'explanation'" class="model-panel" aria-label="Comprendre les prédictions">
+        <section v-show="view === 'explanation'" class="model-panel" aria-label="Understand predictions">
           <div class="panel-heading">
-            <span class="section-eyebrow">Comprendre les prédictions</span>
-            <h2>Quelles informations influencent le modèle ?</h2>
-            <p>L’explicabilité décrit la façon dont le modèle utilise les variables. Elle complète l’évaluation de ses performances.</p>
+            <span class="section-eyebrow">Understand predictions</span>
+            <h2>Which features influence the model?</h2>
+            <p>Explainability describes how the model uses features. It complements its performance evaluation.</p>
           </div>
           <div class="explanation-guidance">
             <q-icon name="info_outline" size="20px" />
-            <p>L’importance d’une variable décrit son influence sur les prédictions. Elle ne démontre pas une relation de cause à effet.</p>
+            <p>Feature importance describes a feature’s influence on predictions. It does not establish a causal relationship.</p>
           </div>
           <div class="explanation-content">
             <ModelExplains
@@ -122,16 +122,16 @@ function reportJson(value: unknown): string {
           </div>
         </section>
 
-        <section v-show="view === 'methodology'" class="model-panel" aria-label="Pipeline et méthodes du modèle">
+        <section v-show="view === 'methodology'" class="model-panel" aria-label="Model pipeline and methods">
           <div class="panel-heading">
-            <span class="section-eyebrow">Traçabilité</span>
-            <h2>Comment ce modèle a-t-il été construit ?</h2>
-            <p>Explorez le parcours effectivement utilisé par ce modèle, ses réglages, les références des méthodes et les rapports disponibles.</p>
+            <span class="section-eyebrow">Traceability</span>
+            <h2>How was this model built?</h2>
+            <p>Explore the pipeline used by this model, its settings, method references and available reports.</p>
           </div>
           <ModelExplanations v-if="visitedMethodology" :key="model.id" :model="model" />
           <div v-if="reports.length" class="technical-reports">
-            <h3>Rapports détaillés</h3>
-            <p>Les informations structurées conservées par DrIA pour cet entraînement.</p>
+            <h3>Detailed reports</h3>
+            <p>The structured information saved by DrIA for this training run.</p>
             <q-list separator class="reports-list">
               <q-expansion-item v-for="report in reports" :key="report.title" :label="report.title" icon="description">
                 <pre class="report-json">{{ reportJson(report.value) }}</pre>
@@ -143,14 +143,14 @@ function reportJson(value: unknown): string {
 
       <div v-else-if="isLoading" class="model-state" role="status">
         <q-spinner color="primary" size="32px" />
-        <h1>Chargement du modèle</h1>
-        <p>Ses résultats et ses informations sont en cours de récupération.</p>
+        <h1>Loading model</h1>
+        <p>Its results and information are being retrieved.</p>
       </div>
       <div v-else class="model-state">
         <q-icon name="cloud_off" size="36px" />
-        <h1>Le modèle n’a pas pu être chargé</h1>
-        <p>Réessayez pour retrouver ses résultats.</p>
-        <q-btn outline no-caps color="primary" label="Réessayer" icon="refresh" @click="loadModel" />
+        <h1>The model could not be loaded</h1>
+        <p>Try again to view its results.</p>
+        <q-btn outline no-caps color="primary" label="Try again" icon="refresh" @click="loadModel" />
       </div>
     </div>
   </q-page>

@@ -82,82 +82,82 @@ export function isValidStudyShape(value: unknown): value is IPipeline {
 }
 
 const componentLabels: Record<string, string> = {
-  ActSimpleImputer: 'Compléter les valeurs manquantes',
-  ActCategoricalImputer: 'Compléter les catégories manquantes',
-  ActKNNImputer: 'Imputation par les voisins proches',
-  ActMICEForestImputer: 'Imputation par forêts',
-  ActMeanColumn: 'Imputation par la moyenne',
-  ActCoerceNumericStrings: 'Reconnaître les nombres dans les textes',
-  ActDateConverter: 'Reconnaître les dates',
-  ActDropDuplicateRows: 'Retirer les lignes en double',
-  ActDropHighMissingColumns: 'Retirer les variables trop incomplètes',
-  ActDropIdLikeColumns: 'Retirer les identifiants probables',
-  ActDropHighCardinalityCategorical: 'Traiter les catégories trop nombreuses',
-  ActDropCategoricalColumn: 'Retirer les variables catégorielles',
-  ActDropNumericalColumn: 'Retirer les variables numériques',
-  ActDropTextualColumn: 'Retirer les variables textuelles',
-  ActDropDateColumn: 'Retirer les dates',
-  ActOrdinalEncoder: 'Encodage ordinal des catégories',
-  ActOnehot: 'Une variable par catégorie',
-  ActFrequencyEncoder: 'Encodage par fréquence',
-  ActTargetEncoder: 'Encodage lié à la cible',
-  ActRareCategoryGrouper: 'Regrouper les catégories rares',
-  ActTextNormalizer: 'Nettoyer les textes',
-  ActTrimSpaces: 'Retirer les espaces superflus',
-  ActNormalizeColumnNames: 'Uniformiser les noms des variables',
-  ActSentinelToNaN: 'Reconnaître les codes de valeur manquante',
-  ActMissingIndicator: 'Signaler les valeurs manquantes',
-  ActMissingCountFeature: 'Compter les valeurs manquantes',
-  ActSplitDate: 'Extraire les éléments des dates',
-  ActStandardScaler: 'Centrer et réduire',
-  ActMinMaxScaler: 'Ramener les valeurs entre 0 et 1',
-  ActMaxAbsScaler: 'Échelle selon le maximum absolu',
-  ActRobustScaler: 'Échelle robuste aux valeurs extrêmes',
-  ActUnitNormScaler: 'Normaliser chaque observation',
-  ActPowerTransformer: 'Transformation de puissance',
-  ActQuantileTransformer: 'Transformation par quantiles',
-  ActLogTransformer: 'Transformation logarithmique',
-  ActRemoveHighCorrelatedColumn: 'Retirer les variables très corrélées',
-  ActRemoveLowVarianceColumn: 'Retirer les variables peu variables',
-  ActSelectPercentile: 'Sélectionner un pourcentage de variables',
-  ActSelectKBest: 'Sélectionner les meilleures variables',
-  ActSelectFromModel: 'Sélectionner les variables avec un modèle',
-  ActRFE: 'Sélection récursive des variables',
-  ActPermutationImportanceSelector: 'Sélection par importance des variables',
-  ActPCA: 'Analyse en composantes principales (ACP)',
-  ActSMOTE: 'Créer des observations de la catégorie minoritaire (SMOTE)',
-  ActRandomOverSampling: 'Augmenter la catégorie minoritaire',
-  ActRandomUnderSampler: 'Réduire la catégorie majoritaire',
-  ActRandomForest: 'Forêt aléatoire · classification',
-  ActRandomForestRegressor: 'Forêt aléatoire · régression',
-  ActLogisticRegression: 'Régression logistique',
-  ActLinearRegression: 'Régression linéaire',
-  ActDecisionTreeClassifier: 'Arbre de décision · classification',
-  ActDecisionTreeRegressor: 'Arbre de décision · régression',
+  ActSimpleImputer: 'Fill missing values',
+  ActCategoricalImputer: 'Fill missing categories',
+  ActKNNImputer: 'Nearest-neighbor imputation',
+  ActMICEForestImputer: 'Forest imputation',
+  ActMeanColumn: 'Mean imputation',
+  ActCoerceNumericStrings: 'Detect numbers in text',
+  ActDateConverter: 'Detect dates',
+  ActDropDuplicateRows: 'Remove duplicate rows',
+  ActDropHighMissingColumns: 'Remove features with too many missing values',
+  ActDropIdLikeColumns: 'Remove likely identifiers',
+  ActDropHighCardinalityCategorical: 'Handle high-cardinality categories',
+  ActDropCategoricalColumn: 'Remove categorical features',
+  ActDropNumericalColumn: 'Remove numeric features',
+  ActDropTextualColumn: 'Remove text features',
+  ActDropDateColumn: 'Remove dates',
+  ActOrdinalEncoder: 'Ordinal category encoding',
+  ActOnehot: 'One feature per category',
+  ActFrequencyEncoder: 'Frequency encoding',
+  ActTargetEncoder: 'Target encoding',
+  ActRareCategoryGrouper: 'Group rare categories',
+  ActTextNormalizer: 'Clean text',
+  ActTrimSpaces: 'Trim extra spaces',
+  ActNormalizeColumnNames: 'Standardize feature names',
+  ActSentinelToNaN: 'Detect missing value codes',
+  ActMissingIndicator: 'Flag missing values',
+  ActMissingCountFeature: 'Count missing values',
+  ActSplitDate: 'Extract date components',
+  ActStandardScaler: 'Standard scaling',
+  ActMinMaxScaler: 'Scale values between 0 and 1',
+  ActMaxAbsScaler: 'Scale by maximum absolute value',
+  ActRobustScaler: 'Robust scaling for extreme values',
+  ActUnitNormScaler: 'Normalize each sample',
+  ActPowerTransformer: 'Power transformation',
+  ActQuantileTransformer: 'Quantile transformation',
+  ActLogTransformer: 'Log transformation',
+  ActRemoveHighCorrelatedColumn: 'Remove highly correlated features',
+  ActRemoveLowVarianceColumn: 'Remove low-variance features',
+  ActSelectPercentile: 'Select a percentage of features',
+  ActSelectKBest: 'Select top features',
+  ActSelectFromModel: 'Select features using a model',
+  ActRFE: 'Recursive feature selection',
+  ActPermutationImportanceSelector: 'Select by feature importance',
+  ActPCA: 'Principal component analysis (PCA)',
+  ActSMOTE: 'Create minority-class samples (SMOTE)',
+  ActRandomOverSampling: 'Oversample the minority class',
+  ActRandomUnderSampler: 'Undersample the majority class',
+  ActRandomForest: 'Random forest · classification',
+  ActRandomForestRegressor: 'Random forest · regression',
+  ActLogisticRegression: 'Logistic regression',
+  ActLinearRegression: 'Linear regression',
+  ActDecisionTreeClassifier: 'Decision tree · classification',
+  ActDecisionTreeRegressor: 'Decision tree · regression',
   ActCatBoost: 'CatBoost · classification',
-  ActCatBoostRegressor: 'CatBoost · régression',
-  ActKNN: 'Voisins proches · classification',
-  ActKNNRegressor: 'Voisins proches · régression',
-  ActSVMSVC: 'Machine à vecteurs de support · classification',
-  ActSVMSVR: 'Machine à vecteurs de support · régression',
-  AccuracyMetric: 'Exactitude',
-  BalancedAccuracyMetric: 'Exactitude équilibrée',
-  RecallMetric: 'Sensibilité',
-  PrecisionMetric: 'Précision',
-  F1ScoreMetric: 'Score F1',
-  SpecificityMetric: 'Spécificité',
-  RocAucMetric: 'Aire sous la courbe ROC',
-  MeanAbsoluteErrorMetric: 'Erreur absolue moyenne',
-  MeanSquaredErrorMetric: 'Erreur quadratique moyenne',
-  R2ScoreMetric: 'Coefficient de détermination (R²)',
-  ConcordanceIndexMetric: 'Indice de concordance',
-  KernelSHAP: 'Contributions des variables (SHAP)',
-  ConfusionMatrixPlot: 'Matrice de confusion',
-  ClassificationReportPlot: 'Bilan de classification',
-  ROCAUCPlot: 'Courbe ROC',
-  PrecisionRecallCurvePlot: 'Courbe précision–sensibilité',
-  ResidualsPlot: 'Résidus des prédictions',
-  PredictionErrorPlot: 'Erreurs de prédiction',
+  ActCatBoostRegressor: 'CatBoost · regression',
+  ActKNN: 'Nearest neighbors · classification',
+  ActKNNRegressor: 'Nearest neighbors · regression',
+  ActSVMSVC: 'Support vector machine · classification',
+  ActSVMSVR: 'Support vector machine · regression',
+  AccuracyMetric: 'Accuracy',
+  BalancedAccuracyMetric: 'Balanced accuracy',
+  RecallMetric: 'Recall',
+  PrecisionMetric: 'Precision',
+  F1ScoreMetric: 'F1 score',
+  SpecificityMetric: 'Specificity',
+  RocAucMetric: 'Area under the ROC curve',
+  MeanAbsoluteErrorMetric: 'Mean absolute error',
+  MeanSquaredErrorMetric: 'Mean squared error',
+  R2ScoreMetric: 'Coefficient of determination (R²)',
+  ConcordanceIndexMetric: 'Concordance index',
+  KernelSHAP: 'Feature contributions (SHAP)',
+  ConfusionMatrixPlot: 'Confusion matrix',
+  ClassificationReportPlot: 'Classification report',
+  ROCAUCPlot: 'ROC curve',
+  PrecisionRecallCurvePlot: 'Precision–recall curve',
+  ResidualsPlot: 'Prediction residuals',
+  PredictionErrorPlot: 'Prediction errors',
 };
 
 function catalogueComponents(source?: CatalogueSource): CatalogueComponent[] {
@@ -189,10 +189,10 @@ export function recipeLabel(node: IRecipe, catalogue: CatalogueComponent[] = [])
   }
   if (typeof node.family === 'string' && node.family.trim()) return displayServiceName(node.family);
   const labels: Record<string, string> = {
-    sequence: 'Étapes successives', choice: 'Chemins alternatifs', adaptive: 'Étapes adaptées aux données',
-    optional: 'Étape facultative', collection: 'Analyses', family: 'Famille de composants', use: 'Composant',
+    sequence: 'Sequential steps', choice: 'Alternative paths', adaptive: 'Data-dependent steps',
+    optional: 'Optional step', collection: 'Analyses', family: 'Component family', use: 'Component',
   };
-  return labels[node.type] ?? displayServiceName(String(node.type ?? 'Étape'));
+  return labels[node.type] ?? displayServiceName(String(node.type ?? 'Step'));
 }
 
 export function recipeEntries(node: IRecipe, path: RecipePath): RecipeEntry[] {
@@ -225,13 +225,13 @@ export function recipeEntries(node: IRecipe, path: RecipePath): RecipeEntry[] {
 export function recipeSummary(node: IRecipe): string {
   const count = recipeEntries(node, []).filter((entry) => !entry.removed).length;
   const mode = node.type === 'family' ? node.mode ?? 'choice' : node.type;
-  if (mode === 'sequence') return `${count} étape${count > 1 ? 's' : ''} exécutée${count > 1 ? 's' : ''} dans l’ordre`;
-  if (mode === 'choice') return `${count} alternative${count > 1 ? 's' : ''} à comparer${node.optional ? ' · peut être ignorée' : ''}`;
-  if (mode === 'adaptive') return `${count} étape${count > 1 ? 's' : ''} selon les données`;
-  if (mode === 'optional') return 'DrIA peut appliquer cette étape ou la passer';
-  if (mode === 'collection') return `${count} analyse${count > 1 ? 's' : ''} activée${count > 1 ? 's' : ''}`;
+  if (mode === 'sequence') return `${count} step${count === 1 ? '' : 's'} executed in order`;
+  if (mode === 'choice') return `${count} alternative${count === 1 ? '' : 's'} to compare${node.optional ? ' · may be skipped' : ''}`;
+  if (mode === 'adaptive') return `${count} data-dependent step${count === 1 ? '' : 's'}`;
+  if (mode === 'optional') return 'DrIA may apply or skip this step';
+  if (mode === 'collection') return `${count} enabled ${count === 1 ? 'analysis' : 'analyses'}`;
   const parameters = Object.keys(node.params ?? {}).length;
-  return parameters ? `${parameters} paramètre${parameters > 1 ? 's' : ''} configurable${parameters > 1 ? 's' : ''}` : 'Paramètres par défaut';
+  return parameters ? `${parameters} configurable parameter${parameters === 1 ? '' : 's'}` : 'Default parameters';
 }
 
 /** Visits stored recipes, including disabled registry slots, without wrappers. */
@@ -283,7 +283,7 @@ export function clearPreset(study: IPipeline): void {
 /** Immediate editing feedback; service validation remains authoritative. */
 export function structuralCheck(study: IPipeline, catalogue?: CatalogueSource): string[] {
   if (!plainObject(study) || study.schema_version !== 1)
-    return ['Cette configuration d’étude est invalide.'];
+    return ['This study configuration is invalid.'];
   const errors = new Set<string>();
   const components = catalogueComponents(catalogue);
   const byId = new Map(components.map((component) => [component.id, component]));
@@ -310,7 +310,7 @@ export function structuralCheck(study: IPipeline, catalogue?: CatalogueSource): 
   }
   function checkActive(node: IRecipe) {
     if (!plainObject(node)) {
-      errors.add('Une étape a une configuration invalide. Choisissez un composant ou un groupe.');
+      errors.add('A step has an invalid configuration. Choose a component or group.');
       return;
     }
     if (activeNodes.has(node)) return;
@@ -319,18 +319,18 @@ export function structuralCheck(study: IPipeline, catalogue?: CatalogueSource): 
     const active = activeEntries(node);
     const mode = node.type === 'family' ? node.mode ?? 'choice' : node.type;
     if (node.type === 'use' && (typeof node.component !== 'string' || !node.component.trim()))
-      errors.add(`${label} : choisissez un composant.`);
-    if (node.type === 'optional' && active.length !== 1) errors.add(`${label} : choisissez une seule étape facultative.`);
-    if (mode === 'choice' && !active.length) errors.add(`${label} : activez au moins une alternative.`);
+      errors.add(`${label}: choose a component.`);
+    if (node.type === 'optional' && active.length !== 1) errors.add(`${label}: choose exactly one optional step.`);
+    if (mode === 'choice' && !active.length) errors.add(`${label}: enable at least one alternative.`);
     active.forEach((entry) => checkActive(entry.node));
   }
-  if (!study.pipeline) errors.add('Ajoutez un pipeline à entraîner.');
+  if (!study.pipeline) errors.add('Add a pipeline to train.');
   else checkActive(study.pipeline);
   const implicitMetrics = study.metrics?.type === 'collection' && !study.metrics.resolved
     && !components.length && (!Array.isArray(study.metrics.members) || !study.metrics.members.length)
     && (study.metrics.defaults ?? !!study.metrics.family);
   if (!study.metrics || !activeEntries(study.metrics).length && study.metrics.type !== 'use' && !implicitMetrics)
-    errors.add('Activez au moins une métrique pour évaluer le modèle.');
+    errors.add('Enable at least one metric to evaluate the model.');
   fields.filter((field) => field !== 'pipeline').forEach((field) => {
     if (study[field]) checkActive(study[field] as IRecipe);
   });
@@ -342,7 +342,7 @@ export function structuralCheck(study: IPipeline, catalogue?: CatalogueSource): 
       visited.add(node);
       const alias = typeof node.alias === 'string' ? node.alias.trim() : undefined;
       if (alias) {
-        if (aliases.has(alias)) errors.add(`Le nom « ${alias} » est utilisé plusieurs fois. Donnez un nom unique à chaque étape.`);
+        if (aliases.has(alias)) errors.add(`The name “${alias}” is used more than once. Give each step a unique name.`);
         aliases.add(alias);
       }
       activeEntries(node).forEach((entry) => checkAlias(entry.node));
@@ -381,7 +381,7 @@ export function structuralCheck(study: IPipeline, catalogue?: CatalogueSource): 
         const alternatives = unique(childShapes.flat());
         if (node.optional || mode === 'optional') {
           if (alternatives.some((shape) => shape.count > 0))
-            errors.add('Un modèle de prédiction doit rester obligatoire dans son chemin.');
+            errors.add('A prediction model must remain required in its path.');
           alternatives.push({ count: 0, terminal: false });
         }
         return unique(alternatives);
@@ -389,7 +389,7 @@ export function structuralCheck(study: IPipeline, catalogue?: CatalogueSource): 
       let result: Shape[] = [{ count: 0, terminal: false }];
       for (const next of childShapes) {
         if (result.some((shape) => shape.terminal))
-          errors.add('Placez le modèle en dernière étape : aucune étape ne doit le suivre.');
+          errors.add('Place the model last: no step may follow it.');
         result = unique(result.flatMap((previous) => next.map((child) => ({
           count: Math.min(2, previous.count + child.count), terminal: child.terminal,
         }))));
@@ -398,7 +398,7 @@ export function structuralCheck(study: IPipeline, catalogue?: CatalogueSource): 
     }
     const candidates = shapes(study.pipeline);
     if (!candidates.length || candidates.some((shape) => shape.count !== 1 || !shape.terminal))
-      errors.add('Chaque chemin doit se terminer par un seul modèle de prédiction.');
+      errors.add('Each path must end with exactly one prediction model.');
   }
   return [...errors];
 }

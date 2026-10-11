@@ -42,11 +42,11 @@ export function describePredictionFailure(error: unknown): PredictionFailure {
       ...(Array.isArray(data?.errors) ? data.errors : []),
     ]).filter((value): value is string => typeof value === 'string').join(' ');
     if (/the model does not support\s+\w+/i.test(details))
-      return { kind: 'unsupported', message: 'Ce type de prédiction n’est pas disponible pour ce modèle.' };
+      return { kind: 'unsupported', message: 'This prediction type is not available for this model.' };
     if (/prediction values cannot be converted|invalid prediction rows|(?:input(?:\s+x)?|array) contains (?:nan|infinity)|found unknown categories|previously unseen labels|could not convert string to (?:float|int)|invalid literal for (?:float|int)|cannot convert (?:float\s+)?nan to integer/i.test(details))
-      return { kind: 'invalid', message: 'Valeurs incorrectes' };
+      return { kind: 'invalid', message: 'Invalid values' };
   }
-  return { kind: 'unavailable', message: 'La prédiction est indisponible pour le moment. Réessayez dans quelques instants.' };
+  return { kind: 'unavailable', message: 'Prediction is temporarily unavailable. Please try again shortly.' };
 }
 
 function nonemptyText(value: unknown): value is string {
@@ -117,9 +117,9 @@ export function predictionFields(sample: ICsvProject, project: IProject): Predic
 function predictionResult(response: IPrediction, expectedMethod: string): unknown {
   const data = object(response);
   if (!data || data.status !== 'ok')
-    throw new Error('Le service n’a pas confirmé le calcul de cette prédiction.');
+    throw new Error('The service did not confirm that this prediction was calculated.');
   if (data.method !== expectedMethod)
-    throw new Error('La réponse du service ne correspond pas au type de prédiction demandé.');
+    throw new Error('The service response does not match the requested prediction type.');
   return data.prediction;
 }
 
@@ -127,28 +127,28 @@ function predictionResult(response: IPrediction, expectedMethod: string): unknow
 export function parseSinglePrediction(response: IPrediction, expectedMethod = 'predict'): PredictionScalar {
   const result = predictionResult(response, expectedMethod);
   if (!Array.isArray(result) || result.length !== 1)
-    throw new Error('Le service doit retourner une seule prédiction pour cette observation.');
+    throw new Error('The service must return a single prediction for this observation.');
   const value: unknown = result[0];
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
   if (typeof value === 'number' && Number.isFinite(value)) return value;
-  throw new Error('Le résultat retourné ne peut pas être affiché comme une valeur simple.');
+  throw new Error('The returned result cannot be displayed as a single value.');
 }
 
 /** Use the model's own time grid; no new horizon is inferred from the preview. */
 export function parseSurvivalCurve(response: IPrediction): SurvivalCurve {
   const result = predictionResult(response, 'predict_survival_function');
   if (!Array.isArray(result) || result.length !== 1)
-    throw new Error('Le service doit retourner une seule courbe pour cette observation.');
+    throw new Error('The service must return a single curve for this observation.');
   const curve = object(result[0]);
   const times = curve?.times;
   const values = curve?.values;
   if (!Array.isArray(times) || !Array.isArray(values) || times.length === 0 || times.length !== values.length)
-    throw new Error('La courbe retournée ne contient pas des temps et des probabilités correspondants.');
+    throw new Error('The returned curve does not contain matching times and probabilities.');
   if (!times.every((time: unknown, index: number) => typeof time === 'number' && Number.isFinite(time)
     && time >= 0 && (index === 0 || time > times[index - 1])))
-    throw new Error('Les temps de la courbe doivent être des nombres croissants et positifs ou nuls.');
+    throw new Error('Curve times must be increasing, finite, non-negative numbers.');
   if (!values.every((value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1))
-    throw new Error('Les probabilités de la courbe doivent être comprises entre 0 et 1.');
+    throw new Error('Curve probabilities must be between 0 and 1.');
   return { times: [...times], values: [...values] };
 }
 

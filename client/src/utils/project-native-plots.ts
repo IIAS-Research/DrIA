@@ -165,9 +165,9 @@ export function nativeComparisonPlan(
     return {
       key: JSON.stringify(['comparison', 'box', column, targetColumn]),
       columns: [column], statistics: boxRecipe(), predictionKind,
-      title: `${column} selon ${targetColumn}`,
-      description: 'Le graphique original DrIA compare les distributions de cette information entre les catégories du résultat.',
-      note: 'La boîte représente les quartiles, le trait central la médiane et les extrémités le minimum et le maximum, sans points atypiques. « all » rassemble toutes les observations ; les autres groupes correspondent au résultat à prédire. Les valeurs manquantes sont exclues.',
+      title: `${column} by ${targetColumn}`,
+      description: 'The original DrIA chart compares the distributions of this feature across outcome categories.',
+      note: 'The box shows the quartiles, the center line shows the median, and the whiskers show the minimum and maximum, without outlier points. “all” includes all observations; other groups correspond to outcome categories. Missing values are excluded.',
       nativeTitle: 'Box plot', expectedGroups: eligible.groups, expectedGroupKind: eligible.groupKind,
     };
   }
@@ -175,9 +175,9 @@ export function nativeComparisonPlan(
     key: JSON.stringify(['comparison', 'bar', column, targetColumn]),
     columns: [column], predictionKind,
     statistics: recipe([{ type: 'use', component: 'ValueCountsStatistic' }, { type: 'use', component: 'CountStatistic' }]),
-    title: `${column} selon ${targetColumn}`,
-    description: 'Le graphique original DrIA montre les effectifs de chaque catégorie selon le résultat à prédire.',
-    note: 'Les barres montrent des effectifs, pas des proportions : les groupes peuvent avoir des tailles différentes. « all » rassemble toutes les observations ; les autres groupes correspondent au résultat à prédire. Les valeurs manquantes sont exclues. La vue guidée permet aussi de comparer les proportions.',
+    title: `${column} by ${targetColumn}`,
+    description: 'The original DrIA chart shows the counts of each category by outcome group.',
+    note: 'Bars show counts rather than proportions, so groups may differ in size. “all” includes all observations; other groups correspond to outcome categories. Missing values are excluded. The guided view also lets you compare proportions.',
     nativeTitle: 'Bar plot', expectedGroups: eligible.groups, expectedGroupKind: eligible.groupKind,
   };
 }
@@ -211,11 +211,11 @@ export function nativeMissingPlan(
     key: JSON.stringify(['missing', predictionKind, targetColumn, selected]),
     columns: selected, predictionKind,
     statistics: recipe([{ type: 'use', component: 'MissingRateStatistic' }]),
-    title: 'Où manque-t-il des données ?',
+    title: 'Where is data missing?',
     description: selected.length === 1
-      ? `La carte DrIA montre le taux de valeurs manquantes dans « ${selected[0]} », dans l’ensemble du fichier et par groupe lorsque le résultat est une catégorie.`
-      : `La carte DrIA montre les taux de valeurs manquantes dans les ${selected.length} informations numériques ou oui / non les plus incomplètes de la sélection.`,
-    note: `La couleur représente un taux de 0 à 1 (0 à 100 %). « all » rassemble toutes les observations${predictionKind === 'category' ? ' ; les autres lignes correspondent aux catégories du résultat à prédire' : ''}. Au plus ${MAX_MISSING_COLUMNS} colonnes sont affichées. Les autres colonnes et les informations entièrement vides restent consultables dans le bilan.`,
+      ? `The DrIA heatmap shows the missing value rate in “${selected[0]}” across the full file and by group when the outcome is categorical.`
+      : `The DrIA heatmap shows missing value rates in the ${selected.length} most incomplete numerical or yes/no features in the selection.`,
+    note: `Color represents a rate from 0 to 1 (0 to 100%). “all” includes all observations${predictionKind === 'category' ? '; other rows correspond to outcome categories' : ''}. Up to ${MAX_MISSING_COLUMNS} columns are shown. Other columns and entirely empty features remain available in the summary.`,
     nativeTitle: 'Missingness heatmap',
     ...(predictionKind === 'category' ? { expectedGroupCount: target.distinctValues.length } : {}),
     expectedMissingRates: Object.fromEntries(selected.map((column) => [column, dataset.profiles[column].missingCount / dataset.rowCount])),
@@ -223,7 +223,7 @@ export function nativeMissingPlan(
 }
 
 function invalidStatistics(): never {
-  throw new Error('DrIA n’a pas renvoyé les statistiques nécessaires à ce graphique pour la sélection actuelle. La vue guidée reste disponible.');
+  throw new Error('DrIA did not return the statistics needed for this chart and selection. The guided view remains available.');
 }
 
 function validateBox(analysis: ProjectColumnStatistics): boolean {
@@ -278,15 +278,15 @@ export function selectNativeDataPlot(result: IStatistics, plan: NativeDataPlotPl
   validateStatistics(result, plan);
   const matches = (Array.isArray(result.plots) ? result.plots : []).filter((plot) => plot?.title === plan.nativeTitle);
   if (matches.length !== 1) throw new Error(matches.length
-    ? 'DrIA a renvoyé plusieurs graphiques pour cette sélection. Leur colonne ne peut pas être identifiée avec certitude.'
-    : 'DrIA n’a pas renvoyé le graphique demandé. La vue guidée reste disponible.');
+    ? 'DrIA returned multiple charts for this selection. Their source column cannot be reliably identified.'
+    : 'DrIA did not return the requested chart. The guided view remains available.');
   const plot = matches[0];
   const image = typeof plot.image === 'string' ? plot.image.trim() : '';
   const base64 = image.replace(/^data:image\/png;base64,/i, '').replace(/\s/g, '');
   // Validate PNG identity without trying to identify content or placeholders
   // from the compressed image length. Statistics above establish usefulness.
   if (!base64.startsWith('iVBORw0KGgo') || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
-    throw new Error('L’image du graphique renvoyée par DrIA n’est pas un PNG valide.');
+    throw new Error('The chart image returned by DrIA is not a valid PNG.');
   }
   return { ...plot, image: base64 };
 }

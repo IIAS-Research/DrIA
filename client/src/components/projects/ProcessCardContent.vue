@@ -21,7 +21,7 @@ const mainMetricDirection = computed(() => {
   const metrics = firstModel.value?.metrics;
   const greater = metrics ? metrics.objective?.greater_is_better ?? metrics.metrics_info?.[metricKey(metrics)]?.greater_is_better
     : propsComponent.process?.statusSnapshot?.objective?.greater_is_better;
-  return greater === undefined ? '' : greater ? 'Maximiser' : 'Minimiser';
+  return greater === undefined ? '' : greater ? 'Maximize' : 'Minimize';
 });
 const processError = computed(() => propsComponent.process?.error ?? propsComponent.process?.statusSnapshot?.error);
 const processMessages = computed(() => [...new Set([
@@ -86,13 +86,13 @@ const processMessages = computed(() => [...new Set([
       icon="refresh"
       color="primary"
     >
-      <q-tooltip>Relancer le process</q-tooltip>
+      <q-tooltip>Restart the training run</q-tooltip>
     </q-btn> -->
   </q-item>
 
   <q-item v-else>
     <div class="text-caption text-italic">
-      Aucun process actuellement disponible
+      No training runs currently available
     </div>
   </q-item>
 </template>

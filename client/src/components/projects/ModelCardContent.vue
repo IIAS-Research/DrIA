@@ -19,13 +19,13 @@ const sortedMetrics = computed(() => {
     .sort((a, b) => Number(b[0] === metricKey(props.model.metrics)) - Number(a[0] === metricKey(props.model.metrics)));
 });
 const scoreSource = computed(() => props.model.metrics.metrics_test
-  ? 'Jeu de test indépendant'
-  : props.model.metrics.score_source === 'in_sample' ? 'Données d’entraînement' : 'Validation croisée');
+  ? 'Holdout test set'
+  : props.model.metrics.score_source === 'in_sample' ? 'Training data' : 'Cross-validation');
 function metricDirection(key: string): string {
   const greater = key === metricKey(props.model.metrics)
     ? props.model.metrics.objective?.greater_is_better ?? props.model.metrics.metrics_info?.[key]?.greater_is_better
     : props.model.metrics.metrics_info?.[key]?.greater_is_better;
-  return greater === undefined ? '' : greater ? 'Maximiser' : 'Minimiser';
+  return greater === undefined ? '' : greater ? 'Maximize' : 'Minimize';
 }
 </script>
 
@@ -72,7 +72,7 @@ function metricDirection(key: string): string {
           name="help"
           class="q-mb-xs"
         />
-        Results of a model without Dr IA optimizations
+        Results of a model without DrIA optimization
       </div>
     </div>
     <div
@@ -125,7 +125,7 @@ function metricDirection(key: string): string {
 
   <q-item v-else>
     <q-item-label class="text-caption text-italic">
-      Aucun models Dr IA actuellement disponible
+      No DrIA models currently available
     </q-item-label>
   </q-item>
 </template>

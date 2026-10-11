@@ -32,21 +32,21 @@ const modelCount = computed(() => processes.value.reduce((total, process) => tot
 const baselineMetrics = computed(() => props.project.metricsBaseline?.metrics ?? []);
 const baselineStatus = computed(() => {
   const baseline = props.project.metricsBaseline;
-  if (!baseline) return 'Référence non disponible';
+  if (!baseline) return 'Baseline unavailable';
   const labels: Record<string, string> = {
-    QUEUED: 'En attente de calcul', RUNNING: 'Calcul en cours', FINISHED: 'Calcul terminé',
-    CACHED: 'Résultats récupérés', CANCELED: 'Calcul annulé', CRASHED: 'Échec du calcul', TIMEOUT: 'Temps maximal atteint',
+    QUEUED: 'Queued', RUNNING: 'Computing', FINISHED: 'Computation complete',
+    CACHED: 'Results retrieved', CANCELED: 'Computation canceled', CRASHED: 'Computation failed', TIMEOUT: 'Time limit reached',
   };
-  return labels[baseline.status?.current ?? ''] ?? (baselineMetrics.value.length ? 'Résultats disponibles' : 'Aucun résultat disponible');
+  return labels[baseline.status?.current ?? ''] ?? (baselineMetrics.value.length ? 'Results available' : 'No results available');
 });
 
 function direction(metrics: IMetrics): string {
   const score = scoreForMetrics(metrics, 'validation');
-  return score.greaterIsBetter === undefined ? '' : score.greaterIsBetter ? 'À maximiser' : 'À minimiser';
+  return score.greaterIsBetter === undefined ? '' : score.greaterIsBetter ? 'Maximize' : 'Minimize';
 }
 
 function modelName(model: IModel, process: IProcess): string {
-  return displayServiceName(model.metrics.model_info?.name) || 'Modèle ' + ((process.models?.indexOf(model) ?? 0) + 1);
+  return displayServiceName(model.metrics.model_info?.name) || 'Model ' + ((process.models?.indexOf(model) ?? 0) + 1);
 }
 
 function sourceLabel(metrics: IMetrics): string {
@@ -56,7 +56,7 @@ function sourceLabel(metrics: IMetrics): string {
 function metricDirection(metrics: IMetrics, key: string): string {
   if (key === metricKey(metrics)) return direction(metrics);
   const greater = metrics.metrics_info?.[key]?.greater_is_better;
-  return typeof greater === 'boolean' ? greater ? 'À maximiser' : 'À minimiser' : '';
+  return typeof greater === 'boolean' ? greater ? 'Maximize' : 'Minimize' : '';
 }
 
 function allMetrics(metrics: IMetrics): { key: string; name: string; validation: number | null; test: number | null; description?: string; direction: string }[] {
@@ -90,8 +90,8 @@ function processMessages(process: IProcess): { title: string; content: string; k
   const errors = [...new Set([process.error, process.statusSnapshot?.error, availabilityError].filter(Boolean))];
   const cacheErrors = [...new Set([process.cacheError, process.statusSnapshot?.cache_error].filter(Boolean))];
   return [
-    ...errors.map((content) => ({ title: 'Message du service DrIA', content: displayServiceText(String(content)), kind: 'error' })),
-    ...cacheErrors.map((content) => ({ title: 'Enregistrement des résultats', content: displayServiceText(String(content)), kind: 'warning' })),
+    ...errors.map((content) => ({ title: 'DrIA service message', content: displayServiceText(String(content)), kind: 'error' })),
+    ...cacheErrors.map((content) => ({ title: 'Saving results', content: displayServiceText(String(content)), kind: 'warning' })),
   ];
 }
 
@@ -102,10 +102,10 @@ function hasContent(value: unknown): boolean {
 
 function reports(metrics: IMetrics): { name: string; value: unknown }[] {
   return [
-    { name: 'Rapport des métriques', value: metrics.metric_report },
-    { name: 'Rapport d’évaluation', value: metrics.evaluation_report },
-    { name: 'Rapport d’explicabilité', value: metrics.explanation_report },
-    { name: 'Audit de l’entraînement', value: metrics.training_audit },
+    { name: 'Metric report', value: metrics.metric_report },
+    { name: 'Evaluation report', value: metrics.evaluation_report },
+    { name: 'Explainability report', value: metrics.explanation_report },
+    { name: 'Training audit', value: metrics.training_audit },
   ].filter((report) => hasContent(report.value));
 }
 
@@ -119,8 +119,8 @@ function modelLink(processId: number, modelId: number, view: 'performance' | 'ex
 
 function downloadBaseline() {
   if (!props.project.metricsBaseline) return;
-  const result = exportFile('projet-' + props.project.id + '-modele-reference.json', json(props.project.metricsBaseline), 'application/json');
-  baselineDownloadFeedback.value = result === true ? 'Résultats téléchargés.' : 'Le navigateur n’a pas autorisé le téléchargement.';
+  const result = exportFile('project-' + props.project.id + '-baseline.json', json(props.project.metricsBaseline), 'application/json');
+  baselineDownloadFeedback.value = result === true ? 'Results downloaded.' : 'The browser did not allow the download.';
 }
 
 watch(() => props.project.id, () => {
@@ -143,17 +143,17 @@ watch(() => route.hash, async (hash) => {
 </script>
 
 <template>
-  <section class="project-trainings" aria-label="Historique des entraînements">
+  <section class="project-trainings" aria-label="Training run history">
     <div class="section-heading">
-      <div><h2>Vos entraînements</h2><p>Un entraînement correspond à une recherche DrIA, avec ses réglages et les modèles conservés à son issue.</p></div>
+      <div><h2>Your training runs</h2><p>A training run is a DrIA search, with its settings and the models retained when it finishes.</p></div>
       <div v-if="processes.length" class="history-count">
-        {{ processes.length }} entraînement{{ processes.length > 1 ? 's' : '' }}<span>{{ modelCount }} modèle{{ modelCount > 1 ? 's' : '' }} disponible{{ modelCount > 1 ? 's' : '' }}</span>
+        {{ processes.length }} training run{{ processes.length !== 1 ? 's' : '' }}<span>{{ modelCount }} model{{ modelCount !== 1 ? 's' : '' }} available</span>
       </div>
     </div>
 
     <div v-if="!processes.length" class="training-empty">
       <q-icon name="model_training" size="28px" />
-      <div><h3>Aucun entraînement enregistré</h3><p>Les recherches de ce projet apparaîtront ici avec leurs résultats.</p></div>
+      <div><h3>No training runs recorded</h3><p>Searches for this project will appear here with their results.</p></div>
     </div>
 
     <div v-else class="training-list">
@@ -169,9 +169,9 @@ watch(() => route.hash, async (hash) => {
             <span class="training-index" aria-hidden="true">{{ String(processes.length - index).padStart(2, '0') }}</span>
             <div class="training-identity">
               <strong>{{ formatToDDMMYYYHHmm(training.process.date) }}</strong>
-              <span>{{ index === 0 ? 'Dernier entraînement' : 'Entraînement précédent' }} · {{ training.process.models?.length ?? 0 }} modèle{{ (training.process.models?.length ?? 0) > 1 ? 's' : '' }}</span>
+              <span>{{ index === 0 ? 'Latest training run' : 'Previous training run' }} · {{ training.process.models?.length ?? 0 }} model{{ (training.process.models?.length ?? 0) !== 1 ? 's' : '' }}</span>
             </div>
-            <div class="training-budget"><span>Budget de recherche</span><strong>{{ formatBudget(training.process.maxDuration) }}</strong></div>
+            <div class="training-budget"><span>Search budget</span><strong>{{ formatBudget(training.process.maxDuration) }}</strong></div>
             <span :class="['training-status', 'training-status--' + training.state.tone]"><span class="status-dot" aria-hidden="true" />{{ training.state.label }}</span>
           </div>
         </template>
@@ -180,7 +180,7 @@ watch(() => route.hash, async (hash) => {
           <div v-for="(message, messageIndex) in processMessages(training.process)" :key="messageIndex" :class="['training-message', 'training-message--' + message.kind]" role="status">
             <q-icon :name="message.kind === 'error' ? 'error_outline' : 'info_outline'" size="18px" /><div><strong>{{ message.title }}</strong><p>{{ message.content }}</p></div>
           </div>
-          <p v-if="training.state.pendingResults" class="training-pending" role="status"><q-spinner size="16px" color="primary" />Les résultats sont en cours d’enregistrement. La liste des candidats peut encore évoluer.</p>
+          <p v-if="training.state.pendingResults" class="training-pending" role="status"><q-spinner size="16px" color="primary" />Results are being saved. The candidate list may still change.</p>
 
           <template v-if="training.result">
             <div class="retained-result">
@@ -194,24 +194,24 @@ watch(() => route.hash, async (hash) => {
                 <strong :title="displayScore(scoreForMetrics(training.result.model.metrics).value)">{{ displayScore(scoreForMetrics(training.result.model.metrics).value) }}</strong>
               </div>
               <div class="retained-score retained-score--test">
-                <span>Test séparé</span>
+                <span>Holdout test set</span>
                 <strong :title="displayScore(scoreForMetrics(training.result.model.metrics, 'test').value)">{{ displayScore(scoreForMetrics(training.result.model.metrics, 'test').value) }}</strong>
               </div>
             </div>
             <div class="retained-actions">
-              <q-btn unelevated no-caps label="Voir les résultats" icon="arrow_forward" color="primary" :to="modelLink(training.process.id, training.result.model.id, 'performance')" />
-              <q-btn flat no-caps label="Comprendre le modèle" icon="lightbulb_outline" color="primary" :to="modelLink(training.process.id, training.result.model.id, 'explanation')" />
-              <q-btn flat no-caps label="Tous les indicateurs" icon="list_alt" color="primary" :aria-expanded="inspectedIds[training.process.id] === training.result.model.id" @click="inspect(training.process, training.result.model.id)" />
+              <q-btn unelevated no-caps label="View results" icon="arrow_forward" color="primary" :to="modelLink(training.process.id, training.result.model.id, 'performance')" />
+              <q-btn flat no-caps label="Understand the model" icon="lightbulb_outline" color="primary" :to="modelLink(training.process.id, training.result.model.id, 'explanation')" />
+              <q-btn flat no-caps label="All metrics" icon="list_alt" color="primary" :aria-expanded="inspectedIds[training.process.id] === training.result.model.id" @click="inspect(training.process, training.result.model.id)" />
             </div>
 
             <q-expansion-item
               v-if="training.candidates.length"
-              :label="training.candidates.length + ' autre' + (training.candidates.length > 1 ? 's' : '') + ' candidat' + (training.candidates.length > 1 ? 's' : '')"
-              caption="Consulter leurs scores et leurs résultats"
+              :label="training.candidates.length + ' other candidate' + (training.candidates.length !== 1 ? 's' : '')"
+              caption="View their scores and results"
               dense
               class="other-candidates"
             >
-              <div class="candidate-columns" aria-hidden="true"><span>Candidat et critère</span><span>Évaluation interne</span><span>Test séparé</span><span /></div>
+              <div class="candidate-columns" aria-hidden="true"><span>Candidate and metric</span><span>Internal evaluation</span><span>Holdout test set</span><span /></div>
               <ul class="candidate-list">
                 <li v-for="model in training.candidates" :key="model.id" class="candidate-row">
                   <div class="candidate-model">
@@ -219,74 +219,74 @@ watch(() => route.hash, async (hash) => {
                     <span>{{ scoreForMetrics(model.metrics).name }}<span v-if="direction(model.metrics)"> · {{ direction(model.metrics) }}</span></span>
                   </div>
                   <div class="candidate-score"><span>{{ sourceLabel(model.metrics) }}</span><strong :title="displayScore(scoreForMetrics(model.metrics).value)">{{ displayScore(scoreForMetrics(model.metrics).value) }}</strong></div>
-                  <div class="candidate-score candidate-score--test"><span class="mobile-score-label">Test séparé</span><strong :title="displayScore(scoreForMetrics(model.metrics, 'test').value)">{{ displayScore(scoreForMetrics(model.metrics, 'test').value) }}</strong></div>
+                  <div class="candidate-score candidate-score--test"><span class="mobile-score-label">Holdout test set</span><strong :title="displayScore(scoreForMetrics(model.metrics, 'test').value)">{{ displayScore(scoreForMetrics(model.metrics, 'test').value) }}</strong></div>
                   <div class="candidate-actions">
-                    <q-btn flat dense round icon="lightbulb_outline" color="primary" :aria-label="'Comprendre ' + modelName(model, training.process)" :to="modelLink(training.process.id, model.id, 'explanation')"><q-tooltip>Comprendre le modèle</q-tooltip></q-btn>
-                    <q-btn flat dense no-caps label="Détails" color="primary" :aria-expanded="inspectedIds[training.process.id] === model.id" @click="inspect(training.process, model.id)" />
+                    <q-btn flat dense round icon="lightbulb_outline" color="primary" :aria-label="'Understand ' + modelName(model, training.process)" :to="modelLink(training.process.id, model.id, 'explanation')"><q-tooltip>Understand the model</q-tooltip></q-btn>
+                    <q-btn flat dense no-caps label="Details" color="primary" :aria-expanded="inspectedIds[training.process.id] === model.id" @click="inspect(training.process, model.id)" />
                   </div>
                 </li>
               </ul>
-              <p class="score-guide">Le score interne sert à la recherche. Le test séparé mesure le résultat final ; il ne sert pas à classer les candidats.</p>
+              <p class="score-guide">The internal score guides the search. The holdout test set measures final performance; it is not used to rank candidates.</p>
             </q-expansion-item>
 
             <div v-if="inspectedModel(training.process)" class="candidate-inspector">
               <template v-for="model in [inspectedModel(training.process)!]" :key="model.id">
-                <div class="inspector-heading"><div><span>Indicateurs et rapports</span><h4>{{ modelName(model, training.process) }}</h4></div><q-btn flat dense round icon="close" :aria-label="'Fermer les détails de ' + modelName(model, training.process)" @click="inspectedIds[training.process.id] = undefined" /></div>
+                <div class="inspector-heading"><div><span>Metrics and reports</span><h4>{{ modelName(model, training.process) }}</h4></div><q-btn flat dense round icon="close" :aria-label="'Close details for ' + modelName(model, training.process)" @click="inspectedIds[training.process.id] = undefined" /></div>
                 <p v-if="model.metrics.model_info?.description" class="model-description">{{ model.metrics.model_info.description }}</p>
                 <div v-if="allMetrics(model.metrics).length" class="metrics-table-wrap">
                   <table class="metrics-table">
-                    <thead><tr><th scope="col">Indicateur</th><th scope="col">{{ sourceLabel(model.metrics) }}</th><th scope="col">Test séparé</th></tr></thead>
+                    <thead><tr><th scope="col">Metric</th><th scope="col">{{ sourceLabel(model.metrics) }}</th><th scope="col">Holdout test set</th></tr></thead>
                     <tbody><tr v-for="metric in allMetrics(model.metrics)" :key="metric.key">
-                      <th scope="row"><span>{{ metric.name }}<small v-if="metric.key === metricKey(model.metrics)" class="main-metric-label">Critère principal</small></span><small v-if="metric.description">{{ metric.description }}</small><small v-if="metric.direction">{{ metric.direction }}</small></th>
+                      <th scope="row"><span>{{ metric.name }}<small v-if="metric.key === metricKey(model.metrics)" class="main-metric-label">Primary metric</small></span><small v-if="metric.description">{{ metric.description }}</small><small v-if="metric.direction">{{ metric.direction }}</small></th>
                       <td :title="displayScore(metric.validation)">{{ displayScore(metric.validation) }}</td><td :title="displayScore(metric.test)">{{ displayScore(metric.test) }}</td>
                     </tr></tbody>
                   </table>
                 </div>
-                <p v-else class="score-guide">Aucun indicateur chiffré n’a été retourné.</p>
+                <p v-else class="score-guide">No numeric metrics were returned.</p>
                 <details v-for="report in reports(model.metrics)" :key="report.name" class="report-details"><summary>{{ report.name }}</summary><pre tabindex="0">{{ json(report.value) }}</pre></details>
               </template>
             </div>
           </template>
-          <div v-else class="models-empty"><q-icon :name="training.state.tone === 'running' ? 'hourglass_top' : 'info_outline'" size="20px" /><p>{{ ['QUEUED', 'RUNNING'].includes(training.process.status) ? 'Les modèles apparaîtront après la recherche et leur évaluation.' : training.state.pendingResults ? 'Les modèles sont en cours d’enregistrement.' : 'Aucun modèle disponible pour cet entraînement.' }}</p></div>
+          <div v-else class="models-empty"><q-icon :name="training.state.tone === 'running' ? 'hourglass_top' : 'info_outline'" size="20px" /><p>{{ ['QUEUED', 'RUNNING'].includes(training.process.status) ? 'Models will appear after the search and evaluation.' : training.state.pendingResults ? 'Models are being saved.' : 'No model is available for this training run.' }}</p></div>
 
           <div class="training-actions">
-            <q-btn flat dense no-caps icon="tune" label="Voir les réglages" color="primary" @click="emit('configure', training.process.id)" />
-            <q-btn flat dense no-caps icon="fork_right" label="Adapter la configuration" color="primary" :to="{ name: 'pipeline-fork', params: { id: project.id, processId: training.process.id } }" />
-            <q-btn flat dense no-caps icon="refresh" label="Reprendre la recherche" color="primary" :disable="active" @click="emit('restart', training.process.id)" />
+            <q-btn flat dense no-caps icon="tune" label="View settings" color="primary" @click="emit('configure', training.process.id)" />
+            <q-btn flat dense no-caps icon="fork_right" label="Adjust configuration" color="primary" :to="{ name: 'pipeline-fork', params: { id: project.id, processId: training.process.id } }" />
+            <q-btn flat dense no-caps icon="refresh" label="Resume search" color="primary" :disable="active" @click="emit('restart', training.process.id)" />
           </div>
-          <q-expansion-item v-if="hasContent(training.process.statusSnapshot?.logs) || training.process.iaRemoteId" label="Informations techniques de l’entraînement" icon="terminal" dense class="technical-details">
-            <dl v-if="training.process.iaRemoteId" class="remote-id"><dt>Identifiant DrIA</dt><dd>{{ training.process.iaRemoteId }}</dd></dl>
-            <pre v-if="hasContent(training.process.statusSnapshot?.logs)" tabindex="0" aria-label="Journaux de l’entraînement">{{ json(training.process.statusSnapshot?.logs) }}</pre>
+          <q-expansion-item v-if="hasContent(training.process.statusSnapshot?.logs) || training.process.iaRemoteId" label="Training run technical details" icon="terminal" dense class="technical-details">
+            <dl v-if="training.process.iaRemoteId" class="remote-id"><dt>DrIA identifier</dt><dd>{{ training.process.iaRemoteId }}</dd></dl>
+            <pre v-if="hasContent(training.process.statusSnapshot?.logs)" tabindex="0" aria-label="Training run logs">{{ json(training.process.statusSnapshot?.logs) }}</pre>
           </q-expansion-item>
         </div>
       </q-expansion-item>
     </div>
 
-    <section id="project-baseline" ref="baselineSection" class="baseline-section" tabindex="-1" aria-label="Modèle de départ, référence de l’étude">
-      <q-expansion-item v-model="baselineOpened" label="Modèle de départ (référence)" :caption="baselineStatus" icon="balance" class="baseline-card">
+    <section id="project-baseline" ref="baselineSection" class="baseline-section" tabindex="-1" aria-label="Baseline for the study">
+      <q-expansion-item v-model="baselineOpened" label="Baseline model" :caption="baselineStatus" icon="balance" class="baseline-card">
         <div v-if="baselineOpened" class="baseline-content">
-          <p class="baseline-definition">Un modèle simple entraîné avec les réglages de base de DrIA, sans recherche d’optimisation. Il sert de point de départ pour votre étude.</p>
-          <p class="score-guide">Ses scores sur les données d’entraînement ne sont pas directement comparables aux scores de validation croisée. Une comparaison exige le même critère évalué sur le même jeu de test.</p>
-          <div v-if="project.metricsBaseline?.error" class="training-message training-message--error" role="status"><q-icon name="error_outline" size="18px" /><div><strong>Message du service DrIA</strong><p>{{ displayServiceText(project.metricsBaseline.error) }}</p></div></div>
-          <p v-if="['QUEUED', 'RUNNING'].includes(project.metricsBaseline?.status?.current ?? '')" class="training-pending" role="status"><q-spinner size="16px" color="primary" />Le modèle de départ est en cours de calcul.</p>
+          <p class="baseline-definition">A simple model trained with the default DrIA settings, without an optimization search. It provides a baseline for your study.</p>
+          <p class="score-guide">Its training scores are not directly comparable to cross-validation scores. A comparison requires the same metric evaluated on the same test set.</p>
+          <div v-if="project.metricsBaseline?.error" class="training-message training-message--error" role="status"><q-icon name="error_outline" size="18px" /><div><strong>DrIA service message</strong><p>{{ displayServiceText(project.metricsBaseline.error) }}</p></div></div>
+          <p v-if="['QUEUED', 'RUNNING'].includes(project.metricsBaseline?.status?.current ?? '')" class="training-pending" role="status"><q-spinner size="16px" color="primary" />The baseline model is being computed.</p>
           <article v-for="(metrics, index) in baselineMetrics" :key="index" class="baseline-result">
-            <h3>{{ displayServiceName(metrics.model_info?.name) || (baselineMetrics.length > 1 ? 'Modèle de départ ' + (index + 1) : 'Résultats du modèle de départ') }}</h3>
+            <h3>{{ displayServiceName(metrics.model_info?.name) || (baselineMetrics.length > 1 ? 'Baseline ' + (index + 1) : 'Baseline results') }}</h3>
             <p v-if="metrics.model_info?.description" class="model-description">{{ metrics.model_info.description }}</p>
             <div v-if="allMetrics(metrics).length" class="metrics-table-wrap">
               <table class="metrics-table">
-                <thead><tr><th scope="col">Indicateur</th><th scope="col">{{ sourceLabel(metrics) }}</th><th scope="col">Test séparé</th></tr></thead>
+                <thead><tr><th scope="col">Metric</th><th scope="col">{{ sourceLabel(metrics) }}</th><th scope="col">Holdout test set</th></tr></thead>
                 <tbody><tr v-for="metric in allMetrics(metrics)" :key="metric.key">
-                  <th scope="row"><span>{{ metric.name }}<small v-if="metric.key === metricKey(metrics)" class="main-metric-label">Critère principal</small></span><small v-if="metric.description">{{ metric.description }}</small><small v-if="metric.direction">{{ metric.direction }}</small></th>
+                  <th scope="row"><span>{{ metric.name }}<small v-if="metric.key === metricKey(metrics)" class="main-metric-label">Primary metric</small></span><small v-if="metric.description">{{ metric.description }}</small><small v-if="metric.direction">{{ metric.direction }}</small></th>
                   <td :title="displayScore(metric.validation)">{{ displayScore(metric.validation) }}</td><td :title="displayScore(metric.test)">{{ displayScore(metric.test) }}</td>
                 </tr></tbody>
               </table>
             </div>
-            <p v-else class="score-guide">Aucun indicateur chiffré n’a été retourné.</p>
+            <p v-else class="score-guide">No numeric metrics were returned.</p>
           </article>
-          <p v-if="!baselineMetrics.length && !['QUEUED', 'RUNNING'].includes(project.metricsBaseline?.status?.current ?? '')" class="baseline-unavailable">Aucun score de référence disponible pour le moment.</p>
-          <q-expansion-item v-if="project.metricsBaseline" label="Résultats complets du modèle de départ · JSON" icon="data_object" dense class="technical-details">
-            <div class="baseline-json-actions"><q-btn flat dense no-caps icon="download" label="Télécharger les résultats" color="primary" @click="downloadBaseline" /><span v-if="baselineDownloadFeedback" role="status">{{ baselineDownloadFeedback }}</span></div>
-            <pre tabindex="0" aria-label="Résultats complets du modèle de référence au format JSON">{{ json(project.metricsBaseline) }}</pre>
+          <p v-if="!baselineMetrics.length && !['QUEUED', 'RUNNING'].includes(project.metricsBaseline?.status?.current ?? '')" class="baseline-unavailable">No baseline scores are available yet.</p>
+          <q-expansion-item v-if="project.metricsBaseline" label="Complete baseline results · JSON" icon="data_object" dense class="technical-details">
+            <div class="baseline-json-actions"><q-btn flat dense no-caps icon="download" label="Download results" color="primary" @click="downloadBaseline" /><span v-if="baselineDownloadFeedback" role="status">{{ baselineDownloadFeedback }}</span></div>
+            <pre tabindex="0" aria-label="Complete baseline results in JSON format">{{ json(project.metricsBaseline) }}</pre>
           </q-expansion-item>
         </div>
       </q-expansion-item>

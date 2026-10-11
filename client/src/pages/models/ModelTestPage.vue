@@ -8,6 +8,7 @@ import { predictValueUsingAiModel } from 'src/api/models.api';
 import PredictionExplanation from 'src/components/models/PredictionExplanation.vue';
 import { apiError } from 'src/utils/iaml';
 import { displayServiceName } from 'src/utils/service-label';
+import { displayFollowUpUnit } from 'src/utils/project-data';
 import { describePredictionFailure, parseSinglePrediction, parseSurvivalCurve, predictionFields, survivalAt } from 'src/utils/model-prediction';
 import type { PredictionFailure, PredictionScalar, SurvivalCurve } from 'src/utils/model-prediction';
 
@@ -41,10 +42,10 @@ const selectedTime = ref<number>();
 const rawSurvivalOutput = ref(false);
 const fields = computed(() => project.value && sample.value ? predictionFields(sample.value, project.value) : []);
 const shownFields = computed(() => fields.value.filter((field) =>
-  field.label.toLocaleLowerCase('fr').includes((fieldSearch.value || '').trim().toLocaleLowerCase('fr'))));
+  field.label.toLocaleLowerCase('en-US').includes((fieldSearch.value || '').trim().toLocaleLowerCase('en-US'))));
 const observationOptions = computed(() => [
-  ...(sample.value?.rows ?? []).map((_, index) => ({ label: `Exemple ${index + 1}`, value: index })),
-  { label: 'Nouvelle observation', value: -1 },
+  ...(sample.value?.rows ?? []).map((_, index) => ({ label: `Example ${index + 1}`, value: index })),
+  { label: 'New observation', value: -1 },
 ]);
 const isSurvival = computed(() => Boolean(project.value?.survivalModel));
 const context = computed<Record<string, unknown>>(() => {
@@ -53,7 +54,7 @@ const context = computed<Record<string, unknown>>(() => {
     return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   } catch { return {}; }
 });
-const timeUnit = computed(() => typeof context.value.timeUnit === 'string' ? context.value.timeUnit : '');
+const timeUnit = computed(() => displayFollowUpUnit(context.value.timeUnit));
 const method = computed(() => isSurvival.value && !rawSurvivalOutput.value ? 'predict_survival_function' : 'predict');
 const row = computed(() => Object.fromEntries(fields.value.map((field) => {
   const value = draft.value[field.name];
@@ -63,25 +64,25 @@ const row = computed(() => Object.fromEntries(fields.value.map((field) => {
 const missingCount = computed(() => Object.values(row.value).filter((value) => value === null).length);
 const requestKey = computed(() => !loading.value && !loadError.value && fields.value.length
   ? JSON.stringify({ modelId: modelId.value, row: row.value, method: method.value }) : '');
-const numberFormat = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 6 });
-const percentFormat = new Intl.NumberFormat('fr-FR', { style: 'percent', maximumFractionDigits: 1 });
+const numberFormat = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 6 });
+const percentFormat = new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 1 });
 const formatNumber = (value: number) => numberFormat.format(value);
 const survivalProbability = computed(() => curve.value && selectedTime.value !== undefined
   ? survivalAt(curve.value, selectedTime.value) : undefined);
 const displayPrediction = computed(() => {
-  if (curve.value) return survivalProbability.value === undefined ? 'Indisponible' : percentFormat.format(survivalProbability.value);
-  if (prediction.value === null || prediction.value === '') return 'Indisponible';
+  if (curve.value) return survivalProbability.value === undefined ? 'Unavailable' : percentFormat.format(survivalProbability.value);
+  if (prediction.value === null || prediction.value === '') return 'Unavailable';
   return typeof prediction.value === 'number' ? formatNumber(prediction.value) : String(prediction.value);
 });
 const resultLabel = computed(() => isSurvival.value
-  ? rawSurvivalOutput.value ? 'Sortie brute du modèle' : 'Probabilité estimée de rester sans événement'
-  : project.value?.csvColumnToPredict || 'Résultat prédit');
-const statusText = computed(() => state.value === 'waiting' ? 'Actualisation après votre saisie…'
-  : state.value === 'calculating' ? 'Calcul de la prédiction…'
-    : state.value === 'ready' ? 'À jour avec les valeurs du formulaire'
-      : state.value === 'invalid' ? 'En attente de valeurs valides'
-        : state.value === 'error' ? 'Prédiction indisponible'
-        : fields.value.length ? 'Renseignez une observation pour voir sa prédiction' : 'Aucune variable disponible');
+  ? rawSurvivalOutput.value ? 'Raw model output' : 'Estimated probability of remaining event-free'
+  : project.value?.csvColumnToPredict || 'Predicted result');
+const statusText = computed(() => state.value === 'waiting' ? 'Updating after your input…'
+  : state.value === 'calculating' ? 'Computing prediction…'
+    : state.value === 'ready' ? 'Matches the current form values'
+      : state.value === 'invalid' ? 'Waiting for valid values'
+        : state.value === 'error' ? 'Prediction unavailable'
+        : fields.value.length ? 'Enter an observation to see its prediction' : 'No features available');
 const timeIndex = computed({
   get: () => Math.max(0, curve.value?.times.indexOf(selectedTime.value!) ?? 0),
   set: (index: number) => { selectedTime.value = curve.value?.times[index]; },
@@ -153,7 +154,7 @@ async function load() {
     ]);
     if (disposed || revision !== loadRevision) return;
     if (!Array.isArray(sampleResponse.data?.columns) || !Array.isArray(sampleResponse.data?.rows))
-      throw new Error('Les variables de cette étude n’ont pas pu être chargées.');
+      throw new Error('The features for this study could not be loaded.');
     project.value = projectResponse.data;
     sample.value = sampleResponse.data;
     model.value = modelResponse.data;
@@ -216,53 +217,53 @@ onUnmounted(() => {
 <template>
   <q-page class="prediction-page project-workspace-colors">
     <div class="prediction-workspace">
-      <q-btn flat dense no-caps icon="arrow_back" label="Retour aux résultats du modèle" :to="modelLocation" class="back-link" />
+      <q-btn flat dense no-caps icon="arrow_back" label="Back to model results" :to="modelLocation" class="back-link" />
       <header class="prediction-heading">
-        <p class="section-eyebrow">Essayer votre modèle</p>
-        <h1>Que prédit-il pour cette observation ?</h1>
-        <p>Modifiez les valeurs : la prédiction se met à jour automatiquement après une courte pause de saisie.</p>
-        <span v-if="model" class="prediction-context">{{ displayServiceName(model.metrics.model_info?.name) || `Modèle nº ${modelId}` }}</span>
+        <p class="section-eyebrow">Try your model</p>
+        <h1>What does it predict for this observation?</h1>
+        <p>Change the values: the prediction updates automatically after a short pause in typing.</p>
+        <span v-if="model" class="prediction-context">{{ displayServiceName(model.metrics.model_info?.name) || `Model #${modelId}` }}</span>
       </header>
-      <div v-if="loading" class="prediction-loading" role="status"><q-spinner color="primary" size="28px" /><p>Préparation du formulaire…</p></div>
-      <div v-else-if="loadError" class="prediction-load-error" role="alert"><q-icon name="error_outline" size="22px" /><div><strong>Impossible de préparer cet essai</strong><p>{{ loadError }}</p></div><q-btn flat no-caps label="Réessayer" color="primary" @click="load" /></div>
+      <div v-if="loading" class="prediction-loading" role="status"><q-spinner color="primary" size="28px" /><p>Preparing the form…</p></div>
+      <div v-else-if="loadError" class="prediction-load-error" role="alert"><q-icon name="error_outline" size="22px" /><div><strong>Unable to prepare this prediction</strong><p>{{ loadError }}</p></div><q-btn flat no-caps label="Try again" color="primary" @click="load" /></div>
       <div v-else class="prediction-content">
         <div class="prediction-layout">
           <section class="prediction-form" aria-labelledby="observation-title">
-            <div class="form-heading"><div><h2 id="observation-title">Votre observation</h2><p>{{ fields.length }} variable{{ fields.length > 1 ? 's' : '' }} utilisée{{ fields.length > 1 ? 's' : '' }} par le modèle.</p></div><q-btn v-if="fields.length" flat dense no-caps icon="restart_alt" label="Réinitialiser" color="primary" @click="useObservation(selectedObservation)" /></div>
-            <q-select :model-value="selectedObservation" :options="observationOptions" emit-value map-options outlined dense label="Point de départ" class="observation-select" popup-content-class="project-workspace-colors" @update:model-value="useObservation" />
-            <p class="example-note">{{ selectedObservation >= 0 ? 'Exemple issu de l’aperçu de votre étude. Vous pouvez modifier chaque valeur.' : 'Saisissez les informations de l’observation à essayer.' }}</p>
-            <q-input v-if="fields.length > 8" v-model="fieldSearch" outlined dense clearable label="Rechercher une variable" class="field-search"><template #prepend><q-icon name="search" size="19px" /></template></q-input>
+            <div class="form-heading"><div><h2 id="observation-title">Your observation</h2><p>{{ fields.length }} feature{{ fields.length !== 1 ? 's' : '' }} used by the model.</p></div><q-btn v-if="fields.length" flat dense no-caps icon="restart_alt" label="Reset" color="primary" @click="useObservation(selectedObservation)" /></div>
+            <q-select :model-value="selectedObservation" :options="observationOptions" emit-value map-options outlined dense label="Starting point" class="observation-select" popup-content-class="project-workspace-colors" @update:model-value="useObservation" />
+            <p class="example-note">{{ selectedObservation >= 0 ? 'An example from your study preview. You can change each value.' : 'Enter the details of the observation you want to try.' }}</p>
+            <q-input v-if="fields.length > 8" v-model="fieldSearch" outlined dense clearable label="Search for a feature" class="field-search"><template #prepend><q-icon name="search" size="19px" /></template></q-input>
             <div class="prediction-fields">
               <div v-for="(field, index) in shownFields" :key="field.name" class="prediction-field" :data-column="field.name">
-                <q-input v-model="draft[field.name]" outlined clearable :label="field.label" :inputmode="field.kind === 'numeric' ? 'decimal' : 'text'" :list="field.suggestions.length ? `prediction-examples-${index}` : undefined" :placeholder="field.suggestions[0] ? `Ex. ${field.suggestions[0]}` : undefined" hide-bottom-space autocomplete="off" />
+                <q-input v-model="draft[field.name]" outlined clearable :label="field.label" :inputmode="field.kind === 'numeric' ? 'decimal' : 'text'" :list="field.suggestions.length ? `prediction-examples-${index}` : undefined" :placeholder="field.suggestions[0] ? `e.g. ${field.suggestions[0]}` : undefined" hide-bottom-space autocomplete="off" />
                 <datalist v-if="field.suggestions.length" :id="`prediction-examples-${index}`"><option v-for="example in field.suggestions" :key="example" :value="example" /></datalist>
               </div>
             </div>
-            <p v-if="fields.length && !shownFields.length" class="form-empty">Aucune variable ne correspond à votre recherche.</p>
-            <p v-else-if="!fields.length" class="form-empty">Aucune variable d’entrée n’est disponible dans cet aperçu.</p>
-            <p class="missing-note">Un champ vide est transmis comme une valeur manquante. Son acceptation dépend du modèle entraîné.<span v-if="missingCount">{{ ` ${missingCount} champ${missingCount > 1 ? 's' : ''} vide${missingCount > 1 ? 's' : ''} actuellement.` }}</span></p>
+            <p v-if="fields.length && !shownFields.length" class="form-empty">No features match your search.</p>
+            <p v-else-if="!fields.length" class="form-empty">No input features are available in this preview.</p>
+            <p class="missing-note">An empty field is sent as a missing value. Whether it is accepted depends on the trained model.<span v-if="missingCount">{{ ` ${missingCount} field${missingCount !== 1 ? 's' : ''} currently empty.` }}</span></p>
           </section>
           <aside class="prediction-result" :aria-busy="state === 'waiting' || state === 'calculating'" aria-labelledby="prediction-result-title">
-            <div class="result-heading"><q-icon name="insights" size="20px" aria-hidden="true" /><h2 id="prediction-result-title">Prédiction du modèle</h2><span class="live-tag"><span />En direct</span></div>
+            <div class="result-heading"><q-icon name="insights" size="20px" aria-hidden="true" /><h2 id="prediction-result-title">Model prediction</h2><span class="live-tag"><span />Live</span></div>
             <div class="prediction-status" :class="`prediction-status--${state}`" role="status" aria-live="polite"><q-spinner v-if="state === 'waiting' || state === 'calculating'" size="16px" color="primary" /><q-icon v-else-if="state === 'ready'" name="check_circle_outline" size="16px" /><span>{{ statusText }}</span></div>
             <template v-if="state === 'ready'">
               <p class="result-label">{{ resultLabel }}</p>
-              <div class="prediction-value" :class="{ 'prediction-value--empty': displayPrediction === 'Indisponible' }" role="status" aria-live="polite">{{ displayPrediction }}</div>
+              <div class="prediction-value" :class="{ 'prediction-value--empty': displayPrediction === 'Unavailable' }" role="status" aria-live="polite">{{ displayPrediction }}</div>
               <template v-if="curve && selectedTime !== undefined">
-                <p class="survival-horizon">Au temps <strong>{{ formatNumber(selectedTime) }}{{ timeUnit ? ` ${timeUnit}` : '' }}</strong><span v-if="!timeUnit">{{ ' (unité du fichier)' }}</span></p>
-                <div v-if="curve.times.length > 1" class="survival-controls"><label>Choisir un horizon dans la courbe du modèle</label><q-slider v-model="timeIndex" :min="0" :max="curve.times.length - 1" :step="1" color="primary" aria-label="Horizon de la prédiction de survie" /><div class="survival-axis"><span>{{ formatNumber(curve.times[0]) }}</span><span>{{ formatNumber(curve.times[curve.times.length - 1]) }}{{ timeUnit ? ` ${timeUnit}` : '' }}</span></div></div>
-                <svg class="survival-curve" viewBox="0 0 300 110" role="img" aria-label="Probabilité estimée de rester sans événement aux temps renvoyés par le modèle"><line x1="8" y1="102" x2="292" y2="102" class="curve-axis" /><line :x1="horizonX" y1="4" :x2="horizonX" y2="102" class="curve-horizon" /><path :d="survivalPath" class="curve-path" /></svg>
+                <p class="survival-horizon">At time <strong>{{ formatNumber(selectedTime) }}{{ timeUnit ? ` ${timeUnit}` : '' }}</strong><span v-if="!timeUnit">{{ ' (file units)' }}</span></p>
+                <div v-if="curve.times.length > 1" class="survival-controls"><label>Choose a time horizon on the model curve</label><q-slider v-model="timeIndex" :min="0" :max="curve.times.length - 1" :step="1" color="primary" aria-label="Survival prediction time horizon" /><div class="survival-axis"><span>{{ formatNumber(curve.times[0]) }}</span><span>{{ formatNumber(curve.times[curve.times.length - 1]) }}{{ timeUnit ? ` ${timeUnit}` : '' }}</span></div></div>
+                <svg class="survival-curve" viewBox="0 0 300 110" role="img" aria-label="Estimated probability of remaining event-free at the times returned by the model"><line x1="8" y1="102" x2="292" y2="102" class="curve-axis" /><line :x1="horizonX" y1="4" :x2="horizonX" y2="102" class="curve-horizon" /><path :d="survivalPath" class="curve-path" /></svg>
               </template>
-              <p v-else-if="prediction === null || prediction === ''" class="result-explanation">Le service n’a pas renvoyé de valeur pour cette observation.</p>
-              <p v-else-if="isSurvival" class="result-explanation">La signification de cette sortie dépend de l’estimateur retenu. Consultez sa méthode pour l’interpréter.</p>
-              <p v-else class="result-explanation">{{ context.predictionKind === 'quantity' ? 'Quantité estimée pour cette observation, dans l’unité utilisée par vos données.' : context.predictionKind === 'category' ? 'Catégorie prédite pour cette observation.' : 'Valeur renvoyée par le modèle pour cette observation.' }}</p>
+              <p v-else-if="prediction === null || prediction === ''" class="result-explanation">The service did not return a value for this observation.</p>
+              <p v-else-if="isSurvival" class="result-explanation">The meaning of this output depends on the selected estimator. Review its method to interpret it.</p>
+              <p v-else class="result-explanation">{{ context.predictionKind === 'quantity' ? 'Estimated quantity for this observation, in the units used by your data.' : context.predictionKind === 'category' ? 'Predicted category for this observation.' : 'Value returned by the model for this observation.' }}</p>
             </template>
-            <div v-else-if="state === 'invalid'" class="prediction-invalid" role="status" aria-live="polite"><strong>{{ predictionFailure?.message }}</strong><p>Vérifiez les valeurs saisies pour afficher la prédiction.</p></div>
-            <div v-else-if="state === 'error'" class="prediction-error" role="alert"><q-icon name="info_outline" size="21px" /><p>{{ predictionFailure?.message }}</p><q-btn flat dense no-caps label="Réessayer" color="primary" @click="calculate()" /></div>
-            <div v-else class="prediction-placeholder"><span>—</span><p>{{ state === 'idle' ? 'La prédiction apparaîtra ici.' : 'Le résultat s’adapte à vos nouvelles valeurs.' }}</p></div>
-            <q-btn v-if="isSurvival && predictionFailure?.kind === 'unsupported' && !rawSurvivalOutput" flat no-caps dense color="primary" label="Essayer la sortie brute du modèle" class="survival-fallback" @click="rawSurvivalOutput = true" />
-            <q-btn v-else-if="isSurvival && rawSurvivalOutput" flat no-caps dense color="primary" label="Revenir à la courbe de survie" class="survival-fallback" @click="rawSurvivalOutput = false" />
-            <div class="result-footer"><q-icon name="tune" size="17px" /><p>Seules les variables d’entrée sont transmises au modèle. Ces essais ne modifient ni vos données ni l’entraînement.</p></div>
+            <div v-else-if="state === 'invalid'" class="prediction-invalid" role="status" aria-live="polite"><strong>{{ predictionFailure?.message }}</strong><p>Check the entered values to display the prediction.</p></div>
+            <div v-else-if="state === 'error'" class="prediction-error" role="alert"><q-icon name="info_outline" size="21px" /><p>{{ predictionFailure?.message }}</p><q-btn flat dense no-caps label="Try again" color="primary" @click="calculate()" /></div>
+            <div v-else class="prediction-placeholder"><span>—</span><p>{{ state === 'idle' ? 'The prediction will appear here.' : 'The result updates with your new values.' }}</p></div>
+            <q-btn v-if="isSurvival && predictionFailure?.kind === 'unsupported' && !rawSurvivalOutput" flat no-caps dense color="primary" label="Try the raw model output" class="survival-fallback" @click="rawSurvivalOutput = true" />
+            <q-btn v-else-if="isSurvival && rawSurvivalOutput" flat no-caps dense color="primary" label="Return to the survival curve" class="survival-fallback" @click="rawSurvivalOutput = false" />
+            <div class="result-footer"><q-icon name="tune" size="17px" /><p>Only input features are sent to the model. These predictions do not change your data or the training run.</p></div>
           </aside>
         </div>
         <PredictionExplanation

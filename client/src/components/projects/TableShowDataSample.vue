@@ -46,7 +46,7 @@ async function predict() {
       .map((column) => [column.label, toScalar(row[column.name], column)])));
     const response = await predictValueUsingAiModel(modelId, { json_row, method: 'predict' });
     if (!Array.isArray(response.prediction) || response.prediction.length !== projectFileDataSample.value.rows.length)
-      throw new Error('Le nombre de prédictions ne correspond pas aux observations.');
+      throw new Error('The number of predictions does not match the observations.');
     const outputColumn = targetColumn.value.name;
     projectFileDataSample.value.rows = projectFileDataSample.value.rows.map((row, index) => ({
       ...row, [outputColumn]: response.prediction[index],
@@ -82,7 +82,7 @@ async function loadSample() {
     ]);
     projectFileDataSample.value = sample;
     if (!sample) {
-      sampleError.value = 'L’aperçu des données n’a pas pu être chargé.';
+      sampleError.value = 'The data preview could not be loaded.';
       return;
     }
     targetColumnName.value = project?.csvColumnToPredict;
@@ -95,7 +95,7 @@ async function loadSample() {
       && values(column).every((value) => typeof value === 'boolean' || (typeof value === 'string' && /^(true|false)$/i.test(value))))
       .map((column) => column.name));
   } catch (error) {
-    sampleError.value = 'L’aperçu des données n’a pas pu être chargé.';
+    sampleError.value = 'The data preview could not be loaded.';
     notifyApiError(error);
   } finally {
     loading.value = false;
@@ -106,9 +106,9 @@ onMounted(loadSample);
 
 <template>
   <div class="project-sample">
-    <div v-if="sampleError" class="sample-error" role="alert"><span>{{ sampleError }}</span><q-btn flat no-caps label="Réessayer" color="primary" :disable="loading" @click="loadSample" /></div>
+    <div v-if="sampleError" class="sample-error" role="alert"><span>{{ sampleError }}</span><q-btn flat no-caps label="Try again" color="primary" :disable="loading" @click="loadSample" /></div>
     <q-table
-      :title="editableRows ? 'Observations à essayer' : 'Échantillon des données'"
+      :title="editableRows ? 'Observations to try' : 'Data sample'"
       virtual-scroll
       :pagination="{ rowsPerPage: 0 }"
       :rows="rows ?? []"
@@ -118,18 +118,18 @@ onMounted(loadSample);
       class="sample-table"
       :loading="loading"
       flat bordered
-      no-data-label="Aucune observation disponible"
+      no-data-label="No observations available"
       table-header-class="sample-table-header"
     >
       <template #header-cell="scope">
-        <q-th :props="scope"><span class="sample-column-name">{{ scope.col.label }}</span><small v-if="scope.col.isColToPredict" class="sample-role target-role">Résultat</small><small v-else-if="scope.col.isGroupColumn" class="sample-role">Regroupement</small><small v-else-if="scope.col.isIdColumn" class="sample-role">Exclue</small></q-th>
+        <q-th :props="scope"><span class="sample-column-name">{{ scope.col.label }}</span><small v-if="scope.col.isColToPredict" class="sample-role target-role">Result</small><small v-else-if="scope.col.isGroupColumn" class="sample-role">Grouping</small><small v-else-if="scope.col.isIdColumn" class="sample-role">Excluded</small></q-th>
       </template>
       <template
         v-if="editableRows"
         #top-right
       >
         <q-btn
-          label="Calculer les prédictions"
+          label="Compute predictions"
           color="primary"
           @click="predict"
           :loading="predicting"
@@ -157,7 +157,7 @@ onMounted(loadSample);
         #bottom
       >
         <q-btn
-          label="Ajouter une observation"
+          label="Add an observation"
           color="primary"
           @click="addRowToTable"
         />

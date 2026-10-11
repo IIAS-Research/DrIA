@@ -13,15 +13,15 @@ const monitoringUnavailable = ref(false);
 const administratorCount = computed(() => users.value?.filter((user) => user.isAdmin).length);
 const activeMonitoringCount = computed(() => monitoring.value
   ? [...monitoring.value.connectionsModel, ...monitoring.value.connectionsExplain].filter((connection) => connection.isPulling).length : undefined);
-const number = new Intl.NumberFormat('fr-FR');
+const number = new Intl.NumberFormat('en-US');
 const count = (value: number | undefined) => value === undefined ? '—' : number.format(value);
 let controller: AbortController | undefined;
 let revision = 0;
 
 const entries = [
-  { route: 'admin-users', icon: 'group', category: 'Accès et rôles', title: 'Utilisateurs', description: 'Créez les comptes, mettez à jour les profils et attribuez les droits d’administration.', action: 'Gérer les utilisateurs' },
-  { route: 'admin-projects', icon: 'folder_open', category: 'Études et données', title: 'Projets', description: 'Retrouvez les études et leurs propriétaires, puis gérez les projets conservés dans DrIA.', action: 'Parcourir les projets' },
-  { route: 'admin-pulling', icon: 'sync', category: 'Activité', title: 'Suivi des calculs', description: 'Consultez le suivi des entraînements et des explications, et gérez les connexions de suivi.', action: 'Consulter le suivi' },
+  { route: 'admin-users', icon: 'group', category: 'Access and roles', title: 'Users', description: 'Create accounts, update profiles and grant administrator access.', action: 'Manage users' },
+  { route: 'admin-projects', icon: 'folder_open', category: 'Studies and data', title: 'Projects', description: 'Find studies and their owners, and manage projects stored in DrIA.', action: 'Browse projects' },
+  { route: 'admin-pulling', icon: 'sync', category: 'Activity', title: 'Job monitoring', description: 'Monitor training runs and explanations, and manage their monitoring connections.', action: 'View monitoring' },
 ];
 
 async function load() {
@@ -45,21 +45,21 @@ onUnmounted(() => { revision += 1; controller?.abort(); });
 </script>
 
 <template>
-  <AdminPageShell title="Administration" description="Gérez les accès, les projets et le suivi des calculs depuis un même espace.">
-    <template #actions><q-btn outline no-caps color="primary" icon="refresh" label="Actualiser" :loading="loading" @click="load" /></template>
+  <AdminPageShell title="Administration" description="Manage access, projects and job monitoring in one place.">
+    <template #actions><q-btn outline no-caps color="primary" icon="refresh" label="Refresh" :loading="loading" @click="load" /></template>
 
     <div v-if="usersUnavailable || monitoringUnavailable" class="admin-feedback" role="status">
       <q-icon name="info_outline" size="20px" />
-      <p>Certains indicateurs sont indisponibles. Vous pouvez actualiser cette page ou ouvrir la rubrique concernée.</p>
+      <p>Some indicators are unavailable. Refresh this page or open the relevant section.</p>
     </div>
-    <section class="admin-metrics" aria-label="Indicateurs de l’administration" :aria-busy="loading">
-      <div class="admin-metric"><span>Utilisateurs</span><strong><q-spinner v-if="loading" color="primary" size="24px" /><template v-else>{{ count(users?.length) }}</template></strong><p>{{ usersUnavailable ? 'Liste momentanément indisponible' : 'Comptes présents dans DrIA' }}</p></div>
-      <div class="admin-metric"><span>Administrateurs</span><strong><q-spinner v-if="loading" color="primary" size="24px" /><template v-else>{{ count(administratorCount) }}</template></strong><p>{{ usersUnavailable ? 'Liste momentanément indisponible' : 'Comptes disposant des droits de gestion' }}</p></div>
-      <div class="admin-metric"><span>Suivis actifs</span><strong><q-spinner v-if="loading" color="primary" size="24px" /><template v-else>{{ count(activeMonitoringCount) }}</template></strong><p>{{ monitoringUnavailable ? 'Suivi momentanément indisponible' : 'Connexions de suivi des entraînements et explications' }}</p></div>
+    <section class="admin-metrics" aria-label="Administration indicators" :aria-busy="loading">
+      <div class="admin-metric"><span>Users</span><strong><q-spinner v-if="loading" color="primary" size="24px" /><template v-else>{{ count(users?.length) }}</template></strong><p>{{ usersUnavailable ? 'List temporarily unavailable' : 'DrIA accounts' }}</p></div>
+      <div class="admin-metric"><span>Administrators</span><strong><q-spinner v-if="loading" color="primary" size="24px" /><template v-else>{{ count(administratorCount) }}</template></strong><p>{{ usersUnavailable ? 'List temporarily unavailable' : 'Accounts with administrator access' }}</p></div>
+      <div class="admin-metric"><span>Active connections</span><strong><q-spinner v-if="loading" color="primary" size="24px" /><template v-else>{{ count(activeMonitoringCount) }}</template></strong><p>{{ monitoringUnavailable ? 'Monitoring temporarily unavailable' : 'Monitoring connections for training runs and explanations' }}</p></div>
     </section>
 
     <section class="admin-entry-section" aria-labelledby="admin-sections-title">
-      <div class="admin-entry-section-heading"><h2 id="admin-sections-title">Vos outils de gestion</h2><p>Choisissez la rubrique correspondant à votre action.</p></div>
+      <div class="admin-entry-section-heading"><h2 id="admin-sections-title">Management tools</h2><p>Choose the section you need.</p></div>
       <div class="admin-entries">
         <router-link v-for="entry in entries" :key="entry.route" :to="{ name: entry.route }" class="admin-entry">
           <div class="admin-entry-top"><span class="admin-entry-icon"><q-icon :name="entry.icon" size="25px" aria-hidden="true" /></span><span class="admin-entry-category">{{ entry.category }}</span></div>

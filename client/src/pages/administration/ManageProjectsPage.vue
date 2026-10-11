@@ -25,9 +25,9 @@ const usersController = new AbortController();
 let disposed = false;
 
 const columns: QTableColumn[] = [
-  { name: 'project', label: 'Projet', field: 'title', align: 'left' },
-  { name: 'owner', label: 'Propriétaire', field: 'userId', align: 'left' },
-  { name: 'target', label: 'Résultat à prédire', field: 'csvColumnToPredict', align: 'left' },
+  { name: 'project', label: 'Project', field: 'title', align: 'left' },
+  { name: 'owner', label: 'Owner', field: 'userId', align: 'left' },
+  { name: 'target', label: 'Target', field: 'csvColumnToPredict', align: 'left' },
   { name: 'actions', label: '', field: 'id', align: 'right' },
 ];
 const usersById = computed(() => new Map(users.value.map((user) => [user.id, user])));
@@ -35,14 +35,14 @@ const owner = (project: IProject) => usersById.value.get(project.userId);
 function ownerName(project: IProject): string {
   const user = owner(project);
   return user ? [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email
-    : `Compte nº ${project.userId}`;
+    : `Account # ${project.userId}`;
 }
 function ownerInitials(project: IProject): string {
   const user = owner(project);
   return user ? [user.firstName?.[0], user.lastName?.[0]].filter(Boolean).join('').toUpperCase()
     || user.email?.[0]?.toUpperCase() || '?' : '?';
 }
-const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
+const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('en-US');
 const hasSearch = computed(() => Boolean(search.value?.trim()));
 const filteredProjects = computed(() => {
   const query = normalize(search.value?.trim() ?? '');
@@ -52,8 +52,8 @@ const filteredProjects = computed(() => {
   ].join(' ')).includes(query)) : projects.value;
 });
 const countLabel = computed(() => hasSearch.value
-  ? `${filteredProjects.value.length} résultat${filteredProjects.value.length > 1 ? 's' : ''} sur cette page`
-  : `${projects.value.length} projet${projects.value.length > 1 ? 's' : ''} sur cette page`);
+  ? `${filteredProjects.value.length} result${filteredProjects.value.length === 1 ? '' : 's'} on this page`
+  : `${projects.value.length} project${projects.value.length === 1 ? '' : 's'} on this page`);
 
 async function loadPage(targetPage = page.value): Promise<boolean> {
   loadController?.abort();
@@ -71,7 +71,7 @@ async function loadPage(targetPage = page.value): Promise<boolean> {
     return true;
   } catch {
     if (!disposed && !controller.signal.aborted) {
-      loadError.value = 'Les projets n’ont pas pu être chargés. Réessayez dans quelques instants.';
+      loadError.value = 'Could not load projects. Try again shortly.';
     }
     return false;
   } finally {
@@ -102,13 +102,13 @@ async function confirmDelete() {
     projects.value = projects.value.filter((item) => item.id !== project.id);
     deleteDialog.value = false;
     selectedProject.value = undefined;
-    $q.notify({ type: 'positive', message: 'Projet supprimé.' });
+    $q.notify({ type: 'positive', message: 'Project deleted.' });
     // Refill the current page after deletion to preserve the offset navigation.
     if (await loadPage() && projects.value.length === 0 && page.value > 1) {
       await loadPage(page.value - 1);
     }
   } catch {
-    if (!disposed) deleteError.value = 'La suppression a échoué. Le projet a été conservé. Vous pouvez réessayer.';
+    if (!disposed) deleteError.value = 'Deletion failed. The project was kept. Try again.';
   } finally {
     if (!disposed) deleting.value = false;
   }
@@ -120,21 +120,21 @@ onUnmounted(() => { disposed = true; loadController?.abort(); usersController.ab
 
 <template>
   <AdminPageShell
-    title="Projets"
-    description="Retrouvez les projets de la plateforme et les comptes qui les portent."
+    title="Projects"
+    description="Browse platform projects and their owners."
   >
     <template #actions>
       <q-btn
-        outline no-caps color="primary" icon="refresh" label="Actualiser"
+        outline no-caps color="primary" icon="refresh" label="Refresh"
         :disable="loading || deleting" @click="loadPage()"
       />
     </template>
 
-    <section class="admin-panel" aria-label="Gestion des projets">
+    <section class="admin-panel" aria-label="Project management">
       <div class="admin-panel-header">
         <div>
-          <h2>Projets de la plateforme</h2>
-          <p>Consultez les informations essentielles et gérez les projets existants.</p>
+          <h2>Platform projects</h2>
+          <p>View key information and manage existing projects.</p>
         </div>
         <span v-if="!loading && !loadError" class="admin-badge admin-badge--neutral">{{ countLabel }}</span>
       </div>
@@ -142,17 +142,17 @@ onUnmounted(() => { disposed = true; loadController?.abort(); usersController.ab
       <div class="admin-toolbar projects-toolbar">
         <q-input
           v-model="search" outlined dense clearable class="admin-search"
-          label="Rechercher dans cette page" debounce="150" :disable="loading"
+          label="Search this page" debounce="150" :disable="loading"
         >
           <template #prepend><q-icon name="search" /></template>
         </q-input>
-        <p class="projects-search-help">La recherche porte sur les projets de la page affichée.</p>
+        <p class="projects-search-help">Search applies to projects on the current page.</p>
       </div>
 
       <div v-if="loadError" class="admin-feedback admin-feedback--error" role="alert">
         <q-icon name="error_outline" size="22px" />
         <span>{{ loadError }}</span>
-        <q-btn flat no-caps color="primary" label="Réessayer" :disable="loading" @click="loadPage()" />
+        <q-btn flat no-caps color="primary" label="Retry" :disable="loading" @click="loadPage()" />
       </div>
 
       <q-table
@@ -160,20 +160,20 @@ onUnmounted(() => { disposed = true; loadController?.abort(); usersController.ab
         class="admin-table projects-table" flat :rows="filteredProjects" :columns="columns"
         row-key="id" :loading="loading" :pagination="{ rowsPerPage: 0 }" hide-pagination
         :grid="$q.screen.lt.sm"
-        no-data-label="Aucun projet" :aria-busy="loading"
+        no-data-label="No projects" :aria-busy="loading"
       >
         <template #item="{ row }">
           <article class="admin-mobile-card">
             <div class="admin-mobile-heading">
               <div>
-                <div class="admin-cell-title">{{ row.title || 'Projet sans titre' }}</div>
+                <div class="admin-cell-title">{{ row.title || 'Untitled project' }}</div>
                 <p v-if="row.description" class="projects-description">{{ row.description }}</p>
-                <div class="admin-cell-meta">Projet nº {{ row.id }}</div>
+                <div class="admin-cell-meta">Project # {{ row.id }}</div>
               </div>
             </div>
             <dl class="admin-mobile-details">
               <div>
-                <dt>Propriétaire</dt>
+                <dt>Owner</dt>
                 <dd>
                   <div class="projects-owner">
                     <q-avatar size="34px" class="projects-owner-avatar" aria-hidden="true">{{ ownerInitials(row) }}</q-avatar>
@@ -185,22 +185,22 @@ onUnmounted(() => { disposed = true; loadController?.abort(); usersController.ab
                 </dd>
               </div>
               <div>
-                <dt>Résultat à prédire</dt>
+                <dt>Target</dt>
                 <dd>
                   <span v-if="row.csvColumnToPredict" class="admin-badge admin-badge--neutral projects-target">{{ row.csvColumnToPredict }}</span>
-                  <span v-else class="admin-cell-meta">Non renseigné</span>
+                  <span v-else class="admin-cell-meta">Not specified</span>
                 </dd>
               </div>
             </dl>
             <div class="admin-mobile-actions">
               <q-btn
                 v-if="row.userId === userStore.currentUser?.id"
-                flat no-caps color="primary" label="Ouvrir" icon-right="arrow_outward"
+                flat no-caps color="primary" label="Open" icon-right="arrow_outward"
                 :to="`/projets/${row.id}`" :disable="deleting"
               />
               <q-btn
-                flat no-caps color="negative" icon="delete_outline" label="Supprimer"
-                :aria-label="`Supprimer le projet ${row.title}`" :disable="loading || deleting"
+                flat no-caps color="negative" icon="delete_outline" label="Delete"
+                :aria-label="`Delete project ${row.title}`" :disable="loading || deleting"
                 @click="askToDelete(row)"
               />
             </div>
@@ -208,9 +208,9 @@ onUnmounted(() => { disposed = true; loadController?.abort(); usersController.ab
         </template>
         <template #body-cell-project="{ row }">
           <q-td class="projects-title-cell">
-            <div class="admin-cell-title">{{ row.title || 'Projet sans titre' }}</div>
+            <div class="admin-cell-title">{{ row.title || 'Untitled project' }}</div>
             <p v-if="row.description" class="projects-description">{{ row.description }}</p>
-            <div class="admin-cell-meta">Projet nº {{ row.id }}</div>
+            <div class="admin-cell-meta">Project # {{ row.id }}</div>
           </q-td>
         </template>
         <template #body-cell-owner="{ row }">
@@ -227,7 +227,7 @@ onUnmounted(() => { disposed = true; loadController?.abort(); usersController.ab
         <template #body-cell-target="{ row }">
           <q-td class="projects-target-cell">
             <span v-if="row.csvColumnToPredict" class="admin-badge admin-badge--neutral projects-target">{{ row.csvColumnToPredict }}</span>
-            <span v-else class="admin-cell-meta">Non renseigné</span>
+            <span v-else class="admin-cell-meta">Not specified</span>
           </q-td>
         </template>
         <template #body-cell-actions="{ row }">
@@ -235,14 +235,14 @@ onUnmounted(() => { disposed = true; loadController?.abort(); usersController.ab
             <div class="admin-row-actions">
               <q-btn
                 v-if="row.userId === userStore.currentUser?.id"
-                flat no-caps color="primary" label="Ouvrir" icon-right="arrow_outward"
+                flat no-caps color="primary" label="Open" icon-right="arrow_outward"
                 :to="`/projets/${row.id}`" :disable="deleting"
               />
               <q-btn
                 flat round size="sm" icon="delete_outline" class="projects-delete-button"
-                :aria-label="`Supprimer le projet ${row.title}`" :disable="loading || deleting"
+                :aria-label="`Delete project ${row.title}`" :disable="loading || deleting"
                 @click="askToDelete(row)"
-              ><q-tooltip>Supprimer le projet</q-tooltip></q-btn>
+              ><q-tooltip>Delete project</q-tooltip></q-btn>
             </div>
           </q-td>
         </template>
@@ -250,22 +250,22 @@ onUnmounted(() => { disposed = true; loadController?.abort(); usersController.ab
           <div class="admin-empty full-width">
             <q-spinner v-if="loading" color="primary" size="32px" />
             <q-icon v-else :name="hasSearch ? 'search_off' : 'folder_open'" size="36px" />
-            <h3>{{ loading ? 'Chargement des projets' : hasSearch ? 'Aucun résultat sur cette page' : 'Aucun projet à afficher' }}</h3>
-            <p v-if="!loading">{{ hasSearch ? 'Essayez un autre terme ou consultez une autre page.' : 'Les projets créés sur la plateforme apparaîtront ici.' }}</p>
-            <q-btn v-if="hasSearch && !loading" flat no-caps color="primary" label="Effacer la recherche" @click="search = ''" />
+            <h3>{{ loading ? 'Loading projects' : hasSearch ? 'No results on this page' : 'No projects to display' }}</h3>
+            <p v-if="!loading">{{ hasSearch ? 'Try another term or browse another page.' : 'Projects created on the platform will appear here.' }}</p>
+            <q-btn v-if="hasSearch && !loading" flat no-caps color="primary" label="Clear search" @click="search = ''" />
           </div>
         </template>
       </q-table>
 
-      <footer class="projects-pagination" aria-label="Pagination des projets">
-        <span class="admin-cell-meta">Page {{ page }} <span class="projects-page-size">· Jusqu’à {{ pageSize }} projets</span></span>
+      <footer class="projects-pagination" aria-label="Project pagination">
+        <span class="admin-cell-meta">Page {{ page }} <span class="projects-page-size">· Up to {{ pageSize }} projects</span></span>
         <div class="projects-pagination-buttons">
           <q-btn
-            flat no-caps icon="chevron_left" label="Précédente" color="primary"
+            flat no-caps icon="chevron_left" label="Previous" color="primary"
             :disable="loading || deleting || page <= 1" @click="loadPage(page - 1)"
           />
           <q-btn
-            flat no-caps icon-right="chevron_right" label="Suivante" color="primary"
+            flat no-caps icon-right="chevron_right" label="Next" color="primary"
             :disable="loading || deleting || !hasNextPage" @click="loadPage(page + 1)"
           />
         </div>
@@ -277,17 +277,17 @@ onUnmounted(() => { disposed = true; loadController?.abort(); usersController.ab
         <q-card-section class="admin-dialog-heading">
           <div>
             <div class="projects-delete-symbol"><q-icon name="delete_outline" size="25px" /></div>
-            <h2>Supprimer ce projet ?</h2>
-            <p>Le projet <strong>{{ selectedProject?.title || 'sans titre' }}</strong>, ses données et ses entraînements seront définitivement supprimés.</p>
+            <h2>Delete this project?</h2>
+            <p>The project <strong>{{ selectedProject?.title || 'untitled' }}</strong>, its data and its training runs will be permanently deleted.</p>
           </div>
-          <q-btn flat round dense icon="close" aria-label="Fermer la confirmation" :disable="deleting" @click="deleteDialog = false" />
+          <q-btn flat round dense icon="close" aria-label="Close confirmation" :disable="deleting" @click="deleteDialog = false" />
         </q-card-section>
         <q-card-section v-if="deleteError" class="q-pt-none">
           <div class="admin-feedback admin-feedback--error" role="alert">{{ deleteError }}</div>
         </q-card-section>
         <q-card-actions class="admin-dialog-actions">
-          <q-btn flat no-caps label="Conserver le projet" :disable="deleting" @click="deleteDialog = false" />
-          <q-btn unelevated no-caps color="negative" label="Supprimer le projet" :loading="deleting" @click="confirmDelete" />
+          <q-btn flat no-caps label="Keep project" :disable="deleting" @click="deleteDialog = false" />
+          <q-btn unelevated no-caps color="negative" label="Delete project" :loading="deleting" @click="confirmDelete" />
         </q-card-actions>
       </q-card>
     </q-dialog>

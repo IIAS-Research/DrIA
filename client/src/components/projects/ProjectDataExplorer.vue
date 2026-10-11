@@ -7,7 +7,7 @@ import ProjectDataPlots from 'components/home/ProjectDataPlots.vue';
 import { getProjectDatasetFile, ProjectDatasetSource } from 'src/api/projects.api';
 import { exploreStatistics } from 'src/api/ia-web-service.api';
 import { apiError } from 'src/utils/iaml';
-import { ProjectColumnAnnotation, ProjectDataset, readProjectCsv } from 'src/utils/project-data';
+import { displayFollowUpUnit, ProjectColumnAnnotation, ProjectDataset, readProjectCsv } from 'src/utils/project-data';
 import { inferPredictionKind, PredictionKind } from 'src/utils/project-study';
 import { NativeDataPlotPlan } from 'src/utils/project-native-plots';
 
@@ -38,7 +38,7 @@ const groupColumns = computed(() => props.project.rowDepedencies ? props.project
 const excludedColumns = computed(() => props.project.datasetHasIdColumn ? props.project.datasetHasIdColumnList ?? [] : []);
 const timeColumn = computed(() => props.project.survivalModelDatasetTargetTime || '');
 const eventValue = computed(() => props.project.survivalModelEventValue || '');
-const timeUnit = computed(() => typeof creationContext.value.timeUnit === 'string' ? creationContext.value.timeUnit : '');
+const timeUnit = computed(() => displayFollowUpUnit(creationContext.value.timeUnit));
 const predictionKind = computed<PredictionKind>(() => {
   const saved = creationContext.value.predictionKind;
   if (props.project.survivalModel || saved === 'survival') return 'survival';
@@ -54,18 +54,18 @@ const roles = computed<Record<string, ProjectColumnAnnotation>>(() => {
     let annotation: ProjectColumnAnnotation;
     if (column === props.project.csvColumnToPredict) {
       annotation = predictionKind.value === 'survival'
-        ? { role: 'event', label: 'Événement', reason: 'Cette colonne indique si l’événement a été observé.' }
-        : { role: 'target', label: 'À prédire', reason: 'Le modèle apprend à prédire cette colonne.' };
+        ? { role: 'event', label: 'Event', reason: 'This column indicates whether the event was observed.' }
+        : { role: 'target', label: 'Target', reason: 'The model learns to predict this column.' };
     } else if (predictionKind.value === 'survival' && column === timeColumn.value) {
-      annotation = { role: 'time', label: 'Durée de suivi', reason: timeUnit.value ? `Durée exprimée en ${timeUnit.value}.` : 'Cette colonne contient la durée de suivi.' };
+      annotation = { role: 'time', label: 'Follow-up duration', reason: timeUnit.value ? `Duration measured in ${timeUnit.value}.` : 'This column contains the follow-up duration.' };
     } else if (groupColumns.value.includes(column)) {
-      annotation = { role: 'group', label: 'Regroupement patient', reason: 'Ces observations restent ensemble lors des découpages. Cette colonne ne sert pas à prédire.' };
+      annotation = { role: 'group', label: 'Patient grouping', reason: 'These observations stay together when the data is split. This column is not used for prediction.' };
     } else if (excludedColumns.value.includes(column)) {
       annotation = reasons?.[column] === 'unavailable'
-        ? { role: 'unavailable', label: 'Indisponible — exclu', reason: 'Cette information ne sera pas connue au moment de la prédiction.' }
-        : { role: 'identifier', label: reasons?.[column] === 'identifier' ? 'Identifiant — exclu' : 'Exclue', reason: reasons?.[column] === 'identifier' ? 'Cet identifiant est exclu de l’apprentissage.' : 'Cette colonne est exclue de l’apprentissage. Le motif n’a pas été enregistré.' };
+        ? { role: 'unavailable', label: 'Unavailable — excluded', reason: 'This information will not be known at prediction time.' }
+        : { role: 'identifier', label: reasons?.[column] === 'identifier' ? 'Identifier — excluded' : 'Excluded', reason: reasons?.[column] === 'identifier' ? 'This identifier is excluded from training.' : 'This column is excluded from training. The reason was not recorded.' };
     } else {
-      annotation = { role: 'predictor', label: 'Pour prédire', reason: 'Cette information est disponible pour la prédiction.' };
+      annotation = { role: 'predictor', label: 'Predictor', reason: 'This information is available at prediction time.' };
     }
     return [column, annotation];
   }));
@@ -73,34 +73,34 @@ const roles = computed<Record<string, ProjectColumnAnnotation>>(() => {
 const predictorColumns = computed(() => (dataset.value?.columns ?? []).filter((column) => roles.value[column]?.role === 'predictor'));
 const statisticsExclusions = computed(() => (dataset.value?.columns ?? []).filter((column) => ['identifier', 'unavailable'].includes(roles.value[column]?.role)));
 const sourceOptions = computed(() => [
-  { label: 'Fichier initial', value: 'original' },
-  { label: 'Apprentissage', value: 'train' },
-  ...(props.project.evaluationMode !== 'cross_validation' ? [{ label: 'Test indépendant', value: 'test' }] : []),
+  { label: 'Original file', value: 'original' },
+  { label: 'Training set', value: 'train' },
+  ...(props.project.evaluationMode !== 'cross_validation' ? [{ label: 'Holdout test set', value: 'test' }] : []),
 ]);
 const sourceDescription = computed(() => source.value === 'original'
-  ? props.project.evaluationMode === 'external' ? 'Le fichier d’apprentissage importé lors de la création du projet.' : 'Le fichier importé lors de la création du projet, avant tout découpage.'
-  : source.value === 'train' ? 'Les observations utilisées pour apprendre et comparer les modèles.'
-    : 'Les observations réservées à l’évaluation finale du modèle.');
+  ? props.project.evaluationMode === 'external' ? 'The training file uploaded when the project was created.' : 'The original file uploaded when the project was created, before any split.'
+  : source.value === 'train' ? 'The observations used to train and compare models.'
+    : 'The observations reserved for final model evaluation.');
 const statisticsBlockedReason = computed(() => {
   const data = dataset.value;
-  if (!data?.isComplete || !current.value.file) return 'Les analyses seront disponibles une fois le fichier entièrement lu.';
+  if (!data?.isComplete || !current.value.file) return 'Analyses will be available once the file has been fully read.';
   const target = data.profiles[props.project.csvColumnToPredict];
-  if (!target) return 'La colonne à prédire enregistrée dans le projet est absente de ce fichier.';
-  if (target.missingCount) return 'Le résultat à prédire contient des valeurs manquantes. Les analyses DrIA ne peuvent pas être calculées sur ce fichier.';
-  if (target.nonFiniteCount) return 'Le résultat à prédire contient des valeurs non finies.';
+  if (!target) return 'The target column saved in the project is missing from this file.';
+  if (target.missingCount) return 'The target contains missing values. DrIA analyses cannot be computed for this file.';
+  if (target.nonFiniteCount) return 'The target contains non-finite values.';
   if (predictionKind.value === 'survival') {
     let event: unknown;
-    try { event = JSON.parse(eventValue.value); } catch { return 'La valeur correspondant à l’événement observé n’a pas été enregistrée.'; }
-    if (target.distinctValuesTruncated || target.distinctValues.length > 2) return 'La colonne d’événement doit distinguer l’événement observé et l’événement non observé.';
-    if (!target.distinctValues.some((value) => value === event)) return 'La valeur de l’événement observé est absente de ce fichier.';
+    try { event = JSON.parse(eventValue.value); } catch { return 'The value representing the observed event was not saved.'; }
+    if (target.distinctValuesTruncated || target.distinctValues.length > 2) return 'The event column must distinguish observed events from censored observations.';
+    if (!target.distinctValues.some((value) => value === event)) return 'The observed event value is missing from this file.';
     const time = data.profiles[timeColumn.value];
-    if (!time || timeColumn.value === props.project.csvColumnToPredict) return 'La colonne de durée de suivi enregistrée dans le projet est absente ou incorrecte.';
-    if (time.type !== 'numeric' || time.missingCount || time.nonFiniteCount || (time.min ?? -1) < 0) return 'La durée de suivi doit être renseignée, finie et positive ou nulle pour chaque observation.';
+    if (!time || timeColumn.value === props.project.csvColumnToPredict) return 'The follow-up duration column saved in the project is missing or invalid.';
+    if (time.type !== 'numeric' || time.missingCount || time.nonFiniteCount || (time.min ?? -1) < 0) return 'The follow-up duration must be present, finite and non-negative for every observation.';
   }
-  if (!predictorColumns.value.length) return 'Ce fichier ne contient aucune information utilisable pour prédire.';
-  if (groupColumns.value.some((column) => !data.profiles[column])) return 'Une colonne de regroupement enregistrée dans le projet est absente de ce fichier.';
-  if (groupColumns.value.some((column) => data.profiles[column].missingCount || data.profiles[column].nonFiniteCount)) return 'Une colonne de regroupement contient des valeurs manquantes ou non finies.';
-  if (predictorColumns.value.some((column) => data.profiles[column].nonFiniteCount)) return 'Une information retenue pour prédire contient des valeurs non finies.';
+  if (!predictorColumns.value.length) return 'This file contains no usable predictors.';
+  if (groupColumns.value.some((column) => !data.profiles[column])) return 'A grouping column saved in the project is missing from this file.';
+  if (groupColumns.value.some((column) => data.profiles[column].missingCount || data.profiles[column].nonFiniteCount)) return 'A grouping column contains missing or non-finite values.';
+  if (predictorColumns.value.some((column) => data.profiles[column].nonFiniteCount)) return 'A predictor contains non-finite values.';
   return '';
 });
 const analysisContext = computed(() => JSON.stringify([
@@ -176,7 +176,7 @@ async function loadNativePlot(plan: NativeDataPlotPlan, signal: AbortSignal): Pr
   const body = statisticsBody();
   const data = dataset.value;
   if (!body || !data || !plan.columns.length || plan.columns.some((column) => !predictorColumns.value.includes(column)))
-    throw new Error(statisticsBlockedReason.value || 'Cette sélection de données n’est plus disponible.');
+    throw new Error(statisticsBlockedReason.value || 'This data selection is no longer available.');
   const retained = new Set([...plan.columns, props.project.csvColumnToPredict, ...groupColumns.value,
     ...(predictionKind.value === 'survival' ? [timeColumn.value] : [])]);
   body.set('excluded_columns', JSON.stringify(data.columns.filter((column) => !retained.has(column))));
@@ -212,21 +212,21 @@ onUnmounted(() => { datasetController?.abort(); cancelStatistics(); });
 <template>
   <section class="project-data-explorer" aria-labelledby="project-data-title">
     <header class="explorer-heading">
-      <div><h2 id="project-data-title">Explorer les données</h2><p>Le tableau, le bilan de chaque colonne et les graphiques, avec les rôles enregistrés dans votre projet.</p></div>
-      <q-btn outline no-caps color="primary" icon="download" label="Télécharger ce fichier" :disable="!current.file" @click="downloadFile" />
+      <div><h2 id="project-data-title">Explore the data</h2><p>The data table, column summaries and charts, with the roles saved in your project.</p></div>
+      <q-btn outline no-caps color="primary" icon="download" label="Download this file" :disable="!current.file" @click="downloadFile" />
     </header>
     <div class="dataset-selector">
-      <q-select v-model="source" outlined dense emit-value map-options label="Jeu de données" :options="sourceOptions" :popup-content-class="'project-workspace-colors'" />
+      <q-select v-model="source" outlined dense emit-value map-options label="Dataset" :options="sourceOptions" :popup-content-class="'project-workspace-colors'" />
       <p>{{ sourceDescription }}</p>
     </div>
-    <div v-if="current.error" class="dataset-error" role="alert"><q-icon name="error_outline" size="21px" /><div><strong>Le fichier n’a pas pu être ouvert</strong><p>{{ current.error }}</p></div><q-btn flat no-caps color="primary" label="Réessayer" @click="loadDataset" /></div>
+    <div v-if="current.error" class="dataset-error" role="alert"><q-icon name="error_outline" size="21px" /><div><strong>The file could not be opened</strong><p>{{ current.error }}</p></div><q-btn flat no-caps color="primary" label="Try again" @click="loadDataset" /></div>
     <div v-else class="explorer-panel">
-      <q-tabs v-model="dataView" no-caps align="left" active-color="primary" indicator-color="primary" class="explorer-tabs" aria-label="Consulter les données du projet">
-        <q-tab name="preview" icon="table_chart" label="Vos données" />
-        <q-tab name="summary" icon="analytics" label="Bilan des données" />
-        <q-tab name="plots" icon="query_stats" label="Graphiques" />
+      <q-tabs v-model="dataView" no-caps align="left" active-color="primary" indicator-color="primary" class="explorer-tabs" aria-label="Explore project data">
+        <q-tab name="preview" icon="table_chart" label="Your data" />
+        <q-tab name="summary" icon="analytics" label="Data summary" />
+        <q-tab name="plots" icon="query_stats" label="Charts" />
       </q-tabs>
-      <div v-if="current.loading && !dataset" class="dataset-loading" role="status"><q-spinner color="primary" size="26px" /><p>Ouverture et analyse du fichier…</p></div>
+      <div v-if="current.loading && !dataset" class="dataset-loading" role="status"><q-spinner color="primary" size="26px" /><p>Opening and analyzing the file…</p></div>
       <q-tab-panels v-else v-model="dataView" keep-alive class="explorer-panels">
         <q-tab-panel name="preview" class="q-pa-none"><ProjectDataPreview :dataset="dataset" :roles="roles" :group-columns="groupColumns" context="project" /></q-tab-panel>
         <q-tab-panel name="summary" class="q-pa-none">

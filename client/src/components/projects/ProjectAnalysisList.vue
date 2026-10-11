@@ -18,9 +18,9 @@ interface AnalysisEntry {
 }
 
 function display(value: unknown): string {
-  if (value === undefined) return 'Non renseigné';
-  if (value === null) return 'Aucune valeur';
-  if (typeof value === 'boolean') return value ? 'Oui' : 'Non';
+  if (value === undefined) return 'Not specified';
+  if (value === null) return 'No value';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
 }
 
@@ -41,10 +41,10 @@ function parameterScope(parameter: unknown): string {
   const value = parameter as Record<string, unknown>;
   const categorical = value.categorical ?? (value.type === 'categorical' ? value.values : undefined);
   const domain = value.domain ?? (['int', 'float'].includes(String(value.type)) ? [value.low, value.high] : undefined);
-  if (Array.isArray(categorical) && categorical.length) return `Choix possibles : ${categorical.map(display).join(', ')}`;
-  if (Array.isArray(domain) && domain.length) return `Intervalle : ${domain.map(display).join(' à ')}`;
-  if (value.fixed === true || value.type === 'const') return 'Valeur fixée';
-  if (value.optimizable === true) return 'Paramètre ajusté pendant la recherche';
+  if (Array.isArray(categorical) && categorical.length) return `Available choices: ${categorical.map(display).join(', ')}`;
+  if (Array.isArray(domain) && domain.length) return `Range: ${domain.map(display).join(' to ')}`;
+  if (value.fixed === true || value.type === 'const') return 'Fixed value';
+  if (value.optimizable === true) return 'Parameter tuned during the search';
   return '';
 }
 
@@ -61,18 +61,18 @@ const analyses = computed(() => {
     const parameters = Object.entries(node.params ?? {});
     const mode = node.type === 'family' ? node.mode ?? 'choice' : node.type;
     const context = [...inherited];
-    if (node.optional || mode === 'optional') context.push(`Facultatif · ${label}`);
-    if (mode === 'choice') context.push(`Choix automatique · ${label}`);
-    if (mode === 'adaptive') context.push(`Selon les données · ${label}`);
+    if (node.optional || mode === 'optional') context.push(`Optional · ${label}`);
+    if (mode === 'choice') context.push(`Automatic choice · ${label}`);
+    if (mode === 'adaptive') context.push(`Based on the data · ${label}`);
     if (node.condition !== undefined && node.condition !== null && node.condition !== '') {
-      context.push(`Condition : ${condition(node.condition)}`);
+      context.push(`Condition: ${condition(node.condition)}`);
     }
     if (Array.isArray(node.exclude) && node.exclude.length) {
       // Resolved exclusions already have their own removed item. Retain only
       // exclusions absent from the stored members, without repeating all of them.
       const unresolved = node.exclude.filter((id: unknown) => !entries.some((entry) =>
         (entry.member?.component ?? entry.node.component) === id));
-      if (unresolved.length) context.push(`Composants exclus : ${unresolved.map((id: unknown) => typeof id === 'string' ? displayServiceName(id) : display(id)).join(', ')}`);
+      if (unresolved.length) context.push(`Excluded components: ${unresolved.map((id: unknown) => typeof id === 'string' ? displayServiceName(id) : display(id)).join(', ')}`);
     }
 
     const removed = inheritedRemoved || node.removed === true;
@@ -95,7 +95,7 @@ const analyses = computed(() => {
 </script>
 
 <template>
-  <ul class="analysis-list" aria-label="Composants et paramètres de l’analyse">
+  <ul class="analysis-list" aria-label="Analysis components and parameters">
     <li
       v-for="analysis in analyses"
       :key="analysis.key"
@@ -108,8 +108,8 @@ const analyses = computed(() => {
           <h3 class="analysis-title">{{ analysis.label }}</h3>
           <p v-if="typeof analysis.node.description === 'string' && analysis.node.description.trim()" class="analysis-description">{{ analysis.node.description }}</p>
         </div>
-        <span v-if="analysis.removed" class="analysis-status">Retiré de la recherche</span>
-        <span v-else-if="analysis.group" class="analysis-status">Réglages du groupe</span>
+        <span v-if="analysis.removed" class="analysis-status">Removed from the search</span>
+        <span v-else-if="analysis.group" class="analysis-status">Group settings</span>
       </div>
 
       <div v-if="analysis.context.length" class="analysis-context">

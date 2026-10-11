@@ -45,7 +45,7 @@ export interface ProjectInsight {
 const MAX_COLUMNS = 12;
 const MAX_CLASSES = 6;
 const MAX_CATEGORIES = 6;
-const integer = new Intl.NumberFormat('fr-FR');
+const integer = new Intl.NumberFormat('en-US');
 
 function finite(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
@@ -167,8 +167,8 @@ function comparisonData(analyses: ProjectColumnStatistics[], profile: ColumnProf
   if (categories.length < 2 || new Set(categories.map((value) => value.label)).size !== categories.length) return undefined;
   const combinedCategories = categories.length > MAX_CATEGORIES;
   const selected = categories.slice(0, combinedCategories ? MAX_CATEGORIES - 1 : MAX_CATEGORIES);
-  let otherLabel = 'Autres catégories';
-  while (categories.some((category) => category.label === otherLabel)) otherLabel = `${otherLabel} (regroupées)`;
+  let otherLabel = 'Other categories';
+  while (categories.some((category) => category.label === otherLabel)) otherLabel = `${otherLabel} (combined)`;
   return {
     chart: {
       type: 'proportions',
@@ -192,14 +192,14 @@ export function buildMissingInsight(dataset: ProjectDataset, columns: string[]):
     if (!profile || !count(profile.missingCount) || profile.missingCount === 0
       || profile.missingCount > dataset.rowCount || profile.populatedCount + profile.missingCount !== dataset.rowCount) return [];
     return [{ label: column, value: 100 * profile.missingCount / dataset.rowCount,
-      detail: `${integer.format(profile.missingCount)} valeurs manquantes sur ${integer.format(dataset.rowCount)} observations` }];
+      detail: `${integer.format(profile.missingCount)} missing values out of ${integer.format(dataset.rowCount)} observations` }];
   }).sort((a, b) => b.value - a.value);
   if (!rows.length) return null;
   return {
-    title: 'Où manque-t-il des données ?',
-    description: 'Comparez les colonnes à compléter ou à prendre en compte lors de la préparation des données.',
-    source: 'Profil du fichier complet',
-    note: 'Chaque barre représente la proportion de cellules vides dans une colonne. Seules les colonnes sélectionnées contenant des valeurs manquantes sont affichées.',
+    title: 'Where is data missing?',
+    description: 'Compare columns that need filling in or attention during data preparation.',
+    source: 'Full-file profile',
+    note: 'Each bar shows the proportion of empty cells in a column. Only selected columns with missing values are shown.',
     chart: { type: 'bars', unit: 'percent', min: 0, max: 100, rows: rows.slice(0, MAX_COLUMNS) },
     omittedCount: Math.max(0, rows.length - MAX_COLUMNS),
   };
@@ -228,14 +228,14 @@ export function buildComparisonInsight(
   const comparison = comparisonData(mapped[column] ?? [], dataset.profiles[column]);
   if (!comparison) return null;
   const note = comparison.chart.type === 'boxes'
-    ? 'La boîte va du premier au troisième quartile et le trait central indique la médiane. Les extrémités indiquent le minimum et le maximum, pas les seuils de valeurs atypiques. Les valeurs manquantes sont exclues.'
-    : `Chaque groupe totalise 100 % des valeurs renseignées : les proportions permettent de comparer des groupes de tailles différentes. Les valeurs manquantes sont exclues du calcul.${comparison.combinedCategories ? ' Les catégories les moins fréquentes sont regroupées dans « Autres catégories ».' : ''}`;
+    ? 'The box spans the first to third quartiles, with the median marked in the center. The whiskers show the minimum and maximum rather than outlier thresholds. Missing values are excluded.'
+    : `Each group totals 100% of its non-missing values, allowing comparisons between groups of different sizes. Missing values are excluded from the calculation.${comparison.combinedCategories ? ' Less frequent categories are combined into “Other categories”.' : ''}`;
   return {
-    title: `${column} selon ${targetColumn}`,
+    title: `${column} by ${targetColumn}`,
     description: comparison.chart.type === 'boxes'
-      ? 'Comparez les valeurs de cette information entre les catégories du résultat à prédire.'
-      : 'Comparez la répartition des catégories de cette information selon le résultat à prédire.',
-    source: 'Statistiques descriptives DrIA',
+      ? 'Compare the values of this feature across outcome categories.'
+      : 'Compare the category distribution of this feature across outcome groups.',
+    source: 'Statistics descriptives DrIA',
     note,
     chart: comparison.chart,
   };
@@ -257,19 +257,19 @@ export function buildAssociationInsight(
     const value = statistic(aggregates[0], 'correlation_with_target');
     if (!finite(value) || value > 1 || value < (predictionKind === 'category' ? 0 : -1)) return [];
     return [{ label: column, value, detail: predictionKind === 'category'
-      ? 'Rapport de corrélation eta : 0 à 1'
-      : 'Corrélation de Pearson : −1 à 1' }];
+      ? 'Eta correlation ratio: 0 to 1'
+      : 'Pearson correlation: −1 to 1' }];
   }).sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
   if (rows.length < 2) return null;
   return {
-    title: `Quelles informations sont associées à ${targetColumn} ?`,
+    title: `Which features are associated with ${targetColumn}?`,
     description: predictionKind === 'category'
-      ? 'Ce coefficient résume les différences de valeurs numériques entre les catégories du résultat.'
-      : 'Ce coefficient résume le lien linéaire entre chaque information numérique et le résultat à prédire.',
-    source: 'Statistiques descriptives DrIA',
+      ? 'This coefficient summarizes differences in numerical values across outcome categories.'
+      : 'This coefficient summarizes the linear relationship between each numerical feature and the outcome.',
+    source: 'Statistics descriptives DrIA',
     note: predictionKind === 'category'
-      ? 'Le rapport eta va de 0 à 1 : une valeur plus élevée indique davantage de différences entre les catégories. Il ne donne pas de direction. Ce lien descriptif ne mesure ni la performance d’un modèle ni une relation de cause à effet.'
-      : 'Pearson va de −1 à 1 : le signe indique le sens du lien et la proximité de −1 ou 1 un lien linéaire plus marqué. Un coefficient proche de 0 n’exclut pas un autre type de lien. Ce résultat descriptif ne mesure ni l’importance dans un modèle ni une relation de cause à effet.',
+      ? 'Eta ranges from 0 to 1: higher values indicate larger differences across categories. It has no direction. This descriptive association measures neither model performance nor causation.'
+      : 'Pearson ranges from −1 to 1: the sign indicates direction, while values closer to −1 or 1 indicate a stronger linear relationship. A value close to 0 does not rule out other relationships. This descriptive result measures neither model importance nor causation.',
     chart: { type: 'bars', unit: 'coefficient', min: predictionKind === 'category' ? 0 : -1, max: 1, rows: rows.slice(0, MAX_COLUMNS) },
     omittedCount: Math.max(0, rows.length - MAX_COLUMNS),
   };

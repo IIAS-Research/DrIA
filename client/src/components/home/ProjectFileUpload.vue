@@ -19,11 +19,11 @@ const dragging = computed(() => dragDepth.value > 0 && !props.disabled && !props
 function selectFiles(files: FileList | null) {
   if (props.disabled || props.loading || !files?.length) return;
   if (files.length !== 1) {
-    emit('reject-file', 'Choisissez un seul fichier pour commencer votre étude.');
+    emit('reject-file', 'Choose one file to start your study.');
     return;
   }
   if (!/\.csv$/i.test(files[0].name)) {
-    emit('reject-file', 'Choisissez un fichier au format CSV.');
+    emit('reject-file', 'Choose a CSV file.');
     return;
   }
   emit('select-file', files[0]);
@@ -48,9 +48,9 @@ function dropFile(event: DragEvent) {
 <template>
   <div class="import-entry">
     <div class="import-introduction">
-      <div class="import-eyebrow">Nouvelle étude</div>
-      <h1>Commençons par <span>vos données</span></h1>
-      <p>Importez votre fichier. Dr IA vous accompagne ensuite, étape par étape.</p>
+      <div class="import-eyebrow">New study</div>
+      <h1>Start with <span>your data</span></h1>
+      <p>Upload your file. DrIA will guide you through each step.</p>
     </div>
 
     <div
@@ -68,7 +68,7 @@ function dropFile(event: DragEvent) {
         accept=".csv,text/csv"
         class="file-input"
         tabindex="-1"
-        aria-label="Importer mes données"
+        aria-label="Upload my data"
         :disabled="disabled || loading"
         @change="chooseFile"
       >
@@ -77,31 +77,31 @@ function dropFile(event: DragEvent) {
         <q-icon v-else :name="dragging ? 'file_download' : 'upload_file'" size="30px" />
       </div>
       <template v-if="loading">
-        <h2>Lecture de vos données…</h2>
+        <h2>Reading your data…</h2>
         <p class="import-file-name">{{ filename }}</p>
-        <q-btn flat no-caps color="primary" label="Annuler" :disable="disabled" @click="emit('cancel')" />
+        <q-btn flat no-caps color="primary" label="Cancel" :disable="disabled" @click="emit('cancel')" />
       </template>
       <template v-else>
-        <h2>{{ dragging ? 'Déposez votre fichier pour commencer' : 'Déposez votre fichier CSV ici' }}</h2>
-        <p>ou sélectionnez-le sur votre ordinateur</p>
+        <h2>{{ dragging ? 'Drop your file to get started' : 'Drop your CSV file here' }}</h2>
+        <p>or choose it from your computer</p>
         <q-btn
           unelevated
           no-caps
           color="primary"
-          label="Choisir un fichier"
+          label="Choose a file"
           class="import-button"
           :disable="disabled"
           @click="fileInput?.click()"
         />
       </template>
-      <div class="import-format">CSV · Jusqu’à 100 Mo</div>
+      <div class="import-format">CSV · Up to 100 MB</div>
     </div>
 
     <div v-if="error" class="import-error" role="alert">
       <q-icon name="error_outline" size="18px" />
       <span>{{ error }}</span>
     </div>
-    <p class="import-guidance">Une observation par ligne, un nom pour chaque colonne.<br>Vous choisirez ensuite ce que le modèle doit prédire.</p>
+    <p class="import-guidance">One observation per row, a name for each column.<br>Next, choose what the model should predict.</p>
   </div>
 </template>
 

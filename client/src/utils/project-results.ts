@@ -44,7 +44,7 @@ function finite(value: unknown): number | null {
 }
 
 function normalize(value: unknown): string {
-  return text(value).trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr');
+  return text(value).trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US');
 }
 
 function objectiveKey(metrics: unknown): string {
@@ -117,14 +117,14 @@ export function scoreForMetrics(metrics: IMetrics, source: 'test' | 'validation'
   const scores = object(source === 'test' ? data?.metrics_test : data?.metrics_train);
   return {
     key,
-    name: displayServiceName(text(info?.name) || key) || 'Critère non précisé',
+    name: displayServiceName(text(info?.name) || key) || 'Metric not specified',
     value: key ? finite(scores?.[key]) : null,
     source: evaluationSource,
     label: {
-      test: 'Test indépendant',
-      cross_validation: 'Validation croisée',
-      in_sample: 'Données d’entraînement',
-      unknown: 'Évaluation interne (source non précisée)',
+      test: 'Holdout test set',
+      cross_validation: 'Cross-validation',
+      in_sample: 'Training data',
+      unknown: 'Internal evaluation (source not specified)',
     }[evaluationSource],
     greaterIsBetter: direction(metrics, key),
   };
@@ -156,7 +156,7 @@ export function resultForProcess(process: IProcess): ProjectResult | undefined {
   if (!conflictingSelection && typeof remoteId === 'number' && Number.isInteger(remoteId) && remoteId >= 0) {
     const matches = models.filter((model) => object(model.metrics)?.id === remoteId);
     if (matches.length === 1) {
-      return { model: matches[0], process, selectionLabel: 'Modèle retenu par DrIA', selectedByIaml: true };
+      return { model: matches[0], process, selectionLabel: 'Model selected by DrIA', selectedByIaml: true };
     }
   }
 
@@ -178,13 +178,13 @@ export function resultForProcess(process: IProcess): ProjectResult | undefined {
     if (available.length) {
       return {
         model: available[0].model, process,
-        selectionLabel: 'Meilleur score de validation disponible', selectedByIaml: false,
+        selectionLabel: 'Best available validation score', selectedByIaml: false,
       };
     }
   }
   return {
     model: models[0], process,
-    selectionLabel: models.length === 1 ? 'Modèle disponible' : 'Premier modèle disponible',
+    selectionLabel: models.length === 1 ? 'Available model' : 'First available model',
     selectedByIaml: false,
   };
 }
@@ -218,19 +218,19 @@ export function latestProjectResult(processes: IProcess[]): ProjectResult | unde
 export function baselineComparison(model: IModel, baseline?: IBaselineMetrics): BaselineComparison {
   const unavailable = (reason: string): BaselineComparison => ({ comparable: false, reason });
   const reference = object(baseline);
-  if (!reference) return unavailable('Le modèle de référence n’est pas encore disponible.');
+  if (!reference) return unavailable('The baseline model is not available yet.');
   const status = text(object(reference.status)?.current);
-  if (['QUEUED', 'RUNNING'].includes(status)) return unavailable('Le modèle de référence est en cours de calcul.');
+  if (['QUEUED', 'RUNNING'].includes(status)) return unavailable('The baseline model is being trained.');
   const metrics = object(model)?.metrics as IMetrics;
   const modelScore = scoreForMetrics(metrics, 'test');
   if (modelScore.value === null)
-    return unavailable('Aucun score de test indépendant n’est disponible pour ce modèle. Les scores internes de la référence et du modèle optimisé ne sont pas comparables.');
+    return unavailable('No holdout test score is available for this model. Internal scores for the baseline and optimized model cannot be compared.');
   const candidates = Array.isArray(reference.metrics) ? reference.metrics.filter((value) => object(value)) as IMetrics[] : [];
   const modelInfo = metricInfo(metrics, modelScore.key);
   const name = normalize(modelInfo?.name);
   const description = normalize(modelInfo?.desc);
   if (!name || !description || modelScore.greaterIsBetter === undefined)
-    return unavailable('La définition ou le sens du critère ne permet pas de vérifier la comparaison avec la référence.');
+    return unavailable('The metric definition or optimization direction does not allow a reliable comparison with the baseline.');
   const matching = candidates.filter((candidate) => {
     const reading = scoreForMetrics(candidate, 'test');
     const info = metricInfo(candidate, reading.key);
@@ -238,15 +238,15 @@ export function baselineComparison(model: IModel, baseline?: IBaselineMetrics): 
       && normalize(info?.desc) === description && reading.greaterIsBetter === modelScore.greaterIsBetter;
   });
   if (matching.length !== 1)
-    return unavailable('Le critère du modèle de référence ne correspond pas de façon certaine à celui de ce modèle.');
+    return unavailable('The baseline metric cannot be reliably matched to the metric used for this model.');
   const baselineScore = scoreForMetrics(matching[0], 'test');
-  if (baselineScore.value === null) return unavailable('Aucun score de test indépendant n’est disponible pour le modèle de référence.');
+  if (baselineScore.value === null) return unavailable('No holdout test score is available for the baseline model.');
   const improvement = modelScore.greaterIsBetter
     ? modelScore.value - baselineScore.value : baselineScore.value - modelScore.value;
-  if (!Number.isFinite(improvement)) return unavailable('L’écart entre les scores ne peut pas être calculé.');
+  if (!Number.isFinite(improvement)) return unavailable('The difference between scores cannot be calculated.');
   return {
     comparable: true,
-    reason: 'Même critère évalué sur le test indépendant. Un écart positif favorise le modèle optimisé.',
+    reason: 'The same metric is evaluated on the holdout test set. A positive difference favors the optimized model.',
     modelScore: modelScore.value, baselineScore: baselineScore.value, improvement,
     key: modelScore.key, name: modelScore.name,
   };
@@ -269,21 +269,21 @@ export function processState(process: IProcess): {
     text(data?.cacheError) || text(state?.cache_error),
     text(state?.availability_error),
   ].filter(Boolean))].join('\n\n');
-  if (pendingResults) return { label: 'Récupération des résultats', tone: 'running', pendingResults, error };
+  if (pendingResults) return { label: 'Retrieving results', tone: 'running', pendingResults, error };
   const presentation: Record<string, { label: string; tone: 'neutral' | 'running' | 'success' | 'error' }> = {
-    QUEUED: { label: 'En attente', tone: 'running' },
-    RUNNING: { label: 'Recherche en cours', tone: 'running' },
-    FINISHED: { label: 'Terminé', tone: 'success' },
-    CACHED: { label: 'Résultats récupérés', tone: 'success' },
-    CANCELED: { label: 'Annulé', tone: 'neutral' },
-    CRASHED: { label: 'Échec de l’entraînement', tone: 'error' },
-    TIMEOUT: { label: 'Temps maximal atteint', tone: 'error' },
+    QUEUED: { label: 'Queued', tone: 'running' },
+    RUNNING: { label: 'Search in progress', tone: 'running' },
+    FINISHED: { label: 'Finished', tone: 'success' },
+    CACHED: { label: 'Results restored', tone: 'success' },
+    CANCELED: { label: 'Canceled', tone: 'neutral' },
+    CRASHED: { label: 'Training failed', tone: 'error' },
+    TIMEOUT: { label: 'Time limit reached', tone: 'error' },
   };
-  return { ...(presentation[status] ?? { label: 'Statut non précisé', tone: 'neutral' }), pendingResults, error };
+  return { ...(presentation[status] ?? { label: 'Status not specified', tone: 'neutral' }), pendingResults, error };
 }
 
 export function formatBudget(seconds: unknown): string {
-  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) return 'Non précisé';
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) return 'Not specified';
   const total = Math.round(seconds);
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);

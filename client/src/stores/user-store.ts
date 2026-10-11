@@ -87,7 +87,7 @@ export const useUserStore = defineStore('user', () => {
   function acceptAccessToken(token: string): void {
     const decoded = jwtDecode<CustomJwtPayload>(token);
     if (!decoded.exp || !Number.isFinite(decoded.exp) || Date.now() >= decoded.exp * 1000) {
-      throw new Error('Le serveur a renvoyé une session invalide ou expirée.');
+      throw new Error('The server returned an invalid or expired session.');
     }
     sessionRevision.value += 1;
     accessToken.value = token;
@@ -104,7 +104,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       const response: { accessToken: string } = (await api.post('Auth/login', { email, password })).data;
       if (accessToken.value !== requestedToken || sessionRevision.value !== requestedRevision) return false;
-      if (!response?.accessToken) throw new Error('La réponse de connexion ne contient pas de session.');
+      if (!response?.accessToken) throw new Error('The sign-in response does not contain a session.');
       acceptAccessToken(response.accessToken);
       return true;
     } catch (error: unknown) {
@@ -113,7 +113,7 @@ export const useUserStore = defineStore('user', () => {
       const invalidCredentials = axios.isAxiosError(error) && error.response?.status === 401;
       Notify.create({
         type: invalidCredentials ? 'warning' : 'negative',
-        message: invalidCredentials ? 'Email ou mot de passe invalide' : apiError(error),
+        message: invalidCredentials ? 'Invalid email or password' : apiError(error),
       });
       return false;
     }
@@ -127,7 +127,7 @@ export const useUserStore = defineStore('user', () => {
     // A response from an older session cannot restore a logged-out user or replace a new login.
     if (accessToken.value !== requestedToken || sessionRevision.value !== requestedRevision
       || !isUserConnected.value) return false;
-    if (!response?.accessToken) throw new Error('La prolongation de session a échoué.');
+    if (!response?.accessToken) throw new Error('The session could not be renewed.');
     acceptAccessToken(response.accessToken);
     return true;
   }

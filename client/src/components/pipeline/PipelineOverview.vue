@@ -20,23 +20,23 @@ const filteredEntries = computed(() => {
 const parameters = computed(() => Object.entries(selected.value.params ?? {}));
 const mode = computed(() => selected.value.type === 'family' ? selected.value.mode ?? 'choice' : selected.value.type);
 const relation = computed(() => ({
-  sequence: 'Étapes dans l’ordre', choice: 'Alternatives incluses', adaptive: 'Étapes adaptées aux données',
-  optional: 'Étape facultative', collection: 'Composants de l’ensemble',
-}[mode.value] ?? 'Composants de cette étape'));
+  sequence: 'Steps in order', choice: 'Included alternatives', adaptive: 'Data-dependent steps',
+  optional: 'Optional step', collection: 'Collection components',
+}[mode.value] ?? 'Components in this step'));
 const explanation = computed(() => retained.value
   ? typeof selected.value.description === 'string' && selected.value.description
     ? selected.value.description
     : mode.value === 'sequence'
-      ? 'Ces étapes sont celles enregistrées dans le pipeline du modèle, dans leur ordre d’exécution.'
-      : 'Ce composant fait partie du modèle affiché. Les paramètres ci-dessous sont les valeurs utilisées par ce modèle.'
+      ? 'These are the steps recorded in the model’s pipeline, in execution order.'
+      : 'This component belongs to the displayed model. The parameters below are the values used by this model.'
   : ({
-  sequence: 'Les étapes sont exécutées dans cet ordre. Chacune reçoit les données préparées par la précédente.',
-  choice: 'DrIA compare ces alternatives. Pour chaque essai, une seule alternative est retenue à cet endroit du pipeline.',
-  adaptive: 'DrIA applique les étapes compatibles avec les données, dans l’ordre enregistré. Certaines peuvent être ignorées si elles ne sont pas utiles.',
-  optional: 'Cette étape peut être appliquée ou ignorée pendant la recherche.',
-  collection: 'Les composants inclus sont exécutés pour cette partie de l’étude.',
-  use: 'Ce composant réalise une étape de préparation des données ou d’apprentissage du modèle.',
-}[mode.value] ?? 'Ce groupe rassemble les composants enregistrés pour cette étape.'));
+  sequence: 'Steps run in this order. Each receives the data prepared by the previous step.',
+  choice: 'DrIA compares these alternatives. Each trial uses one alternative at this point in the pipeline.',
+  adaptive: 'DrIA applies steps compatible with the data, in the recorded order. Steps may be skipped when they are not needed.',
+  optional: 'This step may be applied or skipped during the search.',
+  collection: 'Included components run for this part of the study.',
+  use: 'This component prepares the data or trains the model.',
+}[mode.value] ?? 'This group contains the components recorded for this step.'));
 const parent = computed(() => {
   for (let length = selectedPath.value.length - 1; length >= 1; length -= 1) {
     const path = selectedPath.value.slice(0, length);
@@ -53,21 +53,21 @@ const flowSelection = computed(() => {
   return memberIndex < 0 ? selectedPath.value : selectedPath.value.slice(0, memberIndex);
 });
 const parameterLabels: Record<string, string> = {
-  n_estimators: 'Nombre d’arbres', iterations: 'Nombre d’itérations', max_iter: 'Itérations maximales',
-  learning_rate: 'Vitesse d’apprentissage', max_depth: 'Profondeur maximale', depth: 'Profondeur',
-  min_samples_split: 'Minimum pour une séparation', min_samples_leaf: 'Minimum par feuille',
-  min_data_in_leaf: 'Minimum par feuille', n_neighbors: 'Nombre de voisins',
-  k_neighbors: 'Voisins pour le rééquilibrage', m_neighbors: 'Voisins pour détecter les frontières',
-  n_components: 'Nombre de composantes', max_features: 'Variables utilisées', max_samples: 'Observations utilisées',
-  random_state: 'Graine aléatoire', strategy: 'Méthode de remplacement', fill_value: 'Valeur de remplacement',
-  sampling_strategy: 'Méthode de rééquilibrage', class_weight: 'Pondération des classes',
-  criterion: 'Critère de séparation', loss: 'Fonction d’erreur', loss_function: 'Fonction d’erreur',
-  penalty: 'Régularisation', solver: 'Méthode de résolution', C: 'Intensité inverse de régularisation',
-  alpha: 'Intensité de régularisation', tol: 'Tolérance de convergence',
-  bootstrap: 'Échantillonnage avec remise', fit_intercept: 'Calcul d’une constante',
-  pos_label: 'Classe positive', nsamples: 'Échantillons d’explication',
-  unknown_value: 'Code d’une catégorie inconnue', start_value: 'Premier code des catégories',
-  sort_categories: 'Tri des catégories',
+  n_estimators: 'Number of trees', iterations: 'Number of iterations', max_iter: 'Maximum iterations',
+  learning_rate: 'Learning rate', max_depth: 'Maximum depth', depth: 'Depth',
+  min_samples_split: 'Minimum samples to split', min_samples_leaf: 'Minimum samples per leaf',
+  min_data_in_leaf: 'Minimum samples per leaf', n_neighbors: 'Number of neighbors',
+  k_neighbors: 'Resampling neighbors', m_neighbors: 'Boundary detection neighbors',
+  n_components: 'Number of components', max_features: 'Features used', max_samples: 'Samples used',
+  random_state: 'Random seed', strategy: 'Imputation strategy', fill_value: 'Imputation value',
+  sampling_strategy: 'Resampling strategy', class_weight: 'Class weights',
+  criterion: 'Split criterion', loss: 'Loss function', loss_function: 'Loss function',
+  penalty: 'Regularization', solver: 'Solver', C: 'Inverse regularization strength',
+  alpha: 'Regularization strength', tol: 'Convergence tolerance',
+  bootstrap: 'Sampling with replacement', fit_intercept: 'Fit intercept',
+  pos_label: 'Positive class', nsamples: 'Explanation samples',
+  unknown_value: 'Unknown category code', start_value: 'First category code',
+  sort_categories: 'Category sorting',
 };
 
 function samePath(left: RecipePath, right: RecipePath): boolean { return JSON.stringify(left) === JSON.stringify(right); }
@@ -75,15 +75,15 @@ function normalize(value: string | null | undefined): string { return (value ?? 
 function select(path: RecipePath): void { selectedPath.value = path; search.value = ''; }
 function condition(value: unknown): string {
   const labels: Record<string, string> = {
-    missing_values: 'Présence de valeurs manquantes', categorical_columns: 'Présence de variables catégorielles',
-    numerical_columns: 'Présence de variables numériques', imbalanced_classes: 'Catégories déséquilibrées',
+    missing_values: 'Missing values present', categorical_columns: 'Categorical features present',
+    numerical_columns: 'Numeric features present', imbalanced_classes: 'Imbalanced classes',
   };
   return labels[String(value)] ?? (typeof value === 'string' ? displayServiceName(value) : display(value));
 }
 function display(value: unknown): string {
-  if (value === undefined) return 'Non renseigné';
-  if (value === null) return 'Aucune valeur (null)';
-  if (typeof value === 'boolean') return value ? 'Oui' : 'Non';
+  if (value === undefined) return 'Not specified';
+  if (value === null) return 'No value (null)';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   return typeof value === 'object' ? JSON.stringify(value) : String(value);
 }
 function parameterValue(parameter: any): unknown {
@@ -99,55 +99,55 @@ function isSearch(parameter: any): boolean {
     || parameter?.type === 'parameter' && (Array.isArray(parameter.domain) || Array.isArray(parameter.categorical));
 }
 function parameterScope(parameter: any): string {
-  if (!isSearch(parameter)) return 'Valeur fixe';
+  if (!isSearch(parameter)) return 'Fixed value';
   const values = parameter.categorical ?? (parameter.type === 'categorical' ? parameter.values : undefined);
-  if (Array.isArray(values) && values.length) return `Valeurs explorées : ${values.map(display).join(' · ')}`;
+  if (Array.isArray(values) && values.length) return `Search values: ${values.map(display).join(' · ')}`;
   const bounds = parameter.domain ?? (['int', 'float'].includes(parameter.type) ? [parameter.low, parameter.high] : undefined);
-  if (Array.isArray(bounds) && bounds.length === 2) return `Recherche de ${display(bounds[0])} à ${display(bounds[1])}`;
-  return 'Ajusté pendant la recherche';
+  if (Array.isArray(bounds) && bounds.length === 2) return `Search from ${display(bounds[0])} to ${display(bounds[1])}`;
+  return 'Adjusted during the search';
 }
 watch(() => props.node, () => { select(['pipeline']); }, { immediate: true });
 </script>
 
 <template>
-  <section class="pipeline-overview" :aria-label="retained ? 'Pipeline du modèle' : 'Possibilités de la recherche'">
+  <section class="pipeline-overview" :aria-label="retained ? 'Model pipeline' : 'Search space'">
     <div class="pipeline-overview__columns">
       <section class="pipeline-map">
-        <div class="pipeline-map__heading"><h3>{{ retained ? recipeLabel(node) : 'Pipeline de la recherche' }}</h3><span>{{ retained ? 'Étapes du modèle' : 'Ordre et alternatives' }}</span></div>
-        <p class="pipeline-map__hint">Sélectionnez une étape pour comprendre son rôle et voir sa configuration.</p>
+        <div class="pipeline-map__heading"><h3>{{ retained ? recipeLabel(node) : 'Search pipeline' }}</h3><span>{{ retained ? 'Model steps' : 'Order and alternatives' }}</span></div>
+        <p class="pipeline-map__hint">Select a step to understand its role and view its configuration.</p>
         <RecipeFlow :node="node" :path="['pipeline']" :selected-path="flowSelection" :components="[]" readonly :retained="retained" :initial-expanded-depth="retained ? undefined : 1" @select="select" />
       </section>
-      <section class="pipeline-detail" aria-label="Détail de l’étape sélectionnée">
+      <section class="pipeline-detail" aria-label="Selected step details">
         <q-btn v-if="parent" flat dense no-caps icon="arrow_back" :label="recipeLabel(parent.node)" class="pipeline-detail__back" @click="select(parent.path)" />
-        <div class="pipeline-detail__heading"><span>Étape sélectionnée</span><h3>{{ recipeLabel(selected) }}</h3><code v-if="selected.component">{{ selected.component }}</code></div>
+        <div class="pipeline-detail__heading"><span>Selected step</span><h3>{{ recipeLabel(selected) }}</h3><code v-if="selected.component">{{ selected.component }}</code></div>
         <p class="pipeline-detail__explanation">{{ explanation }}</p>
-        <div v-if="selectedEntry?.removed" class="pipeline-detail__notice"><q-icon name="block" size="17px" />Ce composant est exclu de la recherche enregistrée.</div>
-        <div v-if="selected.optional" class="pipeline-detail__notice"><q-icon name="alt_route" size="17px" />Cette étape peut être ignorée pendant la recherche.</div>
-        <div v-if="selected.condition" class="pipeline-detail__notice"><q-icon name="rule" size="17px" />Condition : {{ condition(selected.condition) }}</div>
+        <div v-if="selectedEntry?.removed" class="pipeline-detail__notice"><q-icon name="block" size="17px" />This component is excluded from the recorded search.</div>
+        <div v-if="selected.optional" class="pipeline-detail__notice"><q-icon name="alt_route" size="17px" />This step may be skipped during the search.</div>
+        <div v-if="selected.condition" class="pipeline-detail__notice"><q-icon name="rule" size="17px" />Condition: {{ condition(selected.condition) }}</div>
         <template v-if="entries.length">
-          <div class="pipeline-detail__list-heading"><h4>{{ retained ? 'Étapes utilisées' : relation }}</h4><small>{{ retained ? `${entries.length} étape${entries.length > 1 ? 's' : ''}` : `${included} inclus sur ${entries.length}` }}</small></div>
-          <q-input v-if="entries.length > 6" v-model="search" outlined dense clearable label="Rechercher un composant" class="pipeline-detail__search"><template #prepend><q-icon name="search" size="19px" /></template></q-input>
+          <div class="pipeline-detail__list-heading"><h4>{{ retained ? 'Steps used' : relation }}</h4><small>{{ retained ? `${entries.length} step${entries.length === 1 ? '' : 's'}` : `${included} of ${entries.length} included` }}</small></div>
+          <q-input v-if="entries.length > 6" v-model="search" outlined dense clearable label="Search components" class="pipeline-detail__search"><template #prepend><q-icon name="search" size="19px" /></template></q-input>
           <div class="pipeline-detail__entries">
             <button v-for="entry in filteredEntries" :key="JSON.stringify(entry.path)" class="pipeline-entry" :class="{ 'pipeline-entry--removed': entry.removed }" @click="select(entry.path)">
               <span v-if="mode === 'sequence'" class="pipeline-entry__number">{{ entry.index + 1 }}</span>
               <q-icon v-else :name="entry.removed ? 'block' : entry.node.type === 'use' ? 'extension' : 'account_tree'" size="18px" />
-              <span class="pipeline-entry__copy"><strong>{{ recipeLabel(entry.node) }}</strong><small>{{ entry.removed ? 'Exclu de la recherche' : recipeSummary(entry.node) }}</small></span>
+              <span class="pipeline-entry__copy"><strong>{{ recipeLabel(entry.node) }}</strong><small>{{ entry.removed ? 'Excluded from search' : recipeSummary(entry.node) }}</small></span>
               <q-icon name="chevron_right" size="18px" />
             </button>
-            <p v-if="!filteredEntries.length" class="pipeline-detail__empty">Aucun composant ne correspond à cette recherche.</p>
+            <p v-if="!filteredEntries.length" class="pipeline-detail__empty">No components match this search.</p>
           </div>
         </template>
-        <h4 v-if="parameters.length" class="pipeline-detail__parameter-heading">{{ retained ? 'Paramètres retenus' : 'Réglages enregistrés' }}</h4>
+        <h4 v-if="parameters.length" class="pipeline-detail__parameter-heading">{{ retained ? 'Selected parameters' : 'Recorded settings' }}</h4>
         <dl v-if="parameters.length" class="pipeline-values">
           <div v-for="[key, parameter] in parameters" :key="key">
             <dt>{{ parameterLabels[key] ?? displayServiceName(key) }}<code v-if="parameterLabels[key]">{{ key }}</code></dt>
-            <dd><strong>{{ display(parameterValue(parameter)) }}</strong><small v-if="!retained">{{ isSearch(parameter) ? 'Valeur de départ · ' : '' }}{{ parameterScope(parameter) }}</small><p v-if="parameter?.description">{{ parameter.description }}</p></dd>
+            <dd><strong>{{ display(parameterValue(parameter)) }}</strong><small v-if="!retained">{{ isSearch(parameter) ? 'Initial value · ' : '' }}{{ parameterScope(parameter) }}</small><p v-if="parameter?.description">{{ parameter.description }}</p></dd>
           </div>
         </dl>
-        <p v-else-if="!entries.length" class="pipeline-detail__empty">Aucun paramètre supplémentaire enregistré pour cette étape.</p>
+        <p v-else-if="!entries.length" class="pipeline-detail__empty">No additional parameters recorded for this step.</p>
       </section>
     </div>
-    <p v-if="!retained" class="pipeline-overview__edit-note"><q-icon name="tune" size="16px" />Pour modifier les étapes ou leurs paramètres, utilisez « Adapter cette configuration ».</p>
+    <p v-if="!retained" class="pipeline-overview__edit-note"><q-icon name="tune" size="16px" />To change steps or parameters, use “Edit configuration”.</p>
   </section>
 </template>
 

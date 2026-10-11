@@ -13,7 +13,7 @@ export async function expireSession(userStore: ReturnType<typeof useUserStore>, 
   const hadSession = Boolean(userStore.accessToken);
   const redirect = router.currentRoute.value.fullPath;
   userStore.logout();
-  if (hadSession) notify('warning', 'Votre session a expiré. Veuillez vous reconnecter.');
+  if (hadSession) notify('warning', 'Your session has expired. Please sign in again.');
   if (router.currentRoute.value.name !== 'login') {
     await router.replace({ name: 'login', query: { redirect } });
   }

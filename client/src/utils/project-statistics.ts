@@ -24,8 +24,8 @@ interface ColumnReference {
   subset?: unknown;
 }
 
-const decimalNumber = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 6 });
-const scientificNumber = new Intl.NumberFormat('fr-FR', { notation: 'scientific', maximumSignificantDigits: 6 });
+const decimalNumber = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 6 });
+const scientificNumber = new Intl.NumberFormat('en-US', { notation: 'scientific', maximumSignificantDigits: 6 });
 const priorities = [
   ['count'], ['null_count'], ['missing_rate'], ['mean'], ['median', '50%', 'quantile_0.5'],
   ['std', 'stdev', 'standard_deviation'], ['min'], ['max'], ['25%', 'quantile_0.25'],
@@ -33,51 +33,51 @@ const priorities = [
   ['freq', 'most_frequent_ratio'], ['top_5_value_counts'],
 ];
 const labels: Record<string, string> = {
-  count: 'Valeurs renseignées',
-  null_count: 'Valeurs manquantes',
-  missing_rate: 'Proportion de valeurs manquantes (0 à 1)',
-  mean: 'Moyenne',
-  std: 'Écart type',
-  stdev: 'Écart type',
-  standard_deviation: 'Écart type',
+  count: 'Non-missing values',
+  null_count: 'Missing values',
+  missing_rate: 'Missing value proportion (0 to 1)',
+  mean: 'Mean',
+  std: 'Standard deviation',
+  stdev: 'Standard deviation',
+  standard_deviation: 'Standard deviation',
   variance: 'Variance',
-  median: 'Médiane',
+  median: 'Median',
   min: 'Minimum',
-  '25%': 'Premier quartile (25 %)',
-  '50%': 'Médiane (50 %)',
-  '75%': 'Troisième quartile (75 %)',
+  '25%': 'First quartile (25%)',
+  '50%': 'Median (50%)',
+  '75%': 'Third quartile (75%)',
   max: 'Maximum',
-  range: 'Étendue (maximum − minimum)',
-  unique: 'Valeurs distinctes',
-  nunique: 'Valeurs distinctes',
-  unique_count: 'Valeurs distinctes',
-  value_counts: 'Effectifs de chaque valeur',
-  top: 'Valeur la plus fréquente',
-  mode: 'Valeur la plus fréquente',
-  freq: 'Occurrences de la valeur la plus fréquente',
-  most_frequent_ratio: 'Proportion de la valeur la plus fréquente (0 à 1)',
-  rare_category_rate: 'Proportion de catégories rares (0 à 1)',
-  cardinality_ratio: 'Ratio valeurs distinctes / observations',
-  coef_variation: 'Coefficient de variation',
-  iqr: 'Écart interquartile',
-  mad: 'Écart absolu médian',
-  median_absolute_deviation: 'Écart absolu médian',
-  skewness: 'Asymétrie de la distribution',
-  kurtosis: 'Aplatissement de la distribution',
-  entropy: 'Entropie',
-  outlier_count_iqr: 'Valeurs atypiques selon les quartiles',
-  chi_square: 'Statistique du khi-deux',
-  anova: 'Statistique ANOVA',
-  correlation_with_target: 'Corrélation avec la cible',
-  effect_size: 'Taille d’effet',
-  grouped_mean: 'Moyenne par groupe',
-  category_cooccurrence: 'Effectifs des associations de catégories',
-  summary_table: 'Résumé des données',
-  duplicate_rows: 'Observations dupliquées',
-  data_type_summary: 'Répartition des types de colonnes',
-  event_rate: 'Fréquence des événements',
-  time_summary: 'Résumé des durées de suivi',
-  time_by_group: 'Durées de suivi par groupe',
+  range: 'Range (maximum − minimum)',
+  unique: 'Distinct values',
+  nunique: 'Distinct values',
+  unique_count: 'Distinct values',
+  value_counts: 'Count of each value',
+  top: 'Most frequent value',
+  mode: 'Most frequent value',
+  freq: 'Count of the most frequent value',
+  most_frequent_ratio: 'Most frequent value proportion (0 to 1)',
+  rare_category_rate: 'Rare category proportion (0 to 1)',
+  cardinality_ratio: 'Distinct values / observations ratio',
+  coef_variation: 'Coefficient of variation',
+  iqr: 'Interquartile range',
+  mad: 'Median absolute deviation',
+  median_absolute_deviation: 'Median absolute deviation',
+  skewness: 'Distribution skewness',
+  kurtosis: 'Distribution kurtosis',
+  entropy: 'Entropy',
+  outlier_count_iqr: 'Outliers by quartiles',
+  chi_square: 'Chi-square statistic',
+  anova: 'ANOVA statistic',
+  correlation_with_target: 'Correlation with the target',
+  effect_size: 'Effect size',
+  grouped_mean: 'Mean by group',
+  category_cooccurrence: 'Category co-occurrence counts',
+  summary_table: 'Data summary',
+  duplicate_rows: 'Duplicate observations',
+  data_type_summary: 'Column type distribution',
+  event_rate: 'Event frequency',
+  time_summary: 'Follow-up duration summary',
+  time_by_group: 'Follow-up durations by group',
 };
 
 function statisticKey(label: unknown): string {
@@ -85,24 +85,24 @@ function statisticKey(label: unknown): string {
 }
 
 function jsonLabel(value: unknown): string {
-  return typeof value === 'string' ? value : JSON.stringify(value) ?? 'Indisponible';
+  return typeof value === 'string' ? value : JSON.stringify(value) ?? 'Unavailable';
 }
 
 function statisticLabel(label: unknown): string {
-  if (typeof label !== 'string') return label === null || label === undefined ? 'Statistique' : jsonLabel(label);
+  if (typeof label !== 'string') return label === null || label === undefined ? 'Statistic' : jsonLabel(label);
   const key = statisticKey(label);
   if (Object.prototype.hasOwnProperty.call(labels, key)) return labels[key];
   const quantile = key.match(/^quantile_(0(?:\.\d+)?|1(?:\.0+)?)$/);
   if (quantile) {
     const percentile = Number(quantile[1]) * 100;
-    return labels[`${percentile}%`] ?? `Quantile à ${decimalNumber.format(percentile)} %`;
+    return labels[`${percentile}%`] ?? `${decimalNumber.format(percentile)}% quantile`;
   }
   const topValues = key.match(/^top_(\d+)_value_counts$/);
-  return topValues ? `Effectifs des ${topValues[1]} valeurs les plus fréquentes` : displayServiceName(label);
+  return topValues ? `Counts of the ${topValues[1]} most frequent values` : displayServiceName(label);
 }
 
 function columnReference(column: string, subset: unknown, aggregate: boolean): ColumnReference {
-  return { column, aggregate, subset, label: aggregate ? 'Toutes les observations' : `Sous-ensemble : ${jsonLabel(subset)}` };
+  return { column, aggregate, subset, label: aggregate ? 'All observations' : `Subset: ${jsonLabel(subset)}` };
 }
 
 function structuredColumnReference(label: unknown, sourceColumns: Set<string>): ColumnReference | undefined {
@@ -195,7 +195,7 @@ export function projectStatisticHasValue(value: unknown): boolean {
 }
 
 export function formatProjectStatistic(value: unknown): string {
-  if (!projectStatisticHasValue(value)) return 'Indisponible';
+  if (!projectStatisticHasValue(value)) return 'Unavailable';
   if (typeof value === 'number') {
     const magnitude = Math.abs(value);
     return (magnitude > 0 && magnitude < 0.0001) || magnitude >= 1e9

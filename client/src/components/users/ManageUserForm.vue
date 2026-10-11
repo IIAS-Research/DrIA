@@ -25,13 +25,13 @@ watch(() => props.user, (user) => {
 });
 
 function nameRule(value?: string): true | string {
-  return (value?.trim().length ?? 0) >= 3 || 'Saisissez au moins 3 caractères.';
+  return (value?.trim().length ?? 0) >= 3 || 'Enter at least 3 characters.';
 }
 
 function passwordRule(value?: string): true | string {
-  if (!value || value.length < 6) return 'Saisissez au moins 6 caractères.';
+  if (!value || value.length < 6) return 'Enter at least 6 characters.';
   if (!/[a-z]/.test(value) || !/[A-Z]/.test(value) || !/[0-9]/.test(value) || !/[^a-zA-Z0-9]/.test(value)) {
-    return 'Ajoutez une majuscule, une minuscule, un chiffre et un symbole.';
+    return 'Include an uppercase letter, a lowercase letter, a number and a symbol.';
   }
   return true;
 }
@@ -55,7 +55,7 @@ function submit() {
     <div class="admin-form-grid">
       <q-input
         v-model="userLocalComponent.firstName"
-        label="Prénom"
+        label="First name"
         autocomplete="given-name"
         outlined
         :disable="loading"
@@ -64,7 +64,7 @@ function submit() {
       />
       <q-input
         v-model="userLocalComponent.lastName"
-        label="Nom"
+        label="Last name"
         autocomplete="family-name"
         outlined
         :disable="loading"
@@ -74,21 +74,21 @@ function submit() {
     </div>
     <q-input
       v-model="userLocalComponent.email"
-      label="Adresse email"
+      label="Email address"
       type="email"
       autocomplete="email"
       outlined
       :disable="loading"
-      :rules="[(value, rules) => rules.email(value?.trim()) || 'Saisissez une adresse email valide.']"
+      :rules="[(value, rules) => rules.email(value?.trim()) || 'Enter a valid email address.']"
       lazy-rules
     />
     <q-input
       v-if="!isEditing"
       v-model="userLocalComponent.password"
-      label="Mot de passe"
+      label="Password"
       :type="showPassword ? 'text' : 'password'"
       autocomplete="new-password"
-      hint="6 caractères minimum, avec majuscule, minuscule, chiffre et symbole."
+      hint="At least 6 characters, including an uppercase letter, a lowercase letter, a number and a symbol."
       outlined
       :disable="loading"
       :rules="[passwordRule]"
@@ -100,7 +100,7 @@ function submit() {
           round
           dense
           :icon="showPassword ? 'visibility_off' : 'visibility'"
-          :aria-label="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+          :aria-label="showPassword ? 'Hide password' : 'Show password'"
           :disable="loading"
           @click="showPassword = !showPassword"
         />
@@ -109,23 +109,23 @@ function submit() {
 
     <div class="admin-user-access">
       <div>
-        <strong>Droits d’administration</strong>
-        <p>Un administrateur peut gérer tous les comptes et tous les projets de DrIA.</p>
+        <strong>Administrator access</strong>
+        <p>An administrator can manage all DrIA accounts and projects.</p>
       </div>
       <q-toggle
         v-model="userLocalComponent.isAdmin"
         color="primary"
-        aria-label="Accorder les droits d’administration"
+        aria-label="Grant administrator access"
         :disable="loading"
       />
     </div>
 
     <div class="admin-dialog-actions">
-      <q-btn flat no-caps label="Annuler" :disable="loading" @click="emits('cancel')" />
+      <q-btn flat no-caps label="Cancel" :disable="loading" @click="emits('cancel')" />
       <q-btn
         unelevated
         no-caps
-        :label="isEditing ? 'Enregistrer les modifications' : 'Créer le compte'"
+        :label="isEditing ? 'Save changes' : 'Create account'"
         color="primary"
         type="submit"
         :loading="loading"

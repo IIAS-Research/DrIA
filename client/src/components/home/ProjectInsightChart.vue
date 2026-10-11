@@ -16,18 +16,18 @@ const inspection = ref<Inspection>();
 const bars = computed(() => props.chart.type === 'bars' ? props.chart : undefined);
 const boxes = computed(() => props.chart.type === 'boxes' ? props.chart.boxes : []);
 const proportions = computed(() => props.chart.type === 'proportions' ? props.chart : undefined);
-const countFormatter = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+const countFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 function formatNumber(value: number, precise = false): string {
   const magnitude = Math.abs(value);
-  return new Intl.NumberFormat('fr-FR', {
+  return new Intl.NumberFormat('en-US', {
     notation: magnitude > 0 && (magnitude < .001 || magnitude >= 1000000) ? 'scientific' : 'standard',
     maximumFractionDigits: precise ? 6 : 2,
   }).format(value);
 }
 
 function formatPercent(value: number, precise = false): string {
-  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: precise ? 6 : 1 }).format(value)} %`;
+  return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: precise ? 6 : 1 }).format(value)} %`;
 }
 
 function barValue(value: number, precise = false): string {
@@ -84,7 +84,7 @@ function boxPosition(value: number): number {
 function boxInspection(box: InsightBox): Inspection {
   return {
     label: box.label,
-    detail: `Minimum ${formatNumber(box.min, true)} · Quartile à 25 % ${formatNumber(box.q1, true)} · Médiane ${formatNumber(box.median, true)} · Quartile à 75 % ${formatNumber(box.q3, true)} · Maximum ${formatNumber(box.max, true)}${box.count !== undefined ? ` · ${countFormatter.format(box.count)} valeurs renseignées` : ''}`,
+    detail: `Minimum ${formatNumber(box.min, true)} · 25% quartile ${formatNumber(box.q1, true)} · Median ${formatNumber(box.median, true)} · 75% quartile ${formatNumber(box.q3, true)} · Maximum ${formatNumber(box.max, true)}${box.count !== undefined ? ` · ${countFormatter.format(box.count)} non-missing values` : ''}`,
   };
 }
 
@@ -102,7 +102,7 @@ function proportionInspection(group: InsightProportionGroup, categoryIndex: numb
   const category = proportions.value?.categories[categoryIndex] ?? '';
   return {
     label: `${group.label} · ${category}`,
-    detail: `${countFormatter.format(count)} sur ${countFormatter.format(group.present)} valeurs renseignées · ${formatPercent(proportionPercent(count, group), true)}`,
+    detail: `${countFormatter.format(count)} out of ${countFormatter.format(group.present)} non-missing values · ${formatPercent(proportionPercent(count, group), true)}`,
   };
 }
 
@@ -126,9 +126,9 @@ watch(() => props.chart, () => { inspection.value = undefined; });
 
 <template>
   <div class="insight-chart" :class="{ 'insight-chart-compact': compact }">
-    <p v-if="!hasData" class="chart-empty">Aucune valeur disponible pour cette représentation.</p>
+    <p v-if="!hasData" class="chart-empty">No values are available for this chart.</p>
 
-    <section v-else-if="bars" class="bars-chart" :aria-label="bars.unit === 'percent' ? 'Comparaison des proportions' : 'Comparaison des coefficients'">
+    <section v-else-if="bars" class="bars-chart" :aria-label="bars.unit === 'percent' ? 'Comparison of proportions' : 'Comparison of coefficients'">
       <div class="bar-axis-row" aria-hidden="true">
         <span />
         <div class="bar-axis">
@@ -159,7 +159,7 @@ watch(() => props.chart, () => { inspection.value = undefined; });
       </button>
     </section>
 
-    <section v-else-if="chart.type === 'boxes'" class="boxes-chart" aria-label="Comparaison des distributions, des valeurs minimales et maximales et des quartiles">
+    <section v-else-if="chart.type === 'boxes'" class="boxes-chart" aria-label="Comparison of distributions, minimum and maximum values, and quartiles">
       <div class="box-axis-row" aria-hidden="true">
         <span />
         <div class="bar-axis box-axis">
@@ -181,7 +181,7 @@ watch(() => props.chart, () => { inspection.value = undefined; });
         @focus="inspection = boxInspection(box)"
         @click="inspection = boxInspection(box)"
       >
-        <span class="chart-label"><span>{{ box.label }}</span><small v-if="box.count !== undefined">{{ countFormatter.format(box.count) }} valeurs renseignées</small></span>
+        <span class="chart-label"><span>{{ box.label }}</span><small v-if="box.count !== undefined">{{ countFormatter.format(box.count) }} non-missing values</small></span>
         <svg class="box-svg" viewBox="0 0 500 52" preserveAspectRatio="none" aria-hidden="true">
           <line v-for="(tick, tickIndex) in boxTicks" :key="tickIndex" :x1="boxPosition(tick)" :x2="boxPosition(tick)" y1="4" y2="48" class="svg-gridline" />
           <line :x1="boxPosition(box.min)" :x2="boxPosition(box.max)" y1="26" y2="26" class="box-whisker" />
@@ -193,7 +193,7 @@ watch(() => props.chart, () => { inspection.value = undefined; });
       </button>
     </section>
 
-    <section v-else-if="proportions" class="proportions-chart" aria-label="Répartition des catégories dans chaque groupe, parmi les valeurs renseignées">
+    <section v-else-if="proportions" class="proportions-chart" aria-label="Category distribution within each group, among non-missing values">
       <div class="proportion-axis-row" aria-hidden="true">
         <span />
         <div class="bar-axis">
@@ -203,7 +203,7 @@ watch(() => props.chart, () => { inspection.value = undefined; });
       <div v-for="(group, index) in proportions.groups" :key="`${index}-${group.label}`" class="proportion-row" :data-group="group.label">
         <div class="chart-label">
           <span>{{ group.label }}</span>
-          <small>{{ countFormatter.format(group.present) }} renseignées<span v-if="group.missing !== undefined"> · {{ countFormatter.format(group.missing) }} manquantes</span></small>
+          <small>{{ countFormatter.format(group.present) }} non-missing<span v-if="group.missing !== undefined"> · {{ countFormatter.format(group.missing) }} missing</span></small>
         </div>
         <div v-if="group.present > 0" class="proportion-stack">
           <template v-for="(category, categoryIndex) in proportions.categories" :key="`${categoryIndex}-${category}`">
@@ -225,9 +225,9 @@ watch(() => props.chart, () => { inspection.value = undefined; });
             </button>
           </template>
         </div>
-        <div v-else class="proportion-no-values">Aucune valeur renseignée</div>
+        <div v-else class="proportion-no-values">No non-missing values</div>
       </div>
-      <ul class="proportion-legend" aria-label="Légende des catégories">
+      <ul class="proportion-legend" aria-label="Category legend">
         <li v-for="(category, index) in proportions.categories" :key="`${index}-${category}`"><span class="category-swatch" :class="`category-${index % 6}`" aria-hidden="true" /><span>{{ category }}</span></li>
       </ul>
     </section>

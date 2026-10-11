@@ -13,16 +13,16 @@ const enlargedPlot = ref(false);
 const metrics = computed(() => props.model.metrics);
 const objective = computed(() => metricKey(metrics.value));
 const searchSource = computed(() => {
-  if (metrics.value.score_source === 'cross_validation') return 'Validation croisée';
-  if (metrics.value.score_source === 'in_sample') return 'Entraînement';
-  return 'Recherche du modèle';
+  if (metrics.value.score_source === 'cross_validation') return 'Cross-validation';
+  if (metrics.value.score_source === 'in_sample') return 'Training';
+  return 'Model search';
 });
 const searchDescription = computed(() => {
   if (metrics.value.score_source === 'cross_validation')
-    return 'La validation croisée évalue le modèle sur plusieurs partitions des données d’apprentissage.';
+    return 'Cross-validation evaluates the model across multiple splits of the training data.';
   if (metrics.value.score_source === 'in_sample')
-    return 'Ces scores portent sur les données utilisées pour entraîner le modèle.';
-  return 'Le service ne précise pas la source de ces scores de recherche.';
+    return 'These scores are measured on the data used to train the model.';
+  return 'The service does not specify the source of these search scores.';
 });
 const hasTest = computed(() => metrics.value.metrics_test !== null && metrics.value.metrics_test !== undefined);
 const metricRows = computed(() => {
@@ -32,7 +32,7 @@ const metricRows = computed(() => {
     ...Object.keys(metrics.value.metrics_test ?? {}),
   ])];
   return keys.sort((a, b) => Number(b === objective.value) - Number(a === objective.value)
-    || a.localeCompare(b, 'fr')).map((key) => ({
+    || a.localeCompare(b, 'en-US')).map((key) => ({
     key,
     label: displayServiceName(metrics.value.metrics_info?.[key]?.name || key),
     description: metrics.value.metrics_info?.[key]?.desc,
@@ -53,9 +53,9 @@ const plots = computed<IPlot[]>(() => {
   }
   return Object.values(explanation?.results ?? {})
     .filter((result) => result.kind === 'plot' && typeof result.image === 'string' && result.image.length)
-    .map((result) => ({ title: result.title || 'Analyse du modèle', description: result.description || '', image: result.image! }));
+    .map((result) => ({ title: result.title || 'Model analysis', description: result.description || '', image: result.image! }));
 });
-const plotOptions = computed(() => plots.value.map((plot, index) => ({ label: plot.title || `Analyse ${index + 1}`, value: index })));
+const plotOptions = computed(() => plots.value.map((plot, index) => ({ label: plot.title || `Analysis ${index + 1}`, value: index })));
 const currentPlot = computed(() => plots.value[selectedPlot.value]);
 function imageUrl(plot: IPlot): string {
   return plot.image.startsWith('data:') ? plot.image : 'data:image/png;base64,' + plot.image;
@@ -67,60 +67,60 @@ watch(() => props.model.id, () => { selectedPlot.value = 0; enlargedPlot.value =
 <template>
   <div class="performance-content">
     <div class="performance-heading">
-      <span class="section-eyebrow">Évaluer le modèle</span>
-      <h2>Quels résultats obtient-il ?</h2>
-      <p>Les scores de recherche et de test sont présentés séparément pour comprendre sur quelles données le modèle a été évalué.</p>
+      <span class="section-eyebrow">Evaluate the model</span>
+      <h2>How does it perform?</h2>
+      <p>Search and test scores are shown separately so you can see which data was used to evaluate the model.</p>
     </div>
 
     <div class="metrics-card">
       <div v-if="objectiveRow" class="objective-heading">
         <div>
-          <span class="objective-label">Critère principal</span>
+          <span class="objective-label">Primary metric</span>
           <h3>{{ objectiveRow.label }}</h3>
         </div>
         <span v-if="objectiveRow.greater !== undefined" class="objective-direction">
           <q-icon :name="objectiveRow.greater ? 'north_east' : 'south_east'" size="17px" />
-          {{ objectiveRow.greater ? 'Plus élevé = meilleur' : 'Plus faible = meilleur' }}
+          {{ objectiveRow.greater ? 'Higher is better' : 'Lower is better' }}
         </span>
       </div>
       <div class="metrics-table-scroll">
         <table class="metrics-table">
           <thead>
             <tr>
-              <th scope="col">Métrique</th>
+              <th scope="col">Metric</th>
               <th scope="col">{{ searchSource }}</th>
-              <th scope="col">Test indépendant</th>
+              <th scope="col">Holdout test set</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="item in metricRows" :key="item.key" :class="{ 'objective-row': item.key === objective }">
               <th scope="row">
                 <span class="metric-name">{{ item.label }}</span>
-                <span v-if="item.key === objective" class="metric-objective">Critère principal</span>
+                <span v-if="item.key === objective" class="metric-objective">Primary metric</span>
                 <span v-if="item.description" class="metric-description">{{ item.description }}</span>
-                <span v-if="item.greater !== undefined" class="metric-direction">{{ item.greater ? 'À maximiser' : 'À minimiser' }}</span>
+                <span v-if="item.greater !== undefined" class="metric-direction">{{ item.greater ? 'Maximize' : 'Minimize' }}</span>
               </th>
               <td :data-metric="item.key" data-source="search" :class="{ 'score-unavailable': typeof item.search !== 'number' || !Number.isFinite(item.search) }">{{ score(item.search) }}</td>
               <td :data-metric="item.key" data-source="test" :class="{ 'score-unavailable': typeof item.test !== 'number' || !Number.isFinite(item.test) }">{{ score(item.test) }}</td>
             </tr>
-            <tr v-if="!metricRows.length"><td colspan="3" class="empty-metrics">Aucune métrique n’est disponible pour ce modèle.</td></tr>
+            <tr v-if="!metricRows.length"><td colspan="3" class="empty-metrics">No metrics are available for this model.</td></tr>
           </tbody>
         </table>
       </div>
       <div class="evaluation-notes">
         <p><strong>{{ searchSource }}.</strong> {{ searchDescription }}</p>
-        <p v-if="hasTest"><strong>Test indépendant.</strong> Scores obtenus sur le fichier réservé à l’évaluation finale.</p>
-        <p v-else><strong>Test indépendant.</strong> Aucun score de test indépendant n’est disponible pour ce modèle.</p>
+        <p v-if="hasTest"><strong>Holdout test set.</strong> Scores measured on the file reserved for final evaluation.</p>
+        <p v-else><strong>Holdout test set.</strong> No holdout test scores are available for this model.</p>
       </div>
     </div>
 
     <div class="model-analysis-section">
       <div class="analysis-heading">
         <div>
-          <span class="section-eyebrow">Analyse des résultats</span>
-          <h3>Lire les performances en détail</h3>
+          <span class="section-eyebrow">Result analysis</span>
+          <h3>Explore performance in detail</h3>
         </div>
-        <span v-if="plots.length" class="analysis-count">{{ plots.length }} analyse{{ plots.length > 1 ? 's' : '' }} disponible{{ plots.length > 1 ? 's' : '' }}</span>
+        <span v-if="plots.length" class="analysis-count">{{ plots.length }} {{ plots.length === 1 ? 'analysis' : 'analyses' }} available</span>
       </div>
 
       <template v-if="currentPlot">
@@ -132,16 +132,16 @@ watch(() => props.model.id, () => { selectedPlot.value = 0; enlargedPlot.value =
             map-options
             outlined
             dense
-            label="Analyse à afficher"
+            label="Analysis to display"
             popup-content-class="project-workspace-colors"
             class="analysis-select"
           />
-          <q-btn flat no-caps color="primary" icon="open_in_full" label="Agrandir" aria-label="Agrandir le graphique de performance" @click="enlargedPlot = true" />
+          <q-btn flat no-caps color="primary" icon="open_in_full" label="Enlarge" aria-label="Enlarge performance chart" @click="enlargedPlot = true" />
         </div>
         <figure class="performance-figure">
-          <div class="plot-stage"><img :src="imageUrl(currentPlot)" :alt="currentPlot.title || 'Graphique de performance du modèle'" /></div>
+          <div class="plot-stage"><img :src="imageUrl(currentPlot)" :alt="currentPlot.title || 'Model performance chart'" /></div>
           <figcaption>
-            <h4>{{ currentPlot.title || 'Analyse du modèle' }}</h4>
+            <h4>{{ currentPlot.title || 'Model analysis' }}</h4>
             <p v-if="currentPlot.description">{{ currentPlot.description }}</p>
           </figcaption>
         </figure>
@@ -149,9 +149,9 @@ watch(() => props.model.id, () => { selectedPlot.value = 0; enlargedPlot.value =
       <div v-else class="analysis-empty">
         <q-icon name="insights" size="24px" />
         <div>
-          <h4>Aucun graphique de performance enregistré</h4>
-          <p>Les scores disponibles figurent ci-dessus. L’onglet Explicabilité permet de consulter ou de lancer les analyses du modèle.</p>
-          <q-btn flat dense no-caps color="primary" label="Consulter les analyses" icon-right="arrow_forward" class="q-mt-sm" @click="emit('request-analysis')" />
+          <h4>No performance charts saved</h4>
+          <p>Available scores are shown above. The Explainability tab lets you view or start model analyses.</p>
+          <q-btn flat dense no-caps color="primary" label="View analyses" icon-right="arrow_forward" class="q-mt-sm" @click="emit('request-analysis')" />
         </div>
       </div>
     </div>
@@ -159,10 +159,10 @@ watch(() => props.model.id, () => { selectedPlot.value = 0; enlargedPlot.value =
     <q-dialog v-model="enlargedPlot" :maximized="$q.screen.lt.sm">
       <q-card v-if="currentPlot" class="plot-dialog project-workspace-colors">
         <div class="plot-dialog-heading">
-          <h3>{{ currentPlot.title || 'Analyse du modèle' }}</h3>
-          <q-btn v-close-popup flat round icon="close" aria-label="Fermer le graphique de performance" />
+          <h3>{{ currentPlot.title || 'Model analysis' }}</h3>
+          <q-btn v-close-popup flat round icon="close" aria-label="Close performance chart" />
         </div>
-        <img :src="imageUrl(currentPlot)" :alt="currentPlot.title || 'Graphique de performance du modèle'" />
+        <img :src="imageUrl(currentPlot)" :alt="currentPlot.title || 'Model performance chart'" />
         <p v-if="currentPlot.description">{{ currentPlot.description }}</p>
       </q-card>
     </q-dialog>

@@ -16,16 +16,16 @@ const state = ref<State>('idle');
 const explanation = ref<Explanation>();
 const enlarged = ref(false);
 const eligible = computed(() => enabled.value && props.valid && Boolean(props.observationKey));
-const statusText = computed(() => state.value === 'waiting' ? 'Actualisation après votre saisie…'
-  : state.value === 'calculating' ? 'DrIA calcule les contributions de cette observation…'
-    : state.value === 'ready' ? 'Explication à jour avec le formulaire'
-      : state.value === 'unavailable' ? 'L’explication n’est pas disponible pour cette observation.'
-        : enabled.value ? 'L’explication apparaîtra lorsque la prédiction sera disponible.' : 'L’actualisation automatique est désactivée.');
+const statusText = computed(() => state.value === 'waiting' ? 'Updating after your input…'
+  : state.value === 'calculating' ? 'DrIA is computing the contributions for this observation…'
+    : state.value === 'ready' ? 'Explanation matches the current form values'
+      : state.value === 'unavailable' ? 'The explanation is unavailable for this observation.'
+        : enabled.value ? 'The explanation will appear when the prediction is available.' : 'Automatic updates are disabled.');
 const outputLabel = computed(() => explanation.value?.output.kind === 'probability'
-  ? `Probabilité pour la classe « ${String(explanation.value.output.classLabel)} »`
-  : 'Sortie numérique expliquée');
+  ? `Probability for class “${String(explanation.value.output.classLabel)}”`
+  : 'Explained numeric output');
 const outputValue = computed(() => explanation.value
-  ? new Intl.NumberFormat('fr-FR', explanation.value.output.kind === 'probability'
+  ? new Intl.NumberFormat('en-US', explanation.value.output.kind === 'probability'
     ? { style: 'percent', maximumFractionDigits: 1 }
     : { maximumSignificantDigits: 6 }).format(explanation.value.output.value) : '');
 
@@ -117,34 +117,34 @@ onUnmounted(() => {
 <template>
   <section class="prediction-shap" :aria-busy="state === 'waiting' || state === 'calculating'" aria-labelledby="prediction-shap-title">
     <div class="shap-heading">
-      <div><p class="shap-eyebrow">Comprendre cette observation</p><h2 id="prediction-shap-title">Quelles variables influencent le résultat ?</h2></div>
-      <q-toggle v-model="enabled" label="Explication SHAP" color="primary" size="sm" />
+      <div><p class="shap-eyebrow">Understand this observation</p><h2 id="prediction-shap-title">Which features influence the result?</h2></div>
+      <q-toggle v-model="enabled" label="SHAP explanation" color="primary" size="sm" />
     </div>
     <div class="shap-status" :class="{ 'prediction-shap-error': state === 'unavailable' }" role="status" aria-live="polite">
       <q-spinner v-if="state === 'waiting' || state === 'calculating'" color="primary" size="17px" />
       <q-icon v-else-if="state === 'ready'" name="check_circle_outline" color="primary" size="17px" />
       <span>{{ statusText }}</span>
-      <q-btn v-if="state === 'unavailable' && eligible" flat dense no-caps color="primary" label="Réessayer" @click="schedule(0)" />
+      <q-btn v-if="state === 'unavailable' && eligible" flat dense no-caps color="primary" label="Try again" @click="schedule(0)" />
     </div>
     <div v-if="explanation" class="shap-content">
       <figure class="shap-figure">
-        <img class="prediction-shap-image" :src="explanation.image" alt="Graphique SHAP DrIA des contributions positives et négatives pour l’observation du formulaire" />
-        <figcaption><span>Graphique calculé par DrIA · SHAP local</span><q-btn flat dense no-caps color="primary" icon="open_in_full" label="Agrandir" @click="enlarged = true" /></figcaption>
+        <img class="prediction-shap-image" :src="explanation.image" alt="DrIA SHAP chart showing positive and negative contributions for the observation entered in the form" />
+        <figcaption><span>Chart computed by DrIA · Local SHAP</span><q-btn flat dense no-caps color="primary" icon="open_in_full" label="Enlarge" @click="enlarged = true" /></figcaption>
       </figure>
       <div class="shap-reading">
         <div class="shap-output"><span>{{ outputLabel }}</span><strong>{{ outputValue }}</strong></div>
-        <p v-if="explanation.output.kind === 'probability'" class="shap-class-note">DrIA explique la deuxième classe dans l’ordre fourni par le modèle : elle peut être différente de la catégorie prédite ci-dessus.</p>
-        <h3>Lire ce graphique</h3>
-        <p>Le point de départ est la sortie moyenne du modèle sur ses données d’entraînement. Chaque variable contribue ensuite au résultat de cette observation.</p>
-        <div class="shap-legend"><span><i class="shap-positive" />Augmente la sortie expliquée</span><span><i class="shap-negative" />Diminue la sortie expliquée</span></div>
-        <p class="shap-method">Les contributions sont estimées par Kernel SHAP ({{ explanation.nsamples }} échantillons). Elles se recalculent après vos modifications ; le calcul peut prendre quelques secondes.</p>
+        <p v-if="explanation.output.kind === 'probability'" class="shap-class-note">DrIA explains the second class in the order returned by the model. It may differ from the category predicted above.</p>
+        <h3>Read this chart</h3>
+        <p>The starting point is the average model output on its training data. Each feature then contributes to the result for this observation.</p>
+        <div class="shap-legend"><span><i class="shap-positive" />Increases the explained output</span><span><i class="shap-negative" />Decreases the explained output</span></div>
+        <p class="shap-method">Contributions are estimated using Kernel SHAP ({{ explanation.nsamples }} samples). They are recalculated after your changes; this may take a few seconds.</p>
       </div>
     </div>
-    <p v-else class="shap-note">SHAP compare cette observation aux données d’entraînement. La prédiction reste disponible pendant le calcul de son explication.</p>
+    <p v-else class="shap-note">SHAP compares this observation with the training data. The prediction remains available while its explanation is computed.</p>
     <q-dialog v-model="enlarged">
       <q-card class="shap-dialog project-workspace-colors">
-        <q-card-section class="shap-dialog-heading"><h2>Contributions pour cette observation</h2><q-btn v-close-popup flat round dense icon="close" aria-label="Fermer le graphique" /></q-card-section>
-        <q-card-section v-if="explanation"><p class="shap-dialog-output">{{ outputLabel }} : <strong>{{ outputValue }}</strong></p><img :src="explanation.image" alt="Graphique SHAP DrIA agrandi pour cette observation" /></q-card-section>
+        <q-card-section class="shap-dialog-heading"><h2>Contributions for this observation</h2><q-btn v-close-popup flat round dense icon="close" aria-label="Close chart" /></q-card-section>
+        <q-card-section v-if="explanation"><p class="shap-dialog-output">{{ outputLabel }} : <strong>{{ outputValue }}</strong></p><img :src="explanation.image" alt="Enlarged DrIA SHAP chart for this observation" /></q-card-section>
       </q-card>
     </q-dialog>
   </section>

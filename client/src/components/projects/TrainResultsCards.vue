@@ -49,9 +49,9 @@ const baselinePending = computed(() => ["QUEUED", "RUNNING"].includes(props.base
 const baselineSource = computed(() => {
   const metrics = baseline.value;
   const greater = metrics?.objective?.greater_is_better ?? (metrics ? metrics.metrics_info?.[metricKey(metrics)]?.greater_is_better : undefined);
-  const direction = greater === undefined ? "" : greater ? "Maximiser." : "Minimiser.";
-  const source = metrics?.metrics_test ? "Jeu de test indépendant."
-    : "Scores sur les données d’entraînement (in_sample), distincts de la validation croisée.";
+  const direction = greater === undefined ? "" : greater ? "Maximize." : "Minimize.";
+  const source = metrics?.metrics_test ? "Holdout test set."
+    : "Scores on training data, measured in-sample and separate from cross-validation.";
   return `${source} ${direction}`;
 });
 </script>
@@ -62,7 +62,7 @@ const baselineSource = computed(() => {
       <div class="col-12 col-md-6 result-column" style="align-self: stretch">
         <q-card class="bg-teal-4 full-height result-card">
           <q-card-section>
-            <div class="text-h6 text-white">Best Dr IA Model</div>
+            <div class="text-h6 text-white">Selected DrIA model</div>
 
             <ModelCardContent
               v-if="bestModel"
@@ -107,7 +107,7 @@ const baselineSource = computed(() => {
                   <div v-if="baselineModel?.error" class="q-mt-xs">{{ displayServiceText(baselineModel.error) }}</div>
                 </q-tooltip>
               </q-icon>
-              Results of a model without Dr IA optimizations
+              Results of a model without DrIA optimization
             </div>
             <div class="q-mt-md" v-if="baselineModel">
               <q-chip v-if="baselineModel.status && !baseline" :icon="baselinePending ? 'hourglass_top' : ['FINISHED', 'CACHED'].includes(baselineModel.status.current) ? 'check' : 'error'">
@@ -138,7 +138,7 @@ const baselineSource = computed(() => {
     </div>
 
     <q-card v-if="processes?.length" class="q-mt-md">
-      <q-card-section class="text-h6"> All trainings </q-card-section>
+      <q-card-section class="text-h6"> All training runs </q-card-section>
 
       <q-list bordered separator>
         <q-expansion-item

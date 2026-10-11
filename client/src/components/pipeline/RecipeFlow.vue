@@ -22,7 +22,7 @@ const emit = defineEmits<{
 }>();
 const selected = computed(() => JSON.stringify(props.path) === JSON.stringify(props.selectedPath));
 const mode = computed(() => props.node.type === 'family' ? props.node.mode || 'choice' : props.node.type);
-const relation = computed(() => ({ sequence: 'Puis', choice: 'Ou', adaptive: 'Selon les données', collection: 'Et' }[mode.value] || 'Puis'));
+const relation = computed(() => ({ sequence: 'Then', choice: 'Or', adaptive: 'Based on the data', collection: 'And' }[mode.value] || 'Then'));
 const hasChildren = computed(() => ['sequence', 'choice', 'adaptive', 'collection', 'optional'].includes(props.node.type) || Boolean(props.node.children?.length));
 const collapsible = computed(() => Boolean(props.node.children?.length || props.node.recipe));
 const expanded = ref(props.initialExpandedDepth === undefined || props.depth < props.initialExpandedDepth);
@@ -35,7 +35,7 @@ function childKey(node: IRecipe): number {
 const summary = computed(() => {
   if (!props.retained || props.node.type !== 'use') return recipeSummary(props.node);
   const count = Object.keys(props.node.params ?? {}).length;
-  return count ? `${count} paramètre${count > 1 ? 's retenus' : ' retenu'}` : 'Paramètres non renseignés';
+  return count ? `${count} selected parameter${count === 1 ? '' : 's'}` : 'Parameters not specified';
 });
 const icons: Record<string, string> = { sequence: 'account_tree', choice: 'alt_route', adaptive: 'tune', family: 'layers', use: 'extension', collection: 'checklist' };
 watch(() => JSON.stringify(props.selectedPath), () => {
@@ -53,10 +53,10 @@ watch(() => JSON.stringify(props.selectedPath), () => {
           <strong>{{ recipeLabel(node, components) }}</strong>
           <small>{{ summary }}</small>
         </span>
-        <span v-if="node.optional" class="flow-tag">Facultatif</span>
+        <span v-if="node.optional" class="flow-tag">Optional</span>
         <q-icon v-if="!collapsible" name="chevron_right" size="19px" class="flow-node-chevron" />
       </button>
-      <q-btn v-if="collapsible" flat round dense type="button" class="flow-fold" :icon="expanded ? 'expand_less' : 'expand_more'" :aria-expanded="expanded" :aria-label="`${expanded ? 'Replier' : 'Déplier'} ${recipeLabel(node, components)}`" @click.stop="expanded = !expanded"><q-tooltip>{{ expanded ? 'Replier les sous-étapes' : 'Déplier les sous-étapes' }}</q-tooltip></q-btn>
+      <q-btn v-if="collapsible" flat round dense type="button" class="flow-fold" :icon="expanded ? 'expand_less' : 'expand_more'" :aria-expanded="expanded" :aria-label="`${expanded ? 'Collapse' : 'Expand'} ${recipeLabel(node, components)}`" @click.stop="expanded = !expanded"><q-tooltip>{{ expanded ? 'Collapse child steps' : 'Expand child steps' }}</q-tooltip></q-btn>
     </div>
     <div v-if="hasChildren" v-show="expanded" class="flow-children" :class="`flow-children-${mode}`">
       <div v-for="(child, index) in node.children || []" :key="childKey(child)" class="flow-child">
@@ -65,16 +65,16 @@ watch(() => JSON.stringify(props.selectedPath), () => {
           <RecipeFlow :node="child" :path="[...path, 'children', index]" :selected-path="selectedPath" :components="components" :disabled="disabled" :readonly="readonly" :retained="retained" :depth="depth + 1" :initial-expanded-depth="initialExpandedDepth"
             @select="emit('select', $event)" @add="emit('add', $event)" @move="(p, direction) => emit('move', p, direction)" @remove="emit('remove', $event)" />
           <div v-if="!readonly" class="flow-child-actions">
-            <q-btn v-if="mode === 'sequence' || mode === 'adaptive'" flat round dense size="sm" icon="arrow_upward" :disable="disabled || index === 0" :aria-label="`Monter ${recipeLabel(child, components)}`" @click="emit('move', [...path, 'children', index], -1)"><q-tooltip>Monter l’étape</q-tooltip></q-btn>
-            <q-btn v-if="mode === 'sequence' || mode === 'adaptive'" flat round dense size="sm" icon="arrow_downward" :disable="disabled || index === (node.children?.length || 0) - 1" :aria-label="`Descendre ${recipeLabel(child, components)}`" @click="emit('move', [...path, 'children', index], 1)"><q-tooltip>Descendre l’étape</q-tooltip></q-btn>
-            <q-btn flat round dense size="sm" icon="close" :disable="disabled" :aria-label="`Retirer ${recipeLabel(child, components)}`" @click="emit('remove', [...path, 'children', index])"><q-tooltip>Retirer l’étape</q-tooltip></q-btn>
+            <q-btn v-if="mode === 'sequence' || mode === 'adaptive'" flat round dense size="sm" icon="arrow_upward" :disable="disabled || index === 0" :aria-label="`Monter ${recipeLabel(child, components)}`" @click="emit('move', [...path, 'children', index], -1)"><q-tooltip>Move step up</q-tooltip></q-btn>
+            <q-btn v-if="mode === 'sequence' || mode === 'adaptive'" flat round dense size="sm" icon="arrow_downward" :disable="disabled || index === (node.children?.length || 0) - 1" :aria-label="`Descendre ${recipeLabel(child, components)}`" @click="emit('move', [...path, 'children', index], 1)"><q-tooltip>Move step down</q-tooltip></q-btn>
+            <q-btn flat round dense size="sm" icon="close" :disable="disabled" :aria-label="`Retirer ${recipeLabel(child, components)}`" @click="emit('remove', [...path, 'children', index])"><q-tooltip>Remove step</q-tooltip></q-btn>
           </div>
         </div>
       </div>
-      <q-btn v-if="!readonly" flat no-caps icon="add" :label="mode === 'choice' ? 'Ajouter une alternative' : 'Ajouter une étape'" :disable="disabled" class="flow-add" @click="emit('add', path)" />
+      <q-btn v-if="!readonly" flat no-caps icon="add" :label="mode === 'choice' ? 'Add alternative' : 'Add step'" :disable="disabled" class="flow-add" @click="emit('add', path)" />
     </div>
     <div v-if="node.recipe" v-show="expanded" class="flow-adaptive-recipe">
-      <span class="flow-relation">Selon les données</span>
+      <span class="flow-relation">Based on the data</span>
       <RecipeFlow :node="node.recipe" :path="[...path, 'recipe']" :selected-path="selectedPath" :components="components" :disabled="disabled" :readonly="readonly" :retained="retained" :depth="depth + 1" :initial-expanded-depth="initialExpandedDepth" @select="emit('select', $event)" @add="emit('add', $event)" @move="(p, direction) => emit('move', p, direction)" @remove="emit('remove', $event)" />
     </div>
   </div>

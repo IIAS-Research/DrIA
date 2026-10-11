@@ -70,15 +70,15 @@ let testController: AbortController | undefined;
 let previousAutoTitle = '';
 
 const steps = [
-  { title: 'Importer', icon: 'upload_file' },
-  { title: 'Prédire', icon: 'flag' },
-  { title: 'Regrouper', icon: 'group' },
-  { title: 'Informations', icon: 'view_column' },
-  { title: 'Évaluer', icon: 'fact_check' },
-  { title: 'Rechercher', icon: 'tune' },
-  { title: 'Lancer', icon: 'play_arrow' },
+  { title: 'Upload', icon: 'upload_file' },
+  { title: 'Predict', icon: 'flag' },
+  { title: 'Group', icon: 'group' },
+  { title: 'Features', icon: 'view_column' },
+  { title: 'Evaluate', icon: 'fact_check' },
+  { title: 'Search', icon: 'tune' },
+  { title: 'Start', icon: 'play_arrow' },
 ];
-const number = new Intl.NumberFormat('fr-FR');
+const number = new Intl.NumberFormat('en-US');
 const busy = computed(() => Boolean(props.submitting || validating.value));
 const columns = computed(() => dataset.value?.columns ?? []);
 const targetProfile = computed(() => dataset.value?.profiles[project.value.csvColumnToPredict]);
@@ -112,27 +112,27 @@ const roles = computed<Record<string, ProjectColumnAnnotation>>(() => Object.fro
   let annotation: ProjectColumnAnnotation;
   if (column === project.value.csvColumnToPredict) {
     annotation = predictionKind.value === 'survival'
-      ? { role: 'event', label: 'Événement', reason: eventChoice.value ? `L’événement observé correspond à ${eventOptions.value.find((option) => option.value === eventChoice.value)?.label}.` : 'Cette colonne indique si l’événement a été observé.' }
-      : { role: 'target', label: 'À prédire', reason: 'Le modèle apprendra à prédire cette colonne.' };
+      ? { role: 'event', label: 'Event', reason: eventChoice.value ? `The observed event corresponds to ${eventOptions.value.find((option) => option.value === eventChoice.value)?.label}.` : 'This column indicates whether the event was observed.' }
+      : { role: 'target', label: 'Target', reason: 'The model will learn to predict this column.' };
   } else if (predictionKind.value === 'survival' && column === project.value.survivalModeldatasetTargetTime) {
-    annotation = { role: 'time', label: 'Durée de suivi', reason: timeUnit.value ? `Durée exprimée en ${timeUnit.value}.` : 'Cette colonne contient la durée de suivi, dans l’unité utilisée par le fichier.' };
+    annotation = { role: 'time', label: 'Follow-up duration', reason: timeUnit.value ? `Duration measured in ${timeUnit.value}.` : 'This column contains the follow-up duration in the units used in the file.' };
   } else if (project.value.rowDepedenciesLinked.includes(column)) {
-    annotation = { role: 'group', label: 'Regroupement patient', reason: 'Ces observations restent ensemble lors des découpages. Cette colonne ne sert pas à prédire.' };
+    annotation = { role: 'group', label: 'Patient grouping', reason: 'These observations stay together when the data is split. This column is not used for prediction.' };
   } else if (exclusionReasons.value[column] === 'identifier') {
-    annotation = { role: 'identifier', label: 'Identifiant — exclu', reason: 'Cette colonne est un identifiant et sera exclue de l’apprentissage.' };
+    annotation = { role: 'identifier', label: 'Identifier — excluded', reason: 'This column is an identifier and will be excluded from training.' };
   } else if (exclusionReasons.value[column] === 'unavailable') {
-    annotation = { role: 'unavailable', label: 'Indisponible — exclu', reason: 'Cette information ne sera pas connue au moment de la prédiction.' };
+    annotation = { role: 'unavailable', label: 'Unavailable — excluded', reason: 'This information will not be available at prediction time.' };
   } else {
-    annotation = { role: 'predictor', label: 'Pour prédire', reason: 'Cette information pourra être utilisée pour la prédiction.' };
+    annotation = { role: 'predictor', label: 'Feature', reason: 'This information can be used for prediction.' };
   }
   return [column, annotation];
 })));
 const tableSelectable = computed(() => !busy.value && dataset.value?.isComplete && previewSource.value === 'train' && [2, 3, 4].includes(step.value));
 const activeColumns = computed(() => step.value === 2 ? [project.value.csvColumnToPredict].filter(Boolean)
   : step.value === 3 ? project.value.rowDepedenciesLinked : step.value === 4 ? selectedExclusions.value : []);
-const selectionHint = computed(() => step.value === 2 ? 'Cliquez sur le nom du résultat que vous souhaitez prédire.'
-  : step.value === 3 && repeatedPatients.value ? 'Cliquez sur la ou les colonnes qui permettent de reconnaître le même patient.'
-    : step.value === 4 ? `Cliquez sur les colonnes ${exclusionMode.value === 'identifier' ? 'qui sont des identifiants' : 'indisponibles au moment de la prédiction'} pour les exclure.` : '');
+const selectionHint = computed(() => step.value === 2 ? 'Click the name of the outcome you want to predict.'
+  : step.value === 3 && repeatedPatients.value ? 'Click the columns that identify the same patient.'
+    : step.value === 4 ? `Click columns ${exclusionMode.value === 'identifier' ? 'that contain identifiers' : 'unavailable at prediction time'} to exclude them.` : '');
 const visibleDataset = computed(() => previewSource.value === 'test' && testDataset.value ? testDataset.value : dataset.value);
 const visibleFile = computed(() => previewSource.value === 'test' ? testFile.value : uploadedFile.value);
 const statisticsRecipe = computed(() => advancedOpened.value ? (editor.value?.pipelineRefLocalComponent ?? pipeline.value)?.statistics : undefined);
@@ -144,51 +144,51 @@ const statisticsContext = computed(() => JSON.stringify([
 ]));
 const statisticsBlockedReason = computed(() => {
   const source = visibleDataset.value;
-  if (!source?.isComplete || !visibleFile.value) return 'Les analyses seront disponibles une fois le fichier entièrement lu.';
+  if (!source?.isComplete || !visibleFile.value) return 'Analyses will be available once the file has been fully read.';
   const target = source.profiles[project.value.csvColumnToPredict];
-  if (!target) return 'Choisissez le résultat à prédire à l’étape 2 pour accéder aux statistiques et graphiques.';
-  if (target.missingCount) return 'Complétez les valeurs manquantes du résultat à prédire avant de calculer ces analyses.';
-  if (target.nonFiniteCount) return 'Corrigez les valeurs non finies du résultat à prédire avant de calculer ces analyses.';
+  if (!target) return 'Choose the target column in step 2 to access statistics and charts.';
+  if (target.missingCount) return 'Fill in missing target values before calculating these analyses.';
+  if (target.nonFiniteCount) return 'Correct nonfinite target values before calculating these analyses.';
   if (predictionKind.value === 'survival') {
-    if (target.distinctValuesTruncated || target.distinctValues.length > 2) return 'La colonne d’événement doit distinguer l’événement observé et l’événement non observé.';
-    if (!eventOptions.value.some((option) => option.value === eventChoice.value)) return 'Précisez la valeur correspondant à l’événement observé à l’étape 2.';
+    if (target.distinctValuesTruncated || target.distinctValues.length > 2) return 'The event column must distinguish observed and unobserved events.';
+    if (!eventOptions.value.some((option) => option.value === eventChoice.value)) return 'Specify the value for the observed event in step 2.';
     const eventValue = JSON.parse(eventChoice.value) as TargetLabel;
-    if (!target.distinctValues.includes(eventValue)) return 'La valeur choisie pour l’événement observé est absente du fichier affiché. Les analyses de survie nécessitent au moins un événement observé dans ce fichier.';
+    if (!target.distinctValues.includes(eventValue)) return 'The selected observed-event value is absent from this file. Survival analyses require at least one observed event in the file.';
     const timeColumn = project.value.survivalModeldatasetTargetTime;
     const time = timeColumn ? source.profiles[timeColumn] : undefined;
-    if (!time || timeColumn === project.value.csvColumnToPredict) return 'Choisissez la colonne de durée de suivi à l’étape 2.';
-    if (time.type !== 'numeric' || time.missingCount || time.nonFiniteCount || (time.min ?? -1) < 0) return 'La durée de suivi doit être renseignée, finie et positive ou nulle pour chaque observation.';
+    if (!time || timeColumn === project.value.csvColumnToPredict) return 'Choose the follow-up duration column in step 2.';
+    if (time.type !== 'numeric' || time.missingCount || time.nonFiniteCount || (time.min ?? -1) < 0) return 'Follow-up duration must be present, finite, and nonnegative for every observation.';
   }
-  if (!predictorColumns.value.length) return 'Conservez au moins une information pour prédire afin de calculer ces analyses.';
-  if (project.value.rowDepedenciesLinked.some((column) => source.profiles[column]?.missingCount)) return 'Complétez les valeurs manquantes dans les colonnes de regroupement avant de calculer ces analyses.';
-  if (project.value.rowDepedenciesLinked.some((column) => source.profiles[column]?.nonFiniteCount)) return 'Corrigez les valeurs non finies dans les colonnes de regroupement avant de calculer ces analyses.';
-  if (predictorColumns.value.some((column) => source.profiles[column]?.nonFiniteCount)) return 'Corrigez ou excluez les informations contenant des valeurs non finies avant de calculer ces analyses.';
+  if (!predictorColumns.value.length) return 'Keep at least one feature for prediction to calculate these analyses.';
+  if (project.value.rowDepedenciesLinked.some((column) => source.profiles[column]?.missingCount)) return 'Fill in missing values in grouping columns before calculating these analyses.';
+  if (project.value.rowDepedenciesLinked.some((column) => source.profiles[column]?.nonFiniteCount)) return 'Correct nonfinite values in grouping columns before calculating these analyses.';
+  if (predictorColumns.value.some((column) => source.profiles[column]?.nonFiniteCount)) return 'Correct or exclude features with nonfinite values before calculating these analyses.';
   return '';
 });
 const priorityOptions = computed(() => {
   if (predictionKind.value === 'survival') return [
-    { value: 'recommended', label: 'Comparer les risques dans le temps', detail: 'Le critère recommandé évalue si le modèle classe correctement les observations selon leur risque.' },
+    { value: 'recommended', label: 'Compare risks over time', detail: 'The recommended metric measures how well the model ranks observations by risk.' },
   ];
   if (predictionKind.value === 'quantity') return [
-    { value: 'recommended', label: 'Réduire l’erreur moyenne', detail: 'Privilégier les prédictions les plus proches des valeurs réelles, en moyenne. Une erreur de 10 compte deux fois plus qu’une erreur de 5.' },
-    { value: 'mse', label: 'Donner plus de poids aux grandes erreurs', detail: 'Les prédictions très éloignées des valeurs réelles pèsent davantage dans le choix du modèle. Une erreur de 10 compte quatre fois plus qu’une erreur de 5.' },
+    { value: 'recommended', label: 'Reduce the average error', detail: 'Favor predictions closer to the actual values on average. An error of 10 counts twice as much as an error of 5.' },
+    { value: 'mse', label: 'Give larger errors more weight', detail: 'Predictions far from the actual values have more influence on model selection. An error of 10 counts four times as much as an error of 5.' },
   ];
   return [
-    { value: 'recommended', label: 'Bien reconnaître chaque catégorie', detail: 'Le critère recommandé accorde la même importance aux catégories, même si leurs effectifs diffèrent.' },
+    { value: 'recommended', label: 'Identify each category accurately', detail: 'The recommended metric gives each category equal importance, even when their sizes differ.' },
     ...(binaryTarget.value ? [
-      { value: 'recall', label: 'Repérer le plus possible de cas', detail: 'Privilégier la sensibilité pour la catégorie que vous souhaitez repérer.' },
-      { value: 'precision', label: 'Avoir des alertes plus fiables', detail: 'Privilégier la précision des alertes pour cette catégorie.' },
-      { value: 'f1', label: 'Équilibrer détection et fiabilité', detail: 'Rechercher un compromis entre la sensibilité et la précision.' },
+      { value: 'recall', label: 'Detect as many cases as possible', detail: 'Prioritize sensitivity for the category you want to detect.' },
+      { value: 'precision', label: 'Make alerts more reliable', detail: 'Prioritize the precision of alerts for this category.' },
+      { value: 'f1', label: 'Balance detection and reliability', detail: 'Find a balance between sensitivity and precision.' },
     ] : []),
   ];
 });
 const needsPositiveLabel = computed(() => predictionKind.value === 'category' && priority.value !== 'recommended');
 const hasPriorityChoice = computed(() => priorityOptions.value.length > 1);
-const predictionLabel = computed(() => ({ category: 'une catégorie', quantity: 'une quantité', survival: 'un événement au cours du temps' })[predictionKind.value]);
-const evaluationLabel = computed(() => ({ split: '80 % pour l’apprentissage, 20 % réservés au test final', external: 'Test final sur un fichier indépendant', cross_validation: 'Validation interne seule, sans test séparé' })[evaluationMode.value]);
+const predictionLabel = computed(() => ({ category: 'a category', quantity: 'a quantity', survival: 'an event over time' })[predictionKind.value]);
+const evaluationLabel = computed(() => ({ split: '80% for training, 20% for the holdout test set', external: 'Final test on an independent file', cross_validation: 'Internal validation only, without a separate test set' })[evaluationMode.value]);
 
 function scalarLabel(value: TargetLabel): string {
-  return typeof value === 'boolean' ? (value ? 'true (vrai)' : 'false (faux)') : String(value);
+  return typeof value === 'boolean' ? (value ? 'true' : 'false') : String(value);
 }
 
 function invalidateStatistics() {
@@ -238,7 +238,7 @@ async function readFile() {
   const file = uploadedFile.value;
   if (!file) return;
   if (file.size > 100 * 1024 * 1024) {
-    error.value = 'Le fichier ne doit pas dépasser 100 Mo.';
+    error.value = 'The file must not exceed 100 MB.';
     return;
   }
   const title = file.name.replace(/\.csv$/i, '').replace(/[_-]+/g, ' ').slice(0, 100);
@@ -285,11 +285,11 @@ async function readTestFile() {
     return;
   }
   if (file.size > 100 * 1024 * 1024) {
-    testError.value = 'Le fichier de test ne doit pas dépasser 100 Mo.';
+    testError.value = 'The test file must not exceed 100 MB.';
     return;
   }
   if (file.size + (uploadedFile.value?.size ?? 0) > 100 * 1024 * 1024) {
-    testError.value = 'Les fichiers d’apprentissage et de test réunis ne doivent pas dépasser 100 Mo.';
+    testError.value = 'Training and test files must not exceed 100 MB combined.';
     return;
   }
   const controller = new AbortController();
@@ -301,7 +301,7 @@ async function readTestFile() {
     const missing = columns.value.filter((column) => !result.columns.includes(column));
     const extra = result.columns.filter((column) => !columns.value.includes(column));
     if (missing.length || extra.length) {
-      throw new Error(`Le fichier de test doit contenir les mêmes colonnes.${missing.length ? ` Colonnes absentes : ${missing.join(', ')}.` : ''}${extra.length ? ` Colonnes supplémentaires : ${extra.join(', ')}.` : ''}`);
+      throw new Error(`The test file must contain the same columns.${missing.length ? ` Missing columns: ${missing.join(', ')}.` : ''}${extra.length ? ` Extra columns: ${extra.join(', ')}.` : ''}`);
     }
     testDataset.value = result;
     previewSource.value = 'test';
@@ -319,95 +319,95 @@ function selectColumn(column: string) {
   error.value = '';
   if (step.value === 2) {
     project.value.csvColumnToPredict = column;
-    feedback.value = `« ${column} » est le résultat que le modèle apprendra à prédire.`;
+    feedback.value = `“${column}” is the outcome the model will learn to predict.`;
     return;
   }
   if (step.value === 3) {
     if (!repeatedPatients.value) {
-      feedback.value = 'Indiquez d’abord si plusieurs lignes concernent le même patient.';
+      feedback.value = 'First, indicate whether multiple rows refer to the same patient.';
       return;
     }
     if (!featureColumns.value.includes(column)) {
-      error.value = 'Une colonne à prédire ne peut pas servir au regroupement des patients.';
+      error.value = 'A target column cannot be used to group patients.';
       return;
     }
     const selected = project.value.rowDepedenciesLinked;
     project.value.rowDepedenciesLinked = selected.includes(column) ? selected.filter((name) => name !== column) : [...selected, column];
-    feedback.value = 'Les observations d’un même patient resteront ensemble lors des découpages.';
+    feedback.value = 'Observations from the same patient will stay together when the data is split.';
     return;
   }
   if (!selectableFeatures.value.includes(column)) {
-    error.value = 'La cible, la durée de suivi et les colonnes de regroupement ont déjà un rôle distinct.';
+    error.value = 'The target, follow-up duration, and grouping columns already have a separate role.';
     return;
   }
   const reasons = { ...exclusionReasons.value };
   if (reasons[column] === exclusionMode.value) {
     delete reasons[column];
-    feedback.value = `« ${column} » sera de nouveau disponible pour la prédiction.`;
+    feedback.value = `“${column}” will be available for prediction again.`;
   } else {
     reasons[column] = exclusionMode.value;
     feedback.value = exclusionMode.value === 'identifier'
-      ? `« ${column} » est un identifiant et sera exclu de l’apprentissage.`
-      : `« ${column} » sera exclu : cette information ne sera pas connue au moment de la prédiction.`;
+      ? `“${column}” is an identifier and will be excluded from training.`
+      : `“${column}” will be excluded because it will not be available at prediction time.`;
   }
   exclusionReasons.value = reasons;
 }
 
 function selectionError(currentStep: number): string {
-  if (!uploadedFile.value || !dataset.value?.isComplete || readingFile.value) return 'Importez un fichier CSV et attendez la fin de son analyse.';
+  if (!uploadedFile.value || !dataset.value?.isComplete || readingFile.value) return 'Upload a CSV file and wait for its analysis to finish.';
   if (currentStep === 1) return '';
   if (currentStep === 2) {
     const profile = targetProfile.value;
-    if (!project.value.csvColumnToPredict || !profile) return 'Choisissez le résultat que vous souhaitez prédire.';
-    if (profile.missingCount) return 'La colonne à prédire contient des valeurs manquantes. Complétez-la ou retirez les observations concernées dans le fichier.';
-    if (profile.nonFiniteCount) return 'La colonne à prédire contient des valeurs non finies. Corrigez-les dans le fichier.';
-    if (profile.distinctValues.length < 2 && !profile.distinctValuesTruncated) return 'Le résultat à prédire doit contenir au moins deux valeurs différentes.';
-    if (predictionKind.value !== 'survival' && inferredKind.value !== predictionKind.value) return 'Le type de résultat choisi ne correspond pas aux valeurs de cette colonne. Choisissez le type proposé ou adaptez les valeurs de votre fichier.';
+    if (!project.value.csvColumnToPredict || !profile) return 'Choose the outcome you want to predict.';
+    if (profile.missingCount) return 'The target column has missing values. Fill them in or remove the affected observations from the file.';
+    if (profile.nonFiniteCount) return 'The target column has nonfinite values. Correct them in the file.';
+    if (profile.distinctValues.length < 2 && !profile.distinctValuesTruncated) return 'The target column must contain at least two different values.';
+    if (predictionKind.value !== 'survival' && inferredKind.value !== predictionKind.value) return 'The selected outcome type does not match the column values. Choose the suggested type or adjust the values in your file.';
     if (predictionKind.value === 'survival') {
-      if (profile.distinctValuesTruncated || profile.distinctValues.length !== 2) return 'La colonne d’événement doit distinguer deux situations : événement observé et événement non observé.';
-      if (!eventOptions.value.some((option) => option.value === eventChoice.value)) return 'Indiquez quelle valeur correspond à un événement observé.';
+      if (profile.distinctValuesTruncated || profile.distinctValues.length !== 2) return 'The event column must distinguish two states: event observed and event not observed.';
+      if (!eventOptions.value.some((option) => option.value === eventChoice.value)) return 'Indicate which value corresponds to an observed event.';
       const timeColumn = project.value.survivalModeldatasetTargetTime;
       const timeProfile = timeColumn ? dataset.value.profiles[timeColumn] : undefined;
-      if (!timeColumn || timeColumn === project.value.csvColumnToPredict) return 'Choisissez une colonne distincte contenant la durée de suivi.';
-      if (!timeProfile || timeProfile.type !== 'numeric' || timeProfile.missingCount || timeProfile.nonFiniteCount || (timeProfile.min ?? -1) < 0) return 'La durée de suivi doit contenir uniquement des nombres finis, positifs ou nuls, sans valeur manquante.';
+      if (!timeColumn || timeColumn === project.value.csvColumnToPredict) return 'Choose a separate column containing the follow-up duration.';
+      if (!timeProfile || timeProfile.type !== 'numeric' || timeProfile.missingCount || timeProfile.nonFiniteCount || (timeProfile.min ?? -1) < 0) return 'Follow-up duration must contain only finite, nonnegative numbers, with no missing values.';
     }
     return '';
   }
   if (currentStep === 3) {
-    if (repeatedPatients.value === null) return 'Indiquez si plusieurs lignes concernent le même patient.';
-    if (repeatedPatients.value && !project.value.rowDepedenciesLinked.length) return 'Choisissez la colonne qui permet de reconnaître le même patient.';
-    if (project.value.rowDepedenciesLinked.some((column) => !featureColumns.value.includes(column))) return 'Les colonnes de regroupement doivent être distinctes des colonnes à prédire.';
-    if (project.value.rowDepedenciesLinked.some((column) => dataset.value?.profiles[column]?.missingCount)) return 'Complétez les identifiants de regroupement manquants avant de lancer l’étude.';
+    if (repeatedPatients.value === null) return 'Indicate whether multiple rows refer to the same patient.';
+    if (repeatedPatients.value && !project.value.rowDepedenciesLinked.length) return 'Choose the column that identifies the same patient.';
+    if (project.value.rowDepedenciesLinked.some((column) => !featureColumns.value.includes(column))) return 'Grouping columns must be separate from target columns.';
+    if (project.value.rowDepedenciesLinked.some((column) => dataset.value?.profiles[column]?.missingCount)) return 'Fill in missing group identifiers before starting the study.';
     if (repeatedPatients.value && project.value.rowDepedenciesLinked.length === 1
-      && dataset.value.profiles[project.value.rowDepedenciesLinked[0]].distinctValues.length < 2) return 'Au moins deux groupes distincts sont nécessaires pour séparer les observations.';
+      && dataset.value.profiles[project.value.rowDepedenciesLinked[0]].distinctValues.length < 2) return 'At least two distinct groups are needed to split the observations.';
     return '';
   }
   if (currentStep === 4) {
-    if (!predictorColumns.value.length) return 'Conservez au moins une information disponible pour la prédiction.';
-    if (predictorColumns.value.some((column) => dataset.value?.profiles[column]?.nonFiniteCount)) return 'Certaines informations retenues contiennent des valeurs non finies. Corrigez ces valeurs dans le fichier ou excluez les colonnes concernées.';
+    if (!predictorColumns.value.length) return 'Keep at least one available feature for prediction.';
+    if (predictorColumns.value.some((column) => dataset.value?.profiles[column]?.nonFiniteCount)) return 'Some selected features have nonfinite values. Correct these values in the file or exclude the affected columns.';
     return '';
   }
   if (currentStep === 5) {
     if (evaluationMode.value !== 'external') return '';
-    if (readingTestFile.value || !testDataset.value?.isComplete || !testFile.value) return testError.value || 'Importez le fichier de test et attendez la fin de son analyse.';
+    if (readingTestFile.value || !testDataset.value?.isComplete || !testFile.value) return testError.value || 'Upload the test file and wait for its analysis to finish.';
     const profile = testDataset.value.profiles[project.value.csvColumnToPredict];
-    if (!profile || profile.missingCount || profile.nonFiniteCount) return 'Le résultat attendu doit être renseigné et fini pour chaque observation du fichier de test.';
+    if (!profile || profile.missingCount || profile.nonFiniteCount) return 'The expected outcome must be present and finite for every observation in the test file.';
     if (predictionKind.value === 'survival') {
       const timeProfile = testDataset.value.profiles[project.value.survivalModeldatasetTargetTime ?? ''];
-      if (!timeProfile || timeProfile.type !== 'numeric' || timeProfile.missingCount || timeProfile.nonFiniteCount || (timeProfile.min ?? -1) < 0) return 'Le fichier de test doit contenir des durées de suivi finies, positives ou nulles, sans valeur manquante.';
-      if (profile.distinctValuesTruncated || profile.distinctValues.some((value) => !targetProfile.value?.distinctValues.some((known) => known === value))) return 'Le fichier de test utilise des valeurs d’événement différentes de celles du fichier d’apprentissage.';
+      if (!timeProfile || timeProfile.type !== 'numeric' || timeProfile.missingCount || timeProfile.nonFiniteCount || (timeProfile.min ?? -1) < 0) return 'The test file must contain finite, nonnegative follow-up durations, with no missing values.';
+      if (profile.distinctValuesTruncated || profile.distinctValues.some((value) => !targetProfile.value?.distinctValues.some((known) => known === value))) return 'The test file uses event values different from those in the training file.';
     } else if (predictionKind.value === 'category' && (profile.distinctValuesTruncated
-      || profile.distinctValues.some((value) => !targetProfile.value?.distinctValues.some((known) => known === value)))) return 'Le fichier de test contient une catégorie du résultat absente du fichier d’apprentissage.';
+      || profile.distinctValues.some((value) => !targetProfile.value?.distinctValues.some((known) => known === value)))) return 'The test file contains an outcome category absent from the training file.';
     return '';
   }
   if (currentStep === 6) {
-    if (!priorityOptions.value.some((option) => option.value === priority.value)) return 'Choisissez une priorité adaptée à votre résultat.';
-    if (needsPositiveLabel.value && (!binaryTarget.value || !eventOptions.value.some((option) => option.value === positiveChoice.value))) return 'Choisissez la catégorie correspondant aux cas que vous souhaitez repérer.';
-    if (!Number.isInteger(searchDuration.value) || searchDuration.value < 60 || searchDuration.value > 3600) return 'Choisissez un temps de recherche compris entre 1 et 60 minutes.';
+    if (!priorityOptions.value.some((option) => option.value === priority.value)) return 'Choose a priority suitable for your outcome.';
+    if (needsPositiveLabel.value && (!binaryTarget.value || !eventOptions.value.some((option) => option.value === positiveChoice.value))) return 'Choose the category for the cases you want to detect.';
+    if (!Number.isInteger(searchDuration.value) || searchDuration.value < 60 || searchDuration.value > 3600) return 'Choose a search duration between 1 and 60 minutes.';
     return '';
   }
-  if (!project.value.title.trim()) return 'Donnez un nom à votre projet.';
-  if (!pipeline.value) return 'La configuration DrIA est indisponible. Réessayez lorsque le service est accessible.';
+  if (!project.value.title.trim()) return 'Enter a project name.';
+  if (!pipeline.value) return 'DrIA configuration is unavailable. Try again when the service is accessible.';
   return '';
 }
 
@@ -446,7 +446,7 @@ async function next() {
   validating.value = true;
   try {
     const editedStudy = editor.value?.getConfiguration ? editor.value.getConfiguration() : (editor.value?.pipelineRefLocalComponent ?? pipeline.value);
-    if (!editedStudy) throw new Error('Corrigez la configuration avancée avant de lancer l’apprentissage.');
+    if (!editedStudy) throw new Error('Correct the advanced configuration before starting training.');
     const guidedStudy = buildGuidedStudy(editedStudy, {
       predictionKind: predictionKind.value,
       priority: priority.value,
@@ -486,7 +486,7 @@ async function loadStudy() {
   studyError.value = '';
   try {
     pipeline.value = await getDefaultPipeline();
-    if (!pipeline.value && userStore.isUserConnected) studyError.value = 'La configuration DrIA est indisponible. Vérifiez le service puis réessayez.';
+    if (!pipeline.value && userStore.isUserConnected) studyError.value = 'DrIA configuration is unavailable. Check the service and try again.';
   } finally {
     loadingStudy.value = false;
   }
@@ -517,7 +517,7 @@ async function loadNativePlot(plan: NativeDataPlotPlan, signal: AbortSignal): Pr
   const body = statisticsBody();
   const source = visibleDataset.value;
   if (!body || !source || !plan.columns.length || plan.columns.some((column) => !predictorColumns.value.includes(column)))
-    throw new Error(statisticsBlockedReason.value || 'Cette sélection de données n’est plus disponible.');
+    throw new Error(statisticsBlockedReason.value || 'This data selection is no longer available.');
   // IAML's image titles do not identify the source column. Request only the
   // chosen inputs so a native plot can be attached without guessing its origin.
   const retained = new Set([
@@ -631,7 +631,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="guided-project project-creation-colors" :class="{ 'q-mt-lg': dataset }" aria-label="Création guidée d’un projet">
+  <section class="guided-project project-creation-colors" :class="{ 'q-mt-lg': dataset }" aria-label="Guided project creation">
     <ProjectFileUpload
       v-if="!dataset"
       :loading="readingFile"
@@ -645,12 +645,12 @@ onUnmounted(() => {
     <template v-else>
       <div class="wizard-heading q-mb-md">
         <div>
-          <h1 class="text-h5 text-primary q-my-none">Préparer votre étude</h1>
-          <p class="text-grey-7 q-mt-xs q-mb-none">Répondez aux questions pour préparer votre étude. Vos données restent disponibles à chaque étape.</p>
+          <h1 class="text-h5 text-primary q-my-none">Prepare your study</h1>
+          <p class="text-grey-7 q-mt-xs q-mb-none">Answer the questions to prepare your study. Your data remains available at every step.</p>
         </div>
-        <span class="step-counter text-caption text-grey-7">Étape {{ step }} sur 7</span>
+        <span class="step-counter text-caption text-grey-7">Step {{ step }} of 7</span>
       </div>
-      <nav class="wizard-steps q-mb-md" aria-label="Étapes de création">
+      <nav class="wizard-steps q-mb-md" aria-label="Project creation steps">
         <button
           v-for="(item, index) in steps"
           :key="item.title"
@@ -659,14 +659,14 @@ onUnmounted(() => {
           :class="{ 'current-step': step === index + 1, 'visited-step': furthestStep > index + 1 }"
           :disabled="index + 1 > furthestStep || busy"
           :aria-current="step === index + 1 ? 'step' : undefined"
-          :aria-label="`Étape ${index + 1} : ${item.title}`"
+          :aria-label="`Step ${index + 1}: ${item.title}`"
           @click="moveTo(index + 1)"
         >
           <span class="step-number"><q-icon v-if="furthestStep > index + 1 && step !== index + 1" name="check" size="16px" /><template v-else>{{ index + 1 }}</template></span>
           <span class="step-name">{{ item.title }}</span>
         </button>
       </nav>
-      <q-linear-progress :value="step / 7" color="accent" size="4px" rounded class="q-mb-lg" aria-label="Progression du questionnaire" />
+      <q-linear-progress :value="step / 7" color="accent" size="4px" rounded class="q-mb-lg" aria-label="Questionnaire progress" />
 
       <div class="creation-layout">
         <div ref="questionCard" class="question-panel">
@@ -674,146 +674,146 @@ onUnmounted(() => {
             <div class="question-guidance">
               <span class="question-guidance-icon"><q-icon :name="steps[step - 1].icon" size="23px" aria-hidden="true" /></span>
               <div>
-                <div class="question-guidance-title">{{ !dataset?.isComplete ? 'Lecture de votre fichier' : step === 2 && !project.csvColumnToPredict ? 'Commencez ici' : 'Votre prochaine étape' }}</div>
-                <div class="question-guidance-step">{{ steps[step - 1].title }} · Étape {{ step }} sur 7</div>
+                <div class="question-guidance-title">{{ !dataset?.isComplete ? 'Reading your file' : step === 2 && !project.csvColumnToPredict ? 'Start here' : 'Your next step' }}</div>
+                <div class="question-guidance-step">{{ steps[step - 1].title }} · Step {{ step }} of 7</div>
               </div>
             </div>
             <q-form ref="questionForm" class="q-pa-lg" @submit.prevent="next">
               <template v-if="step === 1">
-                <h2 class="question-title" tabindex="-1">Quel fichier contient vos observations ?</h2>
-                <p class="question-help">Importez un fichier CSV : une observation par ligne et un nom pour chaque colonne.</p>
-                <q-file v-model="uploadedFile" filled clearable color="primary" label="Importer mes données" accept=".csv,text/csv" :max-file-size="100 * 1024 * 1024" :disable="busy" @rejected="error = 'Le fichier ne doit pas dépasser 100 Mo.'">
+                <h2 class="question-title" tabindex="-1">Which file contains your observations?</h2>
+                <p class="question-help">Upload a CSV file with one observation per row and a name for each column.</p>
+                <q-file v-model="uploadedFile" filled clearable color="primary" label="Upload my data" accept=".csv,text/csv" :max-file-size="100 * 1024 * 1024" :disable="busy" @rejected="error = 'The file must not exceed 100 MB.'">
                   <template #prepend><q-icon name="upload_file" /></template>
                 </q-file>
-                <div v-if="readingFile" class="row items-center text-caption text-grey-7 q-mt-md" role="status"><q-spinner color="primary" size="20px" class="q-mr-sm" />Analyse de toutes les observations…</div>
-                <div v-else-if="dataset?.isComplete" class="file-success q-mt-md" role="status"><q-icon name="check_circle" color="secondary" class="q-mr-xs" /> {{ number.format(dataset.rowCount) }} observations prêtes à explorer.</div>
-                <p class="question-note q-mt-md">Le tableau apparaît dès les premières lignes lues. Vous le verrez évoluer avec vos réponses.</p>
+                <div v-if="readingFile" class="row items-center text-caption text-grey-7 q-mt-md" role="status"><q-spinner color="primary" size="20px" class="q-mr-sm" />Analyzing all observations…</div>
+                <div v-else-if="dataset?.isComplete" class="file-success q-mt-md" role="status"><q-icon name="check_circle" color="secondary" class="q-mr-xs" /> {{ number.format(dataset.rowCount) }} observations ready to explore.</div>
+                <p class="question-note q-mt-md">The table appears as soon as the first rows are read. It will update as you answer the questions.</p>
               </template>
 
               <template v-else-if="step === 2">
-                <h2 class="question-title" tabindex="-1">Quel résultat souhaitez-vous prédire ?</h2>
-                <p class="question-help">Choisissez sa colonne dans la liste ou directement dans le tableau.</p>
-                <q-select v-model="project.csvColumnToPredict" :options="columns" filled label="Résultat à prédire" :disable="busy" popup-content-class="project-creation-colors" />
+                <h2 class="question-title" tabindex="-1">What outcome would you like to predict?</h2>
+                <p class="question-help">Choose its column from the list or directly in the table.</p>
+                <q-select v-model="project.csvColumnToPredict" :options="columns" filled label="Target column" :disable="busy" popup-content-class="project-creation-colors" />
                 <template v-if="project.csvColumnToPredict">
                   <div v-if="inferredKind && !survivalAnalysis" class="answer-feedback q-mt-md">
-                    <strong>{{ inferredKind === 'category' ? 'Prédiction d’une catégorie' : 'Prédiction d’une quantité' }}</strong>
-                    <div>{{ inferredKind === 'category' ? 'DrIA apprendra à reconnaître les catégories présentes dans cette colonne.' : 'DrIA apprendra à estimer la valeur numérique de cette colonne.' }} Le type est détecté à partir des valeurs du fichier.</div>
+                    <strong>{{ inferredKind === 'category' ? 'Predicting a category' : 'Predicting a quantity' }}</strong>
+                    <div>{{ inferredKind === 'category' ? 'DrIA will learn to identify the categories in this column.' : 'DrIA will learn to estimate the numerical value in this column.' }} The type is detected from the values in the file.</div>
                   </div>
                   <template v-if="survivalEligible">
-                    <q-toggle v-model="survivalAnalysis" color="primary" label="Étudier cet événement au cours du temps (analyse de survie)" :disable="busy" class="q-mt-md" />
-                    <p class="question-note q-mt-xs">À activer si ces deux valeurs indiquent si un événement a été observé, par exemple une rechute. La durée de suivi sera choisie dans une autre colonne.</p>
+                    <q-toggle v-model="survivalAnalysis" color="primary" label="Study this event over time (survival analysis)" :disable="busy" class="q-mt-md" />
+                    <p class="question-note q-mt-xs">Enable this if the two values indicate whether an event was observed, such as a relapse. You will choose the follow-up duration from another column.</p>
                   </template>
                   <template v-if="predictionKind === 'survival'">
-                    <p class="question-note q-mt-md">La colonne choisie indique si l’événement a été observé. L’autre valeur signifie qu’il n’a pas été observé pendant le suivi.</p>
-                    <q-select v-model="eventChoice" :options="eventOptions" filled emit-value map-options label="Quelle valeur signifie « événement observé » ?" :disable="busy" class="q-mt-md" popup-content-class="project-creation-colors" />
-                    <q-select v-model="project.survivalModeldatasetTargetTime" :options="columns.filter(column => column !== project.csvColumnToPredict)" filled label="Quelle colonne contient la durée de suivi ?" :disable="busy" class="q-mt-md" popup-content-class="project-creation-colors" />
-                    <q-select v-model="timeUnit" :options="['jours', 'semaines', 'mois', 'années', 'heures']" filled clearable label="Unité affichée dans le bilan (facultative)" :disable="busy" class="q-mt-md" popup-content-class="project-creation-colors" />
-                    <p class="question-note q-mt-sm">Les durées sont utilisées telles qu’elles figurent dans le fichier. L’unité sert à lire le bilan, sans convertir les valeurs.</p>
+                    <p class="question-note q-mt-md">The selected column indicates whether the event was observed. The other value means it was not observed during follow-up.</p>
+                    <q-select v-model="eventChoice" :options="eventOptions" filled emit-value map-options label="Which value means “event observed”?" :disable="busy" class="q-mt-md" popup-content-class="project-creation-colors" />
+                    <q-select v-model="project.survivalModeldatasetTargetTime" :options="columns.filter(column => column !== project.csvColumnToPredict)" filled label="Which column contains the follow-up duration?" :disable="busy" class="q-mt-md" popup-content-class="project-creation-colors" />
+                    <q-select v-model="timeUnit" :options="['days', 'weeks', 'months', 'years', 'hours']" filled clearable label="Unit displayed in the summary (optional)" :disable="busy" class="q-mt-md" popup-content-class="project-creation-colors" />
+                    <p class="question-note q-mt-sm">Durations are used as stored in the file. The unit helps read the summary and does not convert values.</p>
                   </template>
                 </template>
               </template>
 
               <template v-else-if="step === 3">
-                <h2 class="question-title" tabindex="-1">Plusieurs lignes concernent-elles le même patient ?</h2>
-                <p class="question-help">Si un patient apparaît plusieurs fois, ses lignes doivent rester ensemble. Cela évite de tester le modèle sur un patient déjà vu pendant l’apprentissage.</p>
-                <q-option-group v-model="repeatedPatients" :options="[{ label: 'Oui', value: true }, { label: 'Non', value: false }]" inline color="primary" :disable="busy" />
+                <h2 class="question-title" tabindex="-1">Do multiple rows refer to the same patient?</h2>
+                <p class="question-help">If a patient appears more than once, their rows must stay together. This avoids testing the model on a patient already seen during training.</p>
+                <q-option-group v-model="repeatedPatients" :options="[{ label: 'Yes', value: true }, { label: 'No', value: false }]" inline color="primary" :disable="busy" />
                 <template v-if="repeatedPatients">
-                  <q-select v-model="project.rowDepedenciesLinked" :options="featureColumns" multiple use-chips filled label="Quelle colonne permet de reconnaître le même patient ?" :disable="busy" class="q-mt-md" popup-content-class="project-creation-colors" />
-                  <p class="question-note q-mt-sm">Ses observations resteront ensemble lors des découpages. Ce repère sera exclu des informations utilisées pour prédire.</p>
-                  <p class="question-note">Si l’identifiant dépend de plusieurs colonnes, sélectionnez-les toutes : leur combinaison désignera un groupe.</p>
+                  <q-select v-model="project.rowDepedenciesLinked" :options="featureColumns" multiple use-chips filled label="Which column identifies the same patient?" :disable="busy" class="q-mt-md" popup-content-class="project-creation-colors" />
+                  <p class="question-note q-mt-sm">Their observations will stay together when the data is split. This identifier will be excluded from the features used for prediction.</p>
+                  <p class="question-note">If the identifier depends on multiple columns, select all of them. Their combination will identify a group.</p>
                 </template>
-                <p v-else-if="repeatedPatients === false" class="question-note q-mt-md">DrIA pourra répartir les lignes séparément entre apprentissage et évaluation.</p>
+                <p v-else-if="repeatedPatients === false" class="question-note q-mt-md">DrIA can assign rows independently to training and evaluation sets.</p>
               </template>
 
               <template v-else-if="step === 4">
-                <h2 class="question-title" tabindex="-1">Quelles colonnes faut-il retirer de l’apprentissage ?</h2>
-                <p class="question-help">Retirez les identifiants et les informations qui ne seront pas disponibles quand le modèle devra prédire. Pour une prédiction à l’admission, un résultat obtenu à la sortie arrive trop tard.</p>
-                <q-btn-toggle v-model="exclusionMode" no-caps unelevated color="grey-2" text-color="grey-8" toggle-color="primary" :options="[{ label: 'Identifiants', value: 'identifier' }, { label: 'Informations indisponibles', value: 'unavailable' }]" :disable="busy" class="exclusion-toggle q-mt-sm" />
-                <p class="question-note q-mt-sm">{{ exclusionMode === 'identifier' ? 'Par exemple : numéro de dossier, nom du patient. Les colonnes de regroupement sont déjà exclues des prédicteurs.' : 'Par exemple : un examen réalisé après la décision ou une information qui révèle déjà le résultat à prédire.' }}</p>
-                <q-select v-model="selectedExclusions" :options="selectableFeatures" multiple use-chips filled :label="exclusionMode === 'identifier' ? 'Colonnes contenant des identifiants' : 'Informations connues trop tard'" :disable="busy" class="q-mt-md" popup-content-class="project-creation-colors" />
-                <p class="question-note q-mt-sm">Vous pouvez aussi cliquer sur les colonnes dans le tableau. Un second clic annule leur exclusion.</p>
+                <h2 class="question-title" tabindex="-1">Which columns should be excluded from training?</h2>
+                <p class="question-help">Remove identifiers and information unavailable at prediction time. For a prediction at admission, a result obtained at discharge comes too late.</p>
+                <q-btn-toggle v-model="exclusionMode" no-caps unelevated color="grey-2" text-color="grey-8" toggle-color="primary" :options="[{ label: 'Identifiers', value: 'identifier' }, { label: 'Unavailable information', value: 'unavailable' }]" :disable="busy" class="exclusion-toggle q-mt-sm" />
+                <p class="question-note q-mt-sm">{{ exclusionMode === 'identifier' ? 'For example: a record number or patient name. Grouping columns are already excluded from the features.' : 'For example: a test performed after the decision, or information that already reveals the outcome to predict.' }}</p>
+                <q-select v-model="selectedExclusions" :options="selectableFeatures" multiple use-chips filled :label="exclusionMode === 'identifier' ? 'Columns containing identifiers' : 'Information available too late'" :disable="busy" class="q-mt-md" popup-content-class="project-creation-colors" />
+                <p class="question-note q-mt-sm">You can also click columns in the table. Click again to undo their exclusion.</p>
                 <div v-if="Object.keys(exclusionReasons).length" class="excluded-list q-mt-md">
                   <div v-for="(reason, column) in exclusionReasons" :key="column" class="excluded-item">
-                    <span><strong>{{ column }}</strong><small>{{ reason === 'identifier' ? 'Identifiant' : 'Indisponible au moment de la prédiction' }}</small></span>
-                    <q-btn flat round dense size="sm" icon="close" color="grey-7" :aria-label="`Utiliser de nouveau ${column}`" :disable="busy" @click="exclusionReasons = Object.fromEntries(Object.entries(exclusionReasons).filter(([name]) => name !== column))" />
+                    <span><strong>{{ column }}</strong><small>{{ reason === 'identifier' ? 'Identifier' : 'Unavailable at prediction time' }}</small></span>
+                    <q-btn flat round dense size="sm" icon="close" color="grey-7" :aria-label="`Use ${column} again`" :disable="busy" @click="exclusionReasons = Object.fromEntries(Object.entries(exclusionReasons).filter(([name]) => name !== column))" />
                   </div>
                 </div>
-                <div class="file-success q-mt-md">{{ predictorColumns.length }} information{{ predictorColumns.length > 1 ? 's' : '' }} conservée{{ predictorColumns.length > 1 ? 's' : '' }} pour prédire.</div>
+                <div class="file-success q-mt-md">{{ predictorColumns.length }} feature{{ predictorColumns.length > 1 ? 's' : '' }} kept for prediction.</div>
               </template>
 
               <template v-else-if="step === 5">
-                <h2 class="question-title" tabindex="-1">Quelles données réserver au test final ?</h2>
-                <p class="question-help">Un test final mesure les performances sur des données tenues à l’écart de la recherche du modèle.</p>
+                <h2 class="question-title" tabindex="-1">Which data should be reserved for the final test?</h2>
+                <p class="question-help">A final test measures performance on data kept separate from the model search.</p>
                 <div class="answer-options">
                   <label class="answer-option" :class="{ selected: evaluationMode === 'split' }">
-                    <q-radio v-model="evaluationMode" val="split" color="primary" :disable="busy" label="Réserver automatiquement 20 % des données" />
-                    <span>DrIA utilise 80 % des données pour rechercher le modèle et garde 20 % pour son test final.<q-badge outline color="secondary" class="q-ml-xs">Recommandé</q-badge></span>
+                    <q-radio v-model="evaluationMode" val="split" color="primary" :disable="busy" label="Automatically reserve 20% of the data" />
+                    <span>DrIA uses 80% of the data to search for a model and keeps 20% for the final test.<q-badge outline color="secondary" class="q-ml-xs">Recommended</q-badge></span>
                   </label>
                   <label class="answer-option" :class="{ selected: evaluationMode === 'external' }">
-                    <q-radio v-model="evaluationMode" val="external" color="primary" :disable="busy" label="Utiliser un autre fichier pour le test" />
-                    <span>Un fichier indépendant contenant les mêmes colonnes et les résultats attendus.</span>
+                    <q-radio v-model="evaluationMode" val="external" color="primary" :disable="busy" label="Use another file for the test" />
+                    <span>An independent file containing the same columns and expected outcomes.</span>
                   </label>
                   <label class="answer-option" :class="{ selected: evaluationMode === 'cross_validation' }">
-                    <q-radio v-model="evaluationMode" val="cross_validation" color="primary" :disable="busy" label="Ne pas réserver de test séparé" />
-                    <span>Toutes les données restent disponibles pour la recherche. Les scores proviennent de la validation interne définie dans les réglages.</span>
+                    <q-radio v-model="evaluationMode" val="cross_validation" color="primary" :disable="busy" label="Use no separate test set" />
+                    <span>All data remains available for the search. Scores come from the internal validation defined in the settings.</span>
                   </label>
                 </div>
-                <p v-if="repeatedPatients" class="question-note q-mt-md">Les observations d’un même patient restent ensemble lors des découpages.</p>
+                <p v-if="repeatedPatients" class="question-note q-mt-md">Observations from the same patient stay together when the data is split.</p>
                 <template v-if="evaluationMode === 'external'">
-                  <q-file v-model="testFile" filled clearable label="Importer le fichier de test" accept=".csv,text/csv" :max-file-size="100 * 1024 * 1024" :disable="busy" class="q-mt-md" @rejected="testError = 'Le fichier de test ne doit pas dépasser 100 Mo.'">
+                  <q-file v-model="testFile" filled clearable label="Upload the test file" accept=".csv,text/csv" :max-file-size="100 * 1024 * 1024" :disable="busy" class="q-mt-md" @rejected="testError = 'The test file must not exceed 100 MB.'">
                     <template #prepend><q-icon name="upload_file" /></template>
                   </q-file>
-                  <div v-if="readingTestFile" class="row items-center text-caption text-grey-7 q-mt-sm" role="status"><q-spinner color="primary" size="18px" class="q-mr-sm" />Analyse du fichier de test…</div>
+                  <div v-if="readingTestFile" class="row items-center text-caption text-grey-7 q-mt-sm" role="status"><q-spinner color="primary" size="18px" class="q-mr-sm" />Analyzing the test file…</div>
                   <div v-if="testError" class="text-caption text-negative q-mt-sm" role="alert">{{ testError }}</div>
-                  <div v-if="testDataset" class="file-success q-mt-sm">{{ number.format(testDataset.rowCount) }} observations disponibles pour le test.</div>
+                  <div v-if="testDataset" class="file-success q-mt-sm">{{ number.format(testDataset.rowCount) }} observations available for testing.</div>
                 </template>
               </template>
 
               <template v-else-if="step === 6">
-                <h2 class="question-title" tabindex="-1">Comment orienter la recherche du modèle ?</h2>
-                <p class="question-help">Définissez {{ hasPriorityChoice ? 'le critère à privilégier et ' : '' }}le temps maximal consacré à la recherche.</p>
-                <div v-if="hasPriorityChoice" class="field-label q-mb-sm">{{ predictionKind === 'quantity' ? 'Comment souhaitez-vous évaluer les erreurs de prédiction ?' : 'Quelle erreur souhaitez-vous limiter en priorité ?' }}</div>
-                <p v-if="predictionKind === 'quantity'" class="question-note q-mb-sm">Une erreur est l’écart entre la valeur prédite et la valeur réelle, dans l’unité de vos données.</p>
+                <h2 class="question-title" tabindex="-1">How should the model search be guided?</h2>
+                <p class="question-help">Set {{ hasPriorityChoice ? 'the metric to prioritize and ' : '' }}the maximum time for the search.</p>
+                <div v-if="hasPriorityChoice" class="field-label q-mb-sm">{{ predictionKind === 'quantity' ? 'How would you like to evaluate prediction errors?' : 'Which error would you like to reduce first?' }}</div>
+                <p v-if="predictionKind === 'quantity'" class="question-note q-mb-sm">An error is the difference between the predicted and actual value, in the units of your data.</p>
                 <div v-if="hasPriorityChoice" class="answer-options">
                   <label v-for="option in priorityOptions" :key="option.value" class="answer-option" :class="{ selected: priority === option.value }">
                     <q-radio v-model="priority" :val="option.value" color="primary" :disable="busy" :label="option.label" />
-                    <span>{{ option.detail }}<q-badge v-if="option.value === 'recommended'" outline color="secondary" class="q-ml-xs">Recommandé</q-badge></span>
+                    <span>{{ option.detail }}<q-badge v-if="option.value === 'recommended'" outline color="secondary" class="q-ml-xs">Recommended</q-badge></span>
                   </label>
                 </div>
                 <div v-else class="answer-feedback">
-                  <strong>Critère automatique : {{ priorityOptions[0].label }}</strong>
+                  <strong>Automatic metric: {{ priorityOptions[0].label }}</strong>
                   <div>{{ priorityOptions[0].detail }}</div>
                 </div>
-                <q-select v-if="needsPositiveLabel" v-model="positiveChoice" :options="eventOptions" filled emit-value map-options label="Quelle catégorie correspond aux cas à repérer ?" :disable="busy" class="q-mt-md" popup-content-class="project-creation-colors" />
-                <p v-if="hasPriorityChoice" class="question-note q-mt-sm">Ce critère sert à choisir le modèle pendant la recherche. Les autres scores restent disponibles dans les résultats.</p>
-                <q-select v-model="searchDuration" filled emit-value map-options label="Temps maximal de recherche du modèle" :options="[{ label: '1 minute - essai rapide', value: 60 }, { label: '5 minutes', value: 300 }, { label: '15 minutes', value: 900 }, { label: '30 minutes', value: 1800 }, { label: '60 minutes', value: 3600 }]" :disable="busy" class="q-mt-lg" popup-content-class="project-creation-colors" />
-                <p class="question-note q-mt-sm">Un temps plus long permet d’explorer davantage de réglages. L’évaluation finale peut se poursuivre après cette recherche.</p>
+                <q-select v-if="needsPositiveLabel" v-model="positiveChoice" :options="eventOptions" filled emit-value map-options label="Which category represents the cases to detect?" :disable="busy" class="q-mt-md" popup-content-class="project-creation-colors" />
+                <p v-if="hasPriorityChoice" class="question-note q-mt-sm">This metric is used to select the model during the search. Other scores remain available in the results.</p>
+                <q-select v-model="searchDuration" filled emit-value map-options label="Maximum model search duration" :options="[{ label: '1 minute - quick trial', value: 60 }, { label: '5 minutes', value: 300 }, { label: '15 minutes', value: 900 }, { label: '30 minutes', value: 1800 }, { label: '60 minutes', value: 3600 }]" :disable="busy" class="q-mt-lg" popup-content-class="project-creation-colors" />
+                <p class="question-note q-mt-sm">More time allows more settings to be explored. Final evaluation may continue after the search ends.</p>
               </template>
 
               <template v-else>
-                <h2 class="question-title" tabindex="-1">Voici ce que Dr IA va apprendre</h2>
-                <p class="question-help">Vérifiez votre objectif, puis lancez la recherche.</p>
+                <h2 class="question-title" tabindex="-1">What DrIA will learn</h2>
+                <p class="question-help">Check your objective, then start the search.</p>
                 <dl class="study-summary">
-                  <div><dt>À prédire</dt><dd>{{ project.csvColumnToPredict }} · {{ predictionLabel }}</dd></div>
-                  <div v-if="predictionKind === 'survival'"><dt>Suivi</dt><dd>{{ project.survivalModeldatasetTargetTime }}<template v-if="timeUnit"> en {{ timeUnit }}</template><br>Événement observé : {{ eventOptions.find(option => option.value === eventChoice)?.label }}</dd></div>
-                  <div><dt>Observations</dt><dd>{{ number.format(dataset?.rowCount ?? 0) }} lignes<br><template v-if="repeatedPatients">Regroupement : {{ project.rowDepedenciesLinked.join(', ') }}</template><template v-else>Lignes réparties séparément</template></dd></div>
-                  <div><dt>Informations</dt><dd>{{ predictorColumns.length }} retenue{{ predictorColumns.length > 1 ? 's' : '' }}, {{ Object.keys(exclusionReasons).length }} exclue{{ Object.keys(exclusionReasons).length > 1 ? 's' : '' }}</dd></div>
-                  <div><dt>Évaluation</dt><dd>{{ evaluationLabel }}</dd></div>
-                  <div><dt>Priorité</dt><dd>{{ priorityOptions.find(option => option.value === priority)?.label }}<template v-if="needsPositiveLabel"><br>Cas à repérer : {{ eventOptions.find(option => option.value === positiveChoice)?.label }}</template></dd></div>
-                  <div><dt>Recherche</dt><dd>{{ searchDuration / 60 }} minute{{ searchDuration > 60 ? 's' : '' }} au maximum</dd></div>
+                  <div><dt>Target</dt><dd>{{ project.csvColumnToPredict }} · {{ predictionLabel }}</dd></div>
+                  <div v-if="predictionKind === 'survival'"><dt>Follow-up</dt><dd>{{ project.survivalModeldatasetTargetTime }}<template v-if="timeUnit"> in {{ timeUnit }}</template><br>Event observed: {{ eventOptions.find(option => option.value === eventChoice)?.label }}</dd></div>
+                  <div><dt>Observations</dt><dd>{{ number.format(dataset?.rowCount ?? 0) }} rows<br><template v-if="repeatedPatients">Grouping: {{ project.rowDepedenciesLinked.join(', ') }}</template><template v-else>Rows assigned independently</template></dd></div>
+                  <div><dt>Features</dt><dd>{{ predictorColumns.length }} selected, {{ Object.keys(exclusionReasons).length }} excluded</dd></div>
+                  <div><dt>Evaluation</dt><dd>{{ evaluationLabel }}</dd></div>
+                  <div><dt>Priority</dt><dd>{{ priorityOptions.find(option => option.value === priority)?.label }}<template v-if="needsPositiveLabel"><br>Cases to detect: {{ eventOptions.find(option => option.value === positiveChoice)?.label }}</template></dd></div>
+                  <div><dt>Search</dt><dd>{{ searchDuration / 60 }} minute{{ searchDuration > 60 ? 's' : '' }} maximum</dd></div>
                 </dl>
-                <q-input v-model="project.title" filled label="Nom du projet" :maxlength="100" :rules="[value => Boolean(value?.trim()) || 'Donnez un nom à votre projet.']" :disable="busy" />
-                <q-input v-model="project.description" filled autogrow label="Description (facultative)" :maxlength="2000" :disable="busy" class="q-mt-sm" />
-                <p class="question-note q-mt-md">Les prétraitements, algorithmes et réglages de validation sont proposés automatiquement. Vous pouvez les ajuster dans les réglages avancés ci-dessous.</p>
-                <div v-if="studyError" class="text-caption text-negative q-mt-md" role="alert">{{ studyError }}<q-btn flat no-caps dense color="primary" label="Réessayer" :loading="loadingStudy" @click="loadStudy" /></div>
-                <div v-if="loadingStudy" class="row items-center text-caption text-grey-7 q-mt-sm"><q-spinner size="18px" color="primary" class="q-mr-sm" />Préparation de l’étude…</div>
+                <q-input v-model="project.title" filled label="Project name" :maxlength="100" :rules="[value => Boolean(value?.trim()) || 'Enter a project name.']" :disable="busy" />
+                <q-input v-model="project.description" filled autogrow label="Description (optional)" :maxlength="2000" :disable="busy" class="q-mt-sm" />
+                <p class="question-note q-mt-md">Preprocessing, algorithms, and validation settings are suggested automatically. You can adjust them in the advanced settings below.</p>
+                <div v-if="studyError" class="text-caption text-negative q-mt-md" role="alert">{{ studyError }}<q-btn flat no-caps dense color="primary" label="Try again" :loading="loadingStudy" @click="loadStudy" /></div>
+                <div v-if="loadingStudy" class="row items-center text-caption text-grey-7 q-mt-sm"><q-spinner size="18px" color="primary" class="q-mr-sm" />Preparing the study…</div>
               </template>
 
               <div v-if="feedback" class="answer-feedback q-mt-md" role="status">{{ feedback }}</div>
               <div v-if="error" class="form-error q-mt-md" role="alert"><q-icon name="error_outline" size="18px" class="q-mr-xs" />{{ error }}</div>
               <div class="wizard-actions q-mt-lg">
-                <q-btn v-if="step > 1" flat no-caps color="primary" icon="arrow_back" label="Retour" :disable="busy" @click="moveTo(step - 1)" />
-                <q-btn unelevated no-caps color="primary" :icon-right="step < 7 ? 'arrow_forward' : 'play_arrow'" :label="step < 7 ? 'Continuer' : 'Lancer l’apprentissage'" type="submit" :loading="busy" :disable="readingFile || readingTestFile || (step === 7 && (!pipeline || loadingStudy))" />
+                <q-btn v-if="step > 1" flat no-caps color="primary" icon="arrow_back" label="Back" :disable="busy" @click="moveTo(step - 1)" />
+                <q-btn unelevated no-caps color="primary" :icon-right="step < 7 ? 'arrow_forward' : 'play_arrow'" :label="step < 7 ? 'Continue' : 'Start training'" type="submit" :loading="busy" :disable="readingFile || readingTestFile || (step === 7 && (!pipeline || loadingStudy))" />
               </div>
             </q-form>
           </q-card>
@@ -822,14 +822,14 @@ onUnmounted(() => {
         <div class="data-panel">
           <div v-if="testDataset" class="row items-center justify-between q-mb-sm q-col-gutter-sm">
             <div class="col-auto">
-              <q-btn-toggle v-model="previewSource" no-caps unelevated rounded color="grey-2" text-color="grey-8" toggle-color="primary" :options="[{ label: 'Apprentissage', value: 'train' }, { label: 'Test indépendant', value: 'test' }]" :disable="busy" size="sm" />
+              <q-btn-toggle v-model="previewSource" no-caps unelevated rounded color="grey-2" text-color="grey-8" toggle-color="primary" :options="[{ label: 'Training', value: 'train' }, { label: 'Independent test set', value: 'test' }]" :disable="busy" size="sm" />
             </div>
             <div class="col text-right text-caption text-grey-7">{{ previewSource === 'test' ? testFile?.name : uploadedFile?.name }}</div>
           </div>
-          <q-tabs v-model="dataView" dense no-caps align="justify" active-color="primary" indicator-color="accent" class="data-view-tabs q-mb-sm" aria-label="Consulter les données">
-            <q-tab name="preview" icon="table_chart" label="Vos données" />
-            <q-tab name="summary" icon="analytics" label="Bilan des données" />
-            <q-tab name="plots" icon="query_stats" label="Graphiques" />
+          <q-tabs v-model="dataView" dense no-caps align="justify" active-color="primary" indicator-color="accent" class="data-view-tabs q-mb-sm" aria-label="Explore the data">
+            <q-tab name="preview" icon="table_chart" label="Your data" />
+            <q-tab name="summary" icon="analytics" label="Data summary" />
+            <q-tab name="plots" icon="query_stats" label="Charts" />
           </q-tabs>
           <q-tab-panels v-model="dataView" keep-alive class="data-view-panels">
             <q-tab-panel name="preview" class="q-pa-none">
@@ -883,9 +883,9 @@ onUnmounted(() => {
       </div>
 
       <q-card v-if="pipeline" v-show="step === 7" flat bordered class="advanced-card q-mt-lg">
-        <q-expansion-item v-model="showAdvanced" icon="settings" label="Réglages avancés (facultatifs)" caption="Prétraitements, algorithmes, validation et analyses" :disable="busy" @before-show="advancedOpened = true">
+        <q-expansion-item v-model="showAdvanced" icon="settings" label="Advanced settings (optional)" caption="Preprocessing, algorithms, validation, and analyses" :disable="busy" @before-show="advancedOpened = true">
           <div class="q-pa-md" :inert="busy ? '' : undefined">
-            <p class="text-caption text-grey-7">Le critère principal et la durée de recherche restent ceux de l’étape « Rechercher », même si vous modifiez la configuration complète.</p>
+            <p class="text-caption text-grey-7">The primary metric and search duration remain those from the “Search” step, even if you edit the full configuration.</p>
             <PipelineProject v-if="advancedOpened" ref="editor" :pipeline="pipeline" guided-search />
           </div>
         </q-expansion-item>

@@ -19,61 +19,61 @@ const selected = computed(() => processes.value.find((process) => process.id ===
 const study = computed(() => selected.value?.pipeline);
 const choices = computed(() => processes.value.map((process) => ({
   value: process.id,
-  label: `Entraînement du ${formatToDDMMYYYHHmm(process.date)} · ${formatBudget(process.maxDuration)}`,
+  label: `Training run on ${formatToDDMMYYYHHmm(process.date)} · ${formatBudget(process.maxDuration)}`,
 })));
 const active = computed(() => processes.value.some((process) => ['QUEUED', 'RUNNING'].includes(process.status)));
 const fields: { key: 'pipeline' | 'metrics' | 'statistics' | 'explanations'; label: string; description: string; icon: string }[] = [
-  { key: 'pipeline', label: 'Prétraitements et modèles', description: 'Les étapes, articulations et alternatives proposées à DrIA.', icon: 'account_tree' },
-  { key: 'metrics', label: 'Mesure des performances', description: 'Les indicateurs configurés pour évaluer les modèles.', icon: 'straighten' },
-  { key: 'statistics', label: 'Statistiques descriptives', description: 'Les analyses des données configurées pour cette étude.', icon: 'query_stats' },
-  { key: 'explanations', label: 'Analyses et explicabilité', description: 'Les composants prévus pour explorer le comportement des modèles.', icon: 'lightbulb_outline' },
+  { key: 'pipeline', label: 'Preprocessing and models', description: 'The steps, connections and alternatives available to DrIA.', icon: 'account_tree' },
+  { key: 'metrics', label: 'Performance metrics', description: 'The metrics configured to evaluate models.', icon: 'straighten' },
+  { key: 'statistics', label: 'Descriptive statistics', description: 'The data analyses configured for this study.', icon: 'query_stats' },
+  { key: 'explanations', label: 'Analysis and explainability', description: 'The components configured to explore model behavior.', icon: 'lightbulb_outline' },
 ];
 const optionSections: { key: 'options' | 'fit_options'; label: string }[] = [
-  { key: 'options', label: 'Recherche' }, { key: 'fit_options', label: 'Entraînement final' },
+  { key: 'options', label: 'Search' }, { key: 'fit_options', label: 'Final training' },
 ];
 const configurationJson = computed(() => study.value ? JSON.stringify(study.value, null, 2) : '');
 const objective = computed(() => {
   const process = selected.value;
-  if (!process) return 'Non renseigné';
+  if (!process) return 'Not specified';
   const key = process.objective?.key ?? process.statusSnapshot?.objective?.key
     ?? process.pipeline?.options?.main_metric;
   const metrics = process.models?.map((model) => model.metrics)
     .find((value) => key ? metricKey(value) === key : Boolean(metricKey(value)));
   const name = key ? metrics?.metrics_info?.[key]?.name ?? String(key)
-    : metrics ? metrics.metrics_info?.[metricKey(metrics)]?.name ?? metricKey(metrics) : 'Choix automatique par DrIA';
+    : metrics ? metrics.metrics_info?.[metricKey(metrics)]?.name ?? metricKey(metrics) : 'Automatically selected by DrIA';
   const greater = process.objective?.greater_is_better ?? process.statusSnapshot?.objective?.greater_is_better
     ?? metrics?.objective?.greater_is_better;
-  return `${name}${greater === undefined ? '' : greater ? ' · à maximiser' : ' · à minimiser'}`;
+  return `${name}${greater === undefined ? '' : greater ? ' · maximize' : ' · minimize'}`;
 });
 const validation = computed(() => {
   const splitter = study.value?.options?.splitter;
   const id = typeof splitter === 'string' ? splitter : splitter?.id;
   const labels: Record<string, string> = {
-    kfold: 'Validation croisée', stratified_kfold: 'Validation croisée stratifiée',
-    group_kfold: 'Validation croisée par groupes', stratified_group_kfold: 'Validation croisée stratifiée par groupes',
-    leave_one_group_out: 'Un groupe laissé de côté à chaque passage',
-    train_test: 'Partition d’apprentissage et de validation', holdout: 'Partition d’apprentissage et de validation',
+    kfold: 'Cross-validation', stratified_kfold: 'Stratified cross-validation',
+    group_kfold: 'Group cross-validation', stratified_group_kfold: 'Stratified group cross-validation',
+    leave_one_group_out: 'Leave-one-group-out cross-validation',
+    train_test: 'Training and validation split', holdout: 'Training and validation split',
   };
-  return id ? labels[id] ?? String(id) : 'Non renseignée dans cette configuration';
+  return id ? labels[id] ?? String(id) : 'Not specified in this configuration';
 });
 const testLabel = computed(() => ({
-  split: '20 % des données réservées au test final',
-  external: 'Fichier indépendant pour le test final',
-  cross_validation: 'Aucun jeu de test séparé',
-})[props.project.evaluationMode ?? ''] ?? 'Mode de test final non renseigné');
+  split: '20% of the data reserved for the final test',
+  external: 'Independent file for the final test',
+  cross_validation: 'No separate test set',
+})[props.project.evaluationMode ?? ''] ?? 'Final test mode not specified');
 const optionLabels: Record<string, string> = {
-  max_duration: 'Budget de recherche (secondes)', max_stage_duration: 'Budget maximal par étape (secondes)',
-  max_workers: 'Calculs parallèles', main_metric: 'Clé du critère principal',
-  n_candidates: 'Nombre de modèles conservés', patience: 'Patience',
-  splitter: 'Méthode de validation', optimizer: 'Méthode de recherche',
-  train_on_n_samples: 'Nombre de lignes pour la recherche', refit_on_sample: 'Réentraînement sur l’échantillon',
-  keep_training_history: 'Conservation de l’historique de recherche', preprocessor: 'Prétraitement global',
-  verbose: 'Niveau de détail des journaux', time_before_sample_use: 'Délai avant l’échantillonnage',
+  max_duration: 'Search budget in seconds', max_stage_duration: 'Maximum budget per step in seconds',
+  max_workers: 'Parallel workers', main_metric: 'Primary metric key',
+  n_candidates: 'Number of models retained', patience: 'Patience',
+  splitter: 'Validation method', optimizer: 'Search method',
+  train_on_n_samples: 'Number of rows for the search', refit_on_sample: 'Refit on the sample',
+  keep_training_history: 'Keep search history', preprocessor: 'Global preprocessing',
+  verbose: 'Log verbosity', time_before_sample_use: 'Delay before sampling',
 };
 
 function display(value: unknown): string {
-  if (value === null || value === undefined) return 'Non renseigné';
-  if (typeof value === 'boolean') return value ? 'Oui' : 'Non';
+  if (value === null || value === undefined) return 'Not specified';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
 }
 
@@ -85,16 +85,16 @@ async function copyConfiguration() {
   try {
     await copyToClipboard(configurationJson.value);
     copied.value = true;
-    feedback.value = 'Configuration copiée.';
+    feedback.value = 'Configuration copied.';
   } catch {
     copied.value = false;
-    feedback.value = 'La copie est indisponible dans ce navigateur. Vous pouvez télécharger la configuration.';
+    feedback.value = 'Copying is unavailable in this browser. You can download the configuration.';
   }
 }
 
 function downloadConfiguration() {
-  const result = exportFile(`projet-${props.project.id}-entrainement-${selected.value?.id}.json`, configurationJson.value, 'application/json');
-  feedback.value = result === true ? 'Configuration téléchargée.' : 'Le navigateur n’a pas autorisé le téléchargement.';
+  const result = exportFile(`project-${props.project.id}-training-${selected.value?.id}.json`, configurationJson.value, 'application/json');
+  feedback.value = result === true ? 'Configuration downloaded.' : 'The browser did not allow the download.';
 }
 
 watch([() => props.processId, () => props.project.id], () => {
@@ -108,18 +108,18 @@ watch(selectedId, () => { feedback.value = ''; copied.value = false; });
 </script>
 
 <template>
-  <section class="project-configuration" aria-label="Configuration des entraînements">
+  <section class="project-configuration" aria-label="Training run configuration">
     <div class="section-heading">
       <div>
-        <h2>La configuration de l’étude</h2>
-        <p>Chaque entraînement conserve ses réglages. Consultez-les ici ou adaptez-les pour une nouvelle recherche.</p>
+        <h2>Study configuration</h2>
+        <p>Each training run keeps its settings. Review them here or adjust them for a new search.</p>
       </div>
     </div>
 
     <div v-if="!processes.length" class="configuration-empty">
       <q-icon name="account_tree" size="30px" />
-      <h3>Aucune configuration enregistrée</h3>
-      <p>La configuration apparaîtra avec le premier entraînement du projet.</p>
+      <h3>No configuration saved</h3>
+      <p>The configuration will appear with the first training run.</p>
     </div>
 
     <template v-else>
@@ -130,7 +130,7 @@ watch(selectedId, () => { feedback.value = ''; copied.value = false; });
           emit-value
           map-options
           outlined
-          label="Configuration de l’entraînement"
+          label="Training run configuration"
           class="configuration-selector"
           popup-content-class="project-workspace-colors"
         />
@@ -139,7 +139,7 @@ watch(selectedId, () => { feedback.value = ''; copied.value = false; });
           unelevated
           no-caps
           color="primary"
-          label="Adapter cette configuration"
+          label="Edit configuration"
           icon="tune"
           :to="{ name: 'pipeline-fork', params: { id: project.id, processId: selected.id } }"
         />
@@ -147,13 +147,13 @@ watch(selectedId, () => { feedback.value = ''; copied.value = false; });
 
       <template v-if="selected && study">
         <dl class="configuration-summary">
-          <div><dt>Temps de recherche</dt><dd>{{ formatBudget(selected.maxDuration) }}</dd></div>
-          <div><dt>Critère principal</dt><dd>{{ objective }}</dd></div>
-          <div><dt>Validation interne</dt><dd>{{ validation }}</dd><small>{{ testLabel }}</small></div>
+          <div><dt>Search time</dt><dd>{{ formatBudget(selected.maxDuration) }}</dd></div>
+          <div><dt>Primary metric</dt><dd>{{ objective }}</dd></div>
+          <div><dt>Internal validation</dt><dd>{{ validation }}</dd><small>{{ testLabel }}</small></div>
         </dl>
         <p class="configuration-note">
           <q-icon name="lock_outline" size="16px" />
-          Configuration enregistrée, consultée en lecture seule. Le budget couvre la recherche ; l’évaluation finale peut se poursuivre ensuite.
+          Saved configuration, shown as read-only. The budget covers the search; final evaluation may continue afterwards.
         </p>
 
         <div class="configuration-sections">
@@ -168,19 +168,19 @@ watch(selectedId, () => { feedback.value = ''; copied.value = false; });
           >
             <div class="configuration-section-content">
               <template v-if="field.key === 'pipeline'">
-                <p class="configuration-search-note">Le schéma présente l’ensemble des étapes et des alternatives proposées à DrIA, dans leur articulation d’origine. Le budget de recherche ne garantit pas que chaque possibilité a été testée.</p>
+                <p class="configuration-search-note">The diagram shows all steps and alternatives available to DrIA, with their original connections. The search budget does not guarantee that every option was tested.</p>
                 <PipelineOverview v-if="study.pipeline" :node="study.pipeline" />
-                <p v-else class="not-configured">Aucun parcours de recherche n’est enregistré pour cet entraînement.</p>
+                <p v-else class="not-configured">No search pipeline was saved for this training run.</p>
               </template>
               <ProjectAnalysisList v-else-if="study[field.key]" :node="study[field.key]!" />
-              <p v-else class="not-configured">Aucun composant enregistré pour cette partie de l’étude.</p>
+              <p v-else class="not-configured">No components saved for this part of the study.</p>
             </div>
           </q-expansion-item>
 
           <q-expansion-item
             :key="`${selected.id}:options`"
-            label="Options de recherche et d’entraînement"
-            caption="Budgets, méthode de recherche, validation et nombre de candidats."
+            label="Search and training options"
+            caption="Budgets, search method, validation and number of candidates."
             icon="settings"
             class="configuration-section"
           >
@@ -193,35 +193,35 @@ watch(selectedId, () => { feedback.value = ''; copied.value = false; });
                     <dd>{{ display(value) }}</dd>
                   </div>
                 </dl>
-                <p v-else class="not-configured">Aucune option enregistrée.</p>
+                <p v-else class="not-configured">No options saved.</p>
               </section>
             </div>
           </q-expansion-item>
 
           <q-expansion-item
             :key="`${selected.id}:json`"
-            label="Configuration complète · JSON"
-            caption="Tous les paramètres tels qu’ils ont été transmis au service DrIA."
+            label="Complete configuration · JSON"
+            caption="All parameters as submitted to the DrIA service."
             icon="data_object"
             class="configuration-section"
           >
             <div class="configuration-section-content">
               <div class="json-actions">
-                <q-btn flat no-caps :icon="copied ? 'check' : 'content_copy'" label="Copier" @click="copyConfiguration" />
-                <q-btn flat no-caps icon="download" label="Télécharger" @click="downloadConfiguration" />
+                <q-btn flat no-caps :icon="copied ? 'check' : 'content_copy'" label="Copy" @click="copyConfiguration" />
+                <q-btn flat no-caps icon="download" label="Download" @click="downloadConfiguration" />
                 <span v-if="feedback" role="status">{{ feedback }}</span>
               </div>
-              <pre class="configuration-json" tabindex="0" aria-label="Configuration complète au format JSON">{{ configurationJson }}</pre>
+              <pre class="configuration-json" tabindex="0" aria-label="Complete configuration in JSON format">{{ configurationJson }}</pre>
             </div>
           </q-expansion-item>
         </div>
 
         <div class="configuration-restart">
-          <div><strong>Poursuivre avec ces réglages</strong><p>Choisissez un nouveau budget de recherche en conservant cette configuration.</p></div>
-          <q-btn outline no-caps color="primary" label="Reprendre cette recherche" icon="refresh" :disable="active" @click="emit('restart', selected.id)" />
+          <div><strong>Continue with these settings</strong><p>Choose a new search budget while keeping this configuration.</p></div>
+          <q-btn outline no-caps color="primary" label="Resume this search" icon="refresh" :disable="active" @click="emit('restart', selected.id)" />
         </div>
       </template>
-      <p v-else class="not-configured">La configuration de cet entraînement n’est pas disponible.</p>
+      <p v-else class="not-configured">The configuration for this training run is unavailable.</p>
     </template>
   </section>
 </template>

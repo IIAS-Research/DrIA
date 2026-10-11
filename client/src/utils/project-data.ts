@@ -3,6 +3,16 @@ import { parse, Parser, ParseResult } from 'papaparse';
 export type ProjectScalar = string | number | boolean;
 export type ColumnKind = 'numeric' | 'boolean' | 'text' | 'empty';
 export type ProjectColumnRole = 'target' | 'event' | 'time' | 'group' | 'identifier' | 'unavailable' | 'predictor';
+
+/** Translate legacy follow-up units for display without changing project data. */
+export function displayFollowUpUnit(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const legacyUnits: Record<string, string> = {
+    jours: 'days', semaines: 'weeks', mois: 'months', années: 'years', heures: 'hours',
+  };
+  return Object.prototype.hasOwnProperty.call(legacyUnits, value) ? legacyUnits[value] : value;
+}
+
 export interface ProjectColumnAnnotation {
   role: ProjectColumnRole;
   label: string;
@@ -128,7 +138,7 @@ export function readProjectCsv(file: File, options: ReadProjectCsvOptions = {}):
       reject(error);
       parser?.abort();
     };
-    const abort = () => fail(new DOMException('Lecture du fichier annulée.', 'AbortError'));
+    const abort = () => fail(new DOMException('File reading canceled.', 'AbortError'));
     if (options.signal?.aborted) {
       abort();
       return;
@@ -153,13 +163,13 @@ export function readProjectCsv(file: File, options: ReadProjectCsvOptions = {}):
           }
           const renamedHeaders = (result.meta as typeof result.meta & { renamedHeaders?: Record<string, string> }).renamedHeaders;
           if (renamedHeaders && Object.keys(renamedHeaders).length) {
-            fail(new Error('Les noms de colonnes doivent être uniques. Renommez les colonnes en double dans votre fichier.'));
+            fail(new Error('Column names must be unique. Rename duplicate columns in your file.'));
             return;
           }
           // Papa cannot guess a delimiter in a valid one-column CSV.
           const errors = result.errors.filter((error) => error.code !== 'UndetectableDelimiter');
           if (errors.length) {
-            fail(new Error(`Lecture du fichier : ${errors[0].message}`));
+            fail(new Error(`Reading the file: ${errors[0].message}`));
             return;
           }
           for (const cells of result.data) {
@@ -168,14 +178,14 @@ export function readProjectCsv(file: File, options: ReadProjectCsvOptions = {}):
               const normalizedNames = columns.map((name) => name.trim());
               if (!columns.length || normalizedNames.some((name) => !name)
                 || new Set(normalizedNames).size !== columns.length) {
-                fail(new Error('Les colonnes doivent avoir des noms uniques et non vides. Vérifiez la première ligne du fichier.'));
+                fail(new Error('Column names must be unique and nonempty. Check the first row of the file.'));
                 return;
               }
               accumulators = columns.map(accumulator);
               continue;
             }
             if (cells.length !== columns.length) {
-              fail(new Error(`L’observation ${rowCount + 1} contient ${cells.length} cellules au lieu de ${columns.length}. Vérifiez les séparateurs du fichier.`));
+              fail(new Error(`Observation ${rowCount + 1} has ${cells.length} cells instead of ${columns.length}. Check the file delimiters.`));
               return;
             }
             rowCount += 1;
@@ -211,17 +221,17 @@ export function readProjectCsv(file: File, options: ReadProjectCsvOptions = {}):
         complete: () => {
           if (settled) return;
           if (!columns.length || !rowCount) {
-            fail(new Error('Le fichier doit contenir une ligne de noms de colonnes et au moins une observation.'));
+            fail(new Error('The file must contain a header row and at least one observation.'));
             return;
           }
           settled = true;
           options.signal?.removeEventListener('abort', abort);
           resolve(snapshot(true));
         },
-        error: (error: Error) => fail(new Error(`Impossible de lire le fichier : ${error.message}`)),
+        error: (error: Error) => fail(new Error(`Unable to read the file: ${error.message}`)),
       });
     } catch (error) {
-      fail(error instanceof Error ? error : new Error('Impossible de lire ce fichier CSV.'));
+      fail(error instanceof Error ? error : new Error('Unable to read this CSV file.'));
     }
   });
 }

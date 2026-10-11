@@ -30,48 +30,48 @@ const feedback = ref('');
 let requestController: AbortController | null = null;
 
 const typeOptions = [
-  { label: 'Tous les calculs', value: 'all' },
-  { label: 'Entraînements', value: 'training' },
-  { label: 'Explications', value: 'explanation' },
+  { label: 'All jobs', value: 'all' },
+  { label: 'Training runs', value: 'training' },
+  { label: 'Explanations', value: 'explanation' },
 ];
 const columns: QTableProps['columns'] = [
-  { name: 'calculation', label: 'Calcul', field: 'jobWebServiceId', align: 'left', sortable: true },
-  { name: 'status', label: 'État du calcul', field: 'status', align: 'left', sortable: true },
-  { name: 'monitoring', label: 'Suivi', field: 'isPulling', align: 'left', sortable: true },
+  { name: 'calculation', label: 'Job', field: 'jobWebServiceId', align: 'left', sortable: true },
+  { name: 'status', label: 'Job status', field: 'status', align: 'left', sortable: true },
+  { name: 'monitoring', label: 'Monitoring', field: 'isPulling', align: 'left', sortable: true },
   { name: 'actions', label: 'Actions', field: 'key', align: 'right' },
 ];
 const activeCount = computed(() => rows.value.filter((row) => row.isPulling).length);
 const interruptedCount = computed(() => rows.value.length - activeCount.value);
 const filteredRows = computed(() => {
-  const query = (search.value ?? '').trim().toLocaleLowerCase('fr');
+  const query = (search.value ?? '').trim().toLocaleLowerCase('en-US');
   return rows.value.filter((row) =>
     (typeFilter.value === 'all' || row.type === typeFilter.value)
-    && (!query || row.jobWebServiceId.toLocaleLowerCase('fr').includes(query)));
+    && (!query || row.jobWebServiceId.toLocaleLowerCase('en-US').includes(query)));
 });
 const matchingConnections = computed(() => rows.value.filter((row) =>
   row.jobWebServiceId === selectedConnection.value?.jobWebServiceId));
 const lastUpdatedLabel = computed(() => lastUpdated.value
-  ? new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(lastUpdated.value)
+  ? new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(lastUpdated.value)
   : '');
 
 function typeLabel(type: CalculationType): string {
-  return type === 'training' ? 'Entraînement' : 'Explication';
+  return type === 'training' ? 'Training run' : 'Explanation';
 }
 
 function calculationState(status: string): { label: string; tone: string } {
   const states: Record<string, { label: string; tone: string }> = {
-    QUEUED: { label: 'En attente', tone: 'neutral' },
-    PENDING: { label: 'En attente', tone: 'neutral' },
-    RUNNING: { label: 'En cours', tone: 'success' },
-    COMPUTING: { label: 'En cours', tone: 'success' },
-    FINISHED: { label: 'Terminé', tone: 'success' },
-    CACHED: { label: 'Résultats disponibles', tone: 'success' },
-    CRASHED: { label: 'Échec du calcul', tone: 'error' },
-    CANCELED: { label: 'Annulé', tone: 'neutral' },
-    CANCELLED: { label: 'Annulé', tone: 'neutral' },
-    TIMEOUT: { label: 'Temps maximal atteint', tone: 'warning' },
+    QUEUED: { label: 'Queued', tone: 'neutral' },
+    PENDING: { label: 'Queued', tone: 'neutral' },
+    RUNNING: { label: 'Running', tone: 'success' },
+    COMPUTING: { label: 'Running', tone: 'success' },
+    FINISHED: { label: 'Completed', tone: 'success' },
+    CACHED: { label: 'Results available', tone: 'success' },
+    CRASHED: { label: 'Job failed', tone: 'error' },
+    CANCELED: { label: 'Canceled', tone: 'neutral' },
+    CANCELLED: { label: 'Canceled', tone: 'neutral' },
+    TIMEOUT: { label: 'Time limit reached', tone: 'warning' },
   };
-  return states[status.toUpperCase()] ?? { label: 'État indisponible', tone: 'neutral' };
+  return states[status.toUpperCase()] ?? { label: 'Status unavailable', tone: 'neutral' };
 }
 
 function formatConnections(data: IPullingData): MonitoringRow[] {
@@ -101,7 +101,7 @@ async function refresh() {
     loaded.value = true;
     lastUpdated.value = new Date();
   } catch {
-    if (!controller.signal.aborted) loadError.value = 'Le suivi des calculs est indisponible. Réessayez dans quelques instants.';
+    if (!controller.signal.aborted) loadError.value = 'Job monitoring is unavailable. Try again shortly.';
   } finally {
     if (!controller.signal.aborted) loading.value = false;
   }
@@ -124,9 +124,9 @@ async function stopMonitoring() {
     rows.value = rows.value.filter((row) => row.jobWebServiceId !== jobId);
     confirmationOpen.value = false;
     selectedConnection.value = null;
-    feedback.value = 'Le suivi a été retiré. Le calcul n’a pas été annulé.';
+    feedback.value = 'Monitoring removed. The job was not canceled.';
   } catch {
-    stopError.value = 'Le suivi n’a pas pu être retiré. Réessayez.';
+    stopError.value = 'Could not remove monitoring. Try again.';
   } finally {
     stopping.value = false;
   }
@@ -137,57 +137,57 @@ onBeforeUnmount(() => { requestController?.abort(); });
 </script>
 
 <template>
-  <AdminPageShell title="Suivi des calculs" description="Consultez l’état des entraînements et des explications suivis par DrIA.">
+  <AdminPageShell title="Job monitoring" description="View the status of training runs and explanations monitored by DrIA.">
     <template #actions>
-      <q-btn outline no-caps color="primary" icon="refresh" label="Actualiser" :loading="loading" :disable="stopping" @click="refresh" />
+      <q-btn outline no-caps color="primary" icon="refresh" label="Refresh" :loading="loading" :disable="stopping" @click="refresh" />
     </template>
 
     <div v-if="loadError" class="admin-feedback admin-feedback--error" role="alert">
       <q-icon name="info_outline" size="20px" />
       <p>{{ loadError }}</p>
-      <q-btn flat no-caps color="primary" label="Réessayer" :loading="loading" @click="refresh" />
+      <q-btn flat no-caps color="primary" label="Retry" :loading="loading" @click="refresh" />
     </div>
     <div v-if="feedback" class="admin-feedback" role="status">
       <q-icon name="check_circle_outline" size="20px" />
       <p>{{ feedback }}</p>
-      <q-btn flat round dense icon="close" aria-label="Fermer le message" @click="feedback = ''" />
+      <q-btn flat round dense icon="close" aria-label="Dismiss message" @click="feedback = ''" />
     </div>
 
-    <div class="admin-metrics" aria-label="Résumé du suivi">
+    <div class="admin-metrics" aria-label="Monitoring summary">
       <div class="admin-metric">
-        <span>Calculs suivis</span>
+        <span>Monitored jobs</span>
         <strong>{{ loaded ? rows.length : '—' }}</strong>
-        <p>Entraînements et explications</p>
+        <p>Training runs and explanations</p>
       </div>
       <div class="admin-metric">
-        <span>Suivis actifs</span>
+        <span>Active connections</span>
         <strong>{{ loaded ? activeCount : '—' }}</strong>
-        <p>État récupéré auprès du service</p>
+        <p>Status retrieved from the service</p>
       </div>
       <div class="admin-metric">
-        <span>Suivis interrompus</span>
+        <span>Inactive connections</span>
         <strong>{{ loaded ? interruptedCount : '—' }}</strong>
-        <p>État conservé, sans actualisation</p>
+        <p>Saved status, without updates</p>
       </div>
     </div>
 
     <section class="admin-panel" aria-labelledby="monitoring-list-title" :aria-busy="loading">
       <div class="admin-panel-header">
         <div>
-          <h2 id="monitoring-list-title">Les calculs de DrIA</h2>
-          <p>Le suivi permet de récupérer leur état et leurs résultats.</p>
+          <h2 id="monitoring-list-title">DrIA jobs</h2>
+          <p>Monitoring retrieves job status and results.</p>
         </div>
-        <span v-if="lastUpdatedLabel" class="monitoring-updated">Actualisé à {{ lastUpdatedLabel }}</span>
+        <span v-if="lastUpdatedLabel" class="monitoring-updated">Updated at {{ lastUpdatedLabel }}</span>
       </div>
 
       <div class="admin-toolbar">
-        <q-input v-model="search" class="admin-search" outlined dense clearable placeholder="Rechercher un identifiant" aria-label="Rechercher un calcul par son identifiant">
+        <q-input v-model="search" class="admin-search" outlined dense clearable placeholder="Search by ID" aria-label="Search jobs by ID">
           <template #prepend><q-icon name="search" size="20px" /></template>
         </q-input>
-        <q-select v-model="typeFilter" class="admin-filter" outlined dense emit-value map-options :options="typeOptions" aria-label="Filtrer par type de calcul" />
+        <q-select v-model="typeFilter" class="admin-filter" outlined dense emit-value map-options :options="typeOptions" aria-label="Filter by job type" />
       </div>
 
-      <q-table v-if="rows.length || loading" class="admin-table monitoring-table" flat :grid="$q.screen.lt.sm" :rows="filteredRows" :columns="columns" row-key="key" :loading="loading" :pagination="{ rowsPerPage: 10 }" :rows-per-page-options="[10, 25, 50]" rows-per-page-label="Calculs par page" no-data-label="Aucun calcul ne correspond à votre recherche.">
+      <q-table v-if="rows.length || loading" class="admin-table monitoring-table" flat :grid="$q.screen.lt.sm" :rows="filteredRows" :columns="columns" row-key="key" :loading="loading" :pagination="{ rowsPerPage: 10 }" :rows-per-page-options="[10, 25, 50]" rows-per-page-label="Jobs per page" no-data-label="No jobs match your search.">
         <template #item="slotProps">
           <article class="admin-mobile-card">
             <div class="admin-mobile-heading">
@@ -198,16 +198,16 @@ onBeforeUnmount(() => { requestController?.abort(); });
             </div>
             <div class="admin-mobile-details">
               <div>
-                <span>État du calcul</span>
+                <span>Job status</span>
                 <span :class="['admin-badge', 'admin-badge--' + calculationState(slotProps.row.status).tone]">{{ calculationState(slotProps.row.status).label }}</span>
               </div>
               <div>
-                <span>Suivi</span>
-                <span :class="['admin-badge', slotProps.row.isPulling ? 'admin-badge--success' : 'admin-badge--neutral']">{{ slotProps.row.isPulling ? 'Actif' : 'Interrompu' }}</span>
+                <span>Monitoring</span>
+                <span :class="['admin-badge', slotProps.row.isPulling ? 'admin-badge--success' : 'admin-badge--neutral']">{{ slotProps.row.isPulling ? 'Active' : 'Inactive' }}</span>
               </div>
             </div>
             <div class="admin-mobile-actions">
-              <q-btn flat no-caps color="primary" :label="slotProps.row.isPulling ? 'Arrêter le suivi' : 'Retirer du suivi'" :disable="loading || stopping" @click="openConfirmation(slotProps.row)" />
+              <q-btn flat no-caps color="primary" :label="slotProps.row.isPulling ? 'Stop monitoring' : 'Remove monitoring'" :disable="loading || stopping" @click="openConfirmation(slotProps.row)" />
             </div>
           </article>
         </template>
@@ -224,50 +224,50 @@ onBeforeUnmount(() => { requestController?.abort(); });
         </template>
         <template #body-cell-monitoring="slotProps">
           <q-td :props="slotProps">
-            <span :class="['admin-badge', slotProps.row.isPulling ? 'admin-badge--success' : 'admin-badge--neutral']">{{ slotProps.row.isPulling ? 'Actif' : 'Interrompu' }}</span>
+            <span :class="['admin-badge', slotProps.row.isPulling ? 'admin-badge--success' : 'admin-badge--neutral']">{{ slotProps.row.isPulling ? 'Active' : 'Inactive' }}</span>
           </q-td>
         </template>
         <template #body-cell-actions="slotProps">
           <q-td :props="slotProps">
             <div class="admin-row-actions">
-              <q-btn flat no-caps color="primary" :label="slotProps.row.isPulling ? 'Arrêter le suivi' : 'Retirer du suivi'" :disable="loading || stopping" @click="openConfirmation(slotProps.row)" />
+              <q-btn flat no-caps color="primary" :label="slotProps.row.isPulling ? 'Stop monitoring' : 'Remove monitoring'" :disable="loading || stopping" @click="openConfirmation(slotProps.row)" />
             </div>
           </q-td>
         </template>
         <template #no-data>
           <div v-if="!loading" class="admin-empty monitoring-filter-empty">
             <q-icon name="search_off" size="26px" />
-            <h3>Aucun calcul trouvé</h3>
-            <p>Modifiez l’identifiant recherché ou le type de calcul.</p>
-            <q-btn flat no-caps color="primary" label="Effacer les filtres" @click="search = ''; typeFilter = 'all'" />
+            <h3>No jobs found</h3>
+            <p>Change the job ID or job type.</p>
+            <q-btn flat no-caps color="primary" label="Clear filters" @click="search = ''; typeFilter = 'all'" />
           </div>
         </template>
       </q-table>
       <div v-else-if="loaded" class="admin-empty">
         <q-icon name="task_alt" size="32px" />
-        <h3>Aucun calcul suivi pour le moment</h3>
-        <p>Les entraînements et les explications apparaissent ici lorsqu’ils sont suivis par DrIA.</p>
+        <h3>No monitored jobs yet</h3>
+        <p>Training runs and explanations appear here when monitored by DrIA.</p>
       </div>
     </section>
 
-    <p class="monitoring-help"><q-icon name="info_outline" size="18px" />Arrêter un suivi retire sa connexion à DrIA. Cette action n’annule pas le calcul dans le service.</p>
+    <p class="monitoring-help"><q-icon name="info_outline" size="18px" />Stopping monitoring removes the connection to DrIA. It does not cancel the job in the service.</p>
 
     <q-dialog v-model="confirmationOpen" :persistent="stopping">
       <q-card class="admin-dialog project-workspace-colors" aria-labelledby="monitoring-confirmation-title">
         <q-card-section class="admin-dialog-heading">
           <div>
-            <h2 id="monitoring-confirmation-title">{{ selectedConnection?.isPulling ? 'Arrêter ce suivi ?' : 'Retirer ce suivi ?' }}</h2>
-            <p>DrIA ne récupérera plus les mises à jour ni les résultats de ce calcul. Le calcul lui-même ne sera pas annulé.</p>
+            <h2 id="monitoring-confirmation-title">{{ selectedConnection?.isPulling ? 'Stop monitoring this job?' : 'Remove monitoring for this job?' }}</h2>
+            <p>DrIA will no longer retrieve updates or results for this job. The job itself will not be canceled.</p>
           </div>
         </q-card-section>
         <q-card-section class="monitoring-dialog-body">
-          <p v-if="matchingConnections.length > 1">Cet identifiant est partagé par {{ matchingConnections.length }} suivis. Ils seront tous retirés.</p>
-          <div class="monitoring-confirmation-id"><span>Identifiant du calcul</span><strong>{{ selectedConnection?.jobWebServiceId }}</strong></div>
+          <p v-if="matchingConnections.length > 1">This ID is shared by {{ matchingConnections.length }} monitoring connections. All will be removed.</p>
+          <div class="monitoring-confirmation-id"><span>Job ID</span><strong>{{ selectedConnection?.jobWebServiceId }}</strong></div>
           <p v-if="stopError" class="admin-feedback admin-feedback--error" role="alert">{{ stopError }}</p>
         </q-card-section>
         <q-card-actions class="admin-dialog-actions" align="right">
-          <q-btn flat no-caps label="Conserver le suivi" :disable="stopping" @click="confirmationOpen = false" />
-          <q-btn unelevated no-caps color="primary" :label="selectedConnection?.isPulling ? 'Arrêter le suivi' : 'Retirer du suivi'" :loading="stopping" @click="stopMonitoring" />
+          <q-btn flat no-caps label="Keep monitoring" :disable="stopping" @click="confirmationOpen = false" />
+          <q-btn unelevated no-caps color="primary" :label="selectedConnection?.isPulling ? 'Stop monitoring' : 'Remove monitoring'" :loading="stopping" @click="stopMonitoring" />
         </q-card-actions>
       </q-card>
     </q-dialog>

@@ -21,17 +21,17 @@ const feedback = ref('');
 const search = ref<string | null>('');
 const roleFilter = ref<RoleFilter>('all');
 const roleOptions = [
-  { label: 'Tous les rôles', value: 'all' },
-  { label: 'Administrateurs', value: 'admin' },
-  { label: 'Utilisateurs', value: 'user' },
+  { label: 'All roles', value: 'all' },
+  { label: 'Administrators', value: 'admin' },
+  { label: 'Users', value: 'user' },
 ];
 const pagination = ref({ rowsPerPage: 15, sortBy: 'account', descending: false });
 const columns: QTableColumn[] = [
   {
-    name: 'account', label: 'Compte', field: (user: IUser) => fullName(user), align: 'left', sortable: true,
+    name: 'account', label: 'Account', field: (user: IUser) => fullName(user), align: 'left', sortable: true,
   },
   {
-    name: 'role', label: 'Accès', field: 'isAdmin', align: 'left', sortable: true,
+    name: 'role', label: 'Access', field: 'isAdmin', align: 'left', sortable: true,
   },
   {
     name: 'actions', label: 'Actions', field: 'id', align: 'right',
@@ -39,7 +39,7 @@ const columns: QTableColumn[] = [
 ];
 
 function normalize(value: string): string {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr').trim();
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('en-US').trim();
 }
 
 function fullName(user: IUser | ICreateUserDTO): string {
@@ -48,7 +48,7 @@ function fullName(user: IUser | ICreateUserDTO): string {
 
 function initials(user: IUser): string {
   const nameInitials = [user.firstName, user.lastName].filter(Boolean).map((name) => name.trim().charAt(0)).join('');
-  return (nameInitials || user.email.slice(0, 2)).toLocaleUpperCase('fr');
+  return (nameInitials || user.email.slice(0, 2)).toLocaleUpperCase('en-US');
 }
 
 const adminCount = computed(() => users.value.filter((user) => user.isAdmin).length);
@@ -123,12 +123,12 @@ async function submit(user: ManagedUser) {
     if ('id' in user) {
       const response = await updateAdminUser(user.id, user);
       users.value = users.value.map((account) => (account.id === response.id ? response : account));
-      feedback.value = `Le compte de ${fullName(response)} a été mis à jour.`;
+      feedback.value = `Account for ${fullName(response)} updated.`;
     } else {
       const response = await createAdminUser({ ...user, password: user.password ?? '' });
       users.value = [response, ...users.value];
       clearFilters();
-      feedback.value = `Le compte de ${fullName(response)} a été créé.`;
+      feedback.value = `Account for ${fullName(response)} created.`;
     }
     dialogUpdateUser.value = false;
     userToManage.value = undefined;
@@ -159,7 +159,7 @@ async function confirmDelete() {
   try {
     await deleteAdminUser(user.id);
     users.value = users.value.filter((account) => account.id !== user.id);
-    feedback.value = `Le compte de ${fullName(user)} a été supprimé.`;
+    feedback.value = `Account for ${fullName(user)} deleted.`;
     deleteDialog.value = false;
     userToDelete.value = undefined;
   } catch (error) {
@@ -175,8 +175,8 @@ onBeforeUnmount(() => loadController?.abort());
 
 <template>
   <AdminPageShell
-    title="Utilisateurs"
-    description="Gérez les comptes et les droits d’accès à DrIA."
+    title="Users"
+    description="Manage accounts and access to DrIA."
   >
     <template #actions>
       <q-btn
@@ -184,22 +184,22 @@ onBeforeUnmount(() => loadController?.abort());
         no-caps
         color="primary"
         icon="person_add_alt"
-        label="Créer un utilisateur"
+        label="Create user"
         @click="openCreate"
       />
     </template>
 
     <div class="admin-metrics">
       <div class="admin-metric">
-        <span>Comptes</span>
+        <span>Accounts</span>
         <strong>{{ countsAvailable ? users.length : '—' }}</strong>
       </div>
       <div class="admin-metric">
-        <span>Administrateurs</span>
+        <span>Administrators</span>
         <strong>{{ countsAvailable ? adminCount : '—' }}</strong>
       </div>
       <div class="admin-metric">
-        <span>Utilisateurs</span>
+        <span>Users</span>
         <strong>{{ countsAvailable ? users.length - adminCount : '—' }}</strong>
       </div>
     </div>
@@ -207,26 +207,26 @@ onBeforeUnmount(() => loadController?.abort());
     <div v-if="feedback" class="admin-feedback" role="status">
       <q-icon name="check_circle" size="20px" />
       <span>{{ feedback }}</span>
-      <q-btn flat round dense icon="close" aria-label="Masquer la confirmation" @click="feedback = ''" />
+      <q-btn flat round dense icon="close" aria-label="Dismiss confirmation" @click="feedback = ''" />
     </div>
 
     <div v-if="loadError" class="admin-feedback admin-feedback--error" role="alert">
       <q-icon name="info_outline" size="20px" />
       <div>
-        <strong>Impossible de charger les utilisateurs.</strong>
+        <strong>Could not load users.</strong>
         <div>{{ loadError }}</div>
       </div>
-      <q-btn flat no-caps label="Réessayer" :loading="loading" @click="loadUsers" />
+      <q-btn flat no-caps label="Retry" :loading="loading" @click="loadUsers" />
     </div>
 
-    <section class="admin-panel" aria-label="Liste des utilisateurs">
+    <section class="admin-panel" aria-label="User list">
       <div class="admin-panel-header">
         <div>
-          <h2>Comptes de l’application</h2>
-          <p>Retrouvez un utilisateur pour modifier son profil ou ses droits.</p>
+          <h2>Application accounts</h2>
+          <p>Find a user to edit their profile or access.</p>
         </div>
         <span v-if="!loading && !loadError" class="admin-cell-meta">
-          {{ visibleUsers.length }} {{ visibleUsers.length > 1 ? 'comptes affichés' : 'compte affiché' }}
+          {{ visibleUsers.length }} {{ visibleUsers.length === 1 ? 'account shown' : 'accounts shown' }}
         </span>
       </div>
 
@@ -237,7 +237,7 @@ onBeforeUnmount(() => loadController?.abort());
           outlined
           dense
           clearable
-          label="Rechercher un nom ou un email"
+          label="Search by name or email"
           :disable="loading"
           @clear="search = ''"
         >
@@ -250,7 +250,7 @@ onBeforeUnmount(() => loadController?.abort());
           dense
           emit-value
           map-options
-          label="Accès"
+          label="Access"
           :options="roleOptions"
           :disable="loading"
         />
@@ -267,8 +267,8 @@ onBeforeUnmount(() => loadController?.abort());
         row-key="id"
         :loading="loading"
         :rows-per-page-options="[15, 30, 50]"
-        rows-per-page-label="Comptes par page"
-        loading-label="Chargement des utilisateurs…"
+        rows-per-page-label="Accounts per page"
+        loading-label="Loading users…"
       >
         <template #item="{ row }">
           <article class="admin-mobile-card">
@@ -282,10 +282,10 @@ onBeforeUnmount(() => loadController?.abort());
               </div>
             </div>
             <div class="admin-mobile-details">
-              <span class="admin-cell-meta">Accès</span>
+              <span class="admin-cell-meta">Access</span>
               <span class="admin-badge" :class="row.isAdmin ? 'admin-badge--success' : 'admin-badge--neutral'">
                 <q-icon :name="row.isAdmin ? 'admin_panel_settings' : 'person_outline'" size="16px" />
-                {{ row.isAdmin ? 'Administrateur' : 'Utilisateur' }}
+                {{ row.isAdmin ? 'Administrator' : 'User' }}
               </span>
             </div>
             <div class="admin-mobile-actions">
@@ -294,9 +294,9 @@ onBeforeUnmount(() => loadController?.abort());
                 dense
                 no-caps
                 icon="edit"
-                label="Modifier"
+                label="Edit"
                 color="primary"
-                :aria-label="`Modifier le compte de ${fullName(row)}`"
+                :aria-label="`Edit account for ${fullName(row)}`"
                 @click="openEdit(row)"
               />
               <q-btn
@@ -304,8 +304,8 @@ onBeforeUnmount(() => loadController?.abort());
                 dense
                 no-caps
                 icon="delete_outline"
-                label="Supprimer"
-                :aria-label="`Supprimer le compte de ${fullName(row)}`"
+                label="Delete"
+                :aria-label="`Delete account for ${fullName(row)}`"
                 @click="openDelete(row)"
               />
             </div>
@@ -326,23 +326,23 @@ onBeforeUnmount(() => loadController?.abort());
           <q-td>
             <span class="admin-badge" :class="row.isAdmin ? 'admin-badge--success' : 'admin-badge--neutral'">
               <q-icon :name="row.isAdmin ? 'admin_panel_settings' : 'person_outline'" size="16px" />
-              {{ row.isAdmin ? 'Administrateur' : 'Utilisateur' }}
+              {{ row.isAdmin ? 'Administrator' : 'User' }}
             </span>
           </q-td>
         </template>
         <template #body-cell-actions="{ row }">
           <q-td class="text-right">
             <div class="admin-row-actions">
-              <q-btn flat dense no-caps icon="edit" label="Modifier" color="primary" @click="openEdit(row)" />
+              <q-btn flat dense no-caps icon="edit" label="Edit" color="primary" @click="openEdit(row)" />
               <q-btn
                 flat
                 round
                 dense
                 icon="delete_outline"
-                :aria-label="`Supprimer le compte de ${fullName(row)}`"
+                :aria-label="`Delete account for ${fullName(row)}`"
                 @click="openDelete(row)"
               >
-                <q-tooltip>Supprimer le compte</q-tooltip>
+                <q-tooltip>Delete account</q-tooltip>
               </q-btn>
             </div>
           </q-td>
@@ -350,9 +350,9 @@ onBeforeUnmount(() => loadController?.abort());
         <template #no-data>
           <div class="admin-empty">
             <q-icon :name="hasFilters ? 'search_off' : 'people_outline'" size="36px" />
-            <h3>{{ loading ? 'Chargement des comptes…' : hasFilters ? 'Aucun utilisateur trouvé' : 'Aucun compte pour le moment' }}</h3>
-            <p v-if="!loading">{{ hasFilters ? 'Essayez un autre nom, email ou rôle.' : 'Créez le premier compte pour donner accès à DrIA.' }}</p>
-            <q-btn v-if="!loading && hasFilters" flat no-caps color="primary" label="Effacer les filtres" @click="clearFilters" />
+            <h3>{{ loading ? 'Loading accounts…' : hasFilters ? 'No users found' : 'No accounts yet' }}</h3>
+            <p v-if="!loading">{{ hasFilters ? 'Try another name, email or role.' : 'Create the first account to give access to DrIA.' }}</p>
+            <q-btn v-if="!loading && hasFilters" flat no-caps color="primary" label="Clear filters" @click="clearFilters" />
           </div>
         </template>
       </q-table>
@@ -362,15 +362,15 @@ onBeforeUnmount(() => loadController?.abort());
       <q-card class="admin-dialog project-workspace-colors">
         <q-card-section class="admin-dialog-heading">
           <div>
-            <h2>{{ userToManage && 'id' in userToManage ? 'Modifier le compte' : 'Créer un utilisateur' }}</h2>
-            <p>{{ userToManage && 'id' in userToManage ? 'Mettez à jour le profil et les droits d’accès.' : 'Renseignez le profil et les identifiants de connexion.' }}</p>
+            <h2>{{ userToManage && 'id' in userToManage ? 'Edit account' : 'Create user' }}</h2>
+            <p>{{ userToManage && 'id' in userToManage ? 'Update the profile and access rights.' : 'Enter the profile and sign-in details.' }}</p>
           </div>
-          <q-btn flat round dense icon="close" aria-label="Fermer le formulaire" :disable="saving" @click="closeForm" />
+          <q-btn flat round dense icon="close" aria-label="Close form" :disable="saving" @click="closeForm" />
         </q-card-section>
         <q-card-section class="q-pa-none">
           <div v-if="saveError" class="admin-feedback admin-feedback--error q-ma-lg" role="alert">
             <q-icon name="info_outline" size="20px" />
-            <div><strong>Le compte n’a pas pu être enregistré.</strong><div>{{ saveError }}</div></div>
+            <div><strong>Could not save the account.</strong><div>{{ saveError }}</div></div>
           </div>
           <ManageUserForm
             v-if="userToManage"
@@ -386,8 +386,8 @@ onBeforeUnmount(() => loadController?.abort());
     <q-dialog v-model="deleteDialog" :persistent="deleting">
       <q-card v-if="userToDelete" class="admin-dialog project-workspace-colors">
         <q-card-section class="admin-dialog-heading">
-          <div><h2>Supprimer ce compte ?</h2><p>Cette suppression est définitive.</p></div>
-          <q-btn flat round dense icon="close" aria-label="Fermer la confirmation" :disable="deleting" @click="deleteDialog = false" />
+          <div><h2>Delete this account?</h2><p>This deletion is permanent.</p></div>
+          <q-btn flat round dense icon="close" aria-label="Close confirmation" :disable="deleting" @click="deleteDialog = false" />
         </q-card-section>
         <q-card-section>
           <div class="admin-person admin-delete-person">
@@ -397,15 +397,15 @@ onBeforeUnmount(() => loadController?.abort());
               <div class="admin-cell-meta admin-user-email">{{ userToDelete.email }}</div>
             </div>
           </div>
-          <p class="admin-cell-meta">Cet utilisateur ne pourra plus se connecter à DrIA.</p>
+          <p class="admin-cell-meta">This user will no longer be able to sign in to DrIA.</p>
           <div v-if="deleteError" class="admin-feedback admin-feedback--error" role="alert">
             <q-icon name="info_outline" size="20px" />
-            <div><strong>La suppression a échoué.</strong><div>{{ deleteError }}</div></div>
+            <div><strong>Deletion failed.</strong><div>{{ deleteError }}</div></div>
           </div>
         </q-card-section>
         <q-card-actions class="admin-dialog-actions">
-          <q-btn flat no-caps label="Annuler" :disable="deleting" @click="deleteDialog = false" />
-          <q-btn unelevated no-caps color="negative" label="Supprimer le compte" :loading="deleting" @click="confirmDelete" />
+          <q-btn flat no-caps label="Cancel" :disable="deleting" @click="deleteDialog = false" />
+          <q-btn unelevated no-caps color="negative" label="Delete account" :loading="deleting" @click="confirmDelete" />
         </q-card-actions>
       </q-card>
     </q-dialog>

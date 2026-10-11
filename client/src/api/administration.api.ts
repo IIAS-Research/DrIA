@@ -6,7 +6,7 @@ import type { ICreateUserDTO, IProject, IUser } from 'src/components/models';
 // Keep rejected requests rejected so the displayed lists reflect confirmed changes.
 export async function getAdminUsers(signal?: AbortSignal): Promise<IUser[]> {
   const { data } = await api.get<IUser[]>('Users', { signal });
-  if (!Array.isArray(data)) throw new Error('La liste des utilisateurs n’a pas pu être chargée.');
+  if (!Array.isArray(data)) throw new Error('The user list could not be loaded.');
   return data;
 }
 
@@ -24,7 +24,7 @@ export async function deleteAdminUser(id: number): Promise<void> {
 
 export async function getAdminProjects(limit: number, offset: number, signal?: AbortSignal): Promise<IProject[]> {
   const { data } = await api.get<IProject[]>('Projects', { params: { limit, offset }, signal });
-  if (!Array.isArray(data)) throw new Error('La liste des projets n’a pas pu être chargée.');
+  if (!Array.isArray(data)) throw new Error('The project list could not be loaded.');
   return data;
 }
 
@@ -35,7 +35,7 @@ export async function deleteAdminProject(id: number): Promise<void> {
 export async function getAdminMonitoring(signal?: AbortSignal): Promise<IPullingData> {
   const { data } = await api.get<IPullingData>('Admin/PullingData', { signal });
   if (!Array.isArray(data?.connectionsModel) || !Array.isArray(data?.connectionsExplain))
-    throw new Error('Le suivi des calculs n’a pas pu être chargé.');
+    throw new Error('Training activity could not be loaded.');
   return data;
 }
 

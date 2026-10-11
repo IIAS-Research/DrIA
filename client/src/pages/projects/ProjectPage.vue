@@ -62,7 +62,7 @@ const otherMetrics = computed(() => {
     greaterIsBetter: metrics.metrics_info?.[key]?.greater_is_better,
     validation: metrics.metrics_train?.[key],
     test: metrics.metrics_test?.[key],
-  })).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  })).sort((a, b) => a.name.localeCompare(b.name, 'en-US'));
 });
 const reference = computed<ReturnType<typeof baselineComparison> | undefined>(() => {
   if (!result.value) return undefined;
@@ -76,7 +76,7 @@ const reference = computed<ReturnType<typeof baselineComparison> | undefined>(()
     ...comparison,
     comparable: false,
     improvement: undefined,
-    reason: 'Les paramètres du critère ont changé ou ne peuvent pas être vérifiés. Les scores restent disponibles ; leur écart n’est pas présenté comme un gain.',
+    reason: 'The metric settings have changed or cannot be verified. The scores remain available, but their difference is not shown as an improvement.',
   };
   return comparison;
 });
@@ -84,24 +84,24 @@ const referenceChange = computed(() => {
   const value = reference.value?.improvement;
   if (!reference.value?.comparable || value === undefined) return undefined;
   return {
-    label: value > 0 ? 'Gain de performance' : value < 0 ? 'Baisse de performance' : 'Aucun écart',
+    label: value > 0 ? 'Performance improvement' : value < 0 ? 'Performance decrease' : 'No difference',
     tone: value > 0 ? 'gain' : value < 0 ? 'loss' : 'equal',
     icon: value > 0 ? 'trending_up' : value < 0 ? 'trending_down' : 'drag_handle',
-    value: value !== 0 && score(Math.abs(value)) === '0' ? '< 0,0001' : score(Math.abs(value)),
+    value: value !== 0 && score(Math.abs(value)) === '0' ? '< 0.0001' : score(Math.abs(value)),
   };
 });
 const lastState = computed(() => latest.value ? processState(latest.value) : undefined);
-const statusText = computed(() => isProcessing.value ? 'Entraînement en cours'
-  : pendingResults.value ? 'Récupération des résultats'
-    : lastState.value?.tone === 'error' || latest.value?.status === 'CANCELED' ? lastState.value?.label ?? 'Annulé'
-      : result.value ? 'Résultats disponibles' : 'Projet prêt');
+const statusText = computed(() => isProcessing.value ? 'Training in progress'
+  : pendingResults.value ? 'Retrieving results'
+    : lastState.value?.tone === 'error' || latest.value?.status === 'CANCELED' ? lastState.value?.label ?? 'Canceled'
+      : result.value ? 'Results available' : 'Project ready');
 const statusTone = computed(() => isProcessing.value || pendingResults.value ? 'running'
   : lastState.value?.tone === 'error' ? 'error' : result.value ? 'success' : 'neutral');
 const modelCount = computed(() => processes.value.reduce((sum, p) => sum + (p.models?.length ?? 0), 0));
 const restartTarget = computed(() => processes.value.find((p) => p.id === restartId.value));
 const remainingText = computed(() => {
   const seconds = remainingSeconds.value;
-  return seconds < 60 ? `${seconds} seconde${seconds > 1 ? 's' : ''}` : `${Math.ceil(seconds / 60)} minute${seconds > 60 ? 's' : ''}`;
+  return seconds < 60 ? `${seconds} second${seconds > 1 ? 's' : ''}` : `${Math.ceil(seconds / 60)} minute${seconds > 60 ? 's' : ''}`;
 });
 let trackedProcessId: number | undefined;
 let startProcessTime: number | undefined;
@@ -190,13 +190,13 @@ function openRestart(processId = latest.value?.id) {
 async function restartProcess() {
   if (!restartTarget.value || restarting.value) return;
   if (!Number.isInteger(restartBudget.value) || restartBudget.value < 60 || restartBudget.value > 3600) {
-    restartError.value = 'Choisissez un budget entier de 60 à 3 600 secondes.';
+    restartError.value = 'Choose a whole-number budget between 60 and 3,600 seconds.';
     return;
   }
   restarting.value = true;
   try {
     const response = await restartProcessAsync(restartTarget.value.id, restartBudget.value);
-    if (!response) { restartError.value = 'L’entraînement n’a pas pu être lancé. Vous pouvez réessayer.'; return; }
+    if (!response) { restartError.value = 'The training run could not start. You can try again.'; return; }
     restartDialog.value = false;
     await router.replace({ name: 'project-show', params: { id: response.projectId }, query: { view: 'overview', jobId: response.id } });
     await refresh(true);
@@ -226,21 +226,21 @@ onUnmounted(() => {
 <template>
   <q-page class="project-workspace project-workspace-colors">
     <div class="workspace-container">
-      <div class="workspace-topline"><q-btn flat dense no-caps icon="arrow_back" label="Accueil" :to="{ name: 'home' }" /></div>
-      <div v-if="loading && !project" class="workspace-loading" role="status"><q-spinner size="28px" color="primary" /><p>Ouverture de votre projet…</p></div>
-      <div v-if="error" class="workspace-error" role="alert"><q-icon name="error_outline" size="21px" /><div><strong>{{ project ? 'La mise à jour du projet est interrompue' : 'Impossible d’ouvrir le projet' }}</strong><p>{{ error }}</p></div><q-btn flat no-caps label="Réessayer" :disable="loading" @click="refresh(true)" /></div>
+      <div class="workspace-topline"><q-btn flat dense no-caps icon="arrow_back" label="Home" :to="{ name: 'home' }" /></div>
+      <div v-if="loading && !project" class="workspace-loading" role="status"><q-spinner size="28px" color="primary" /><p>Opening your project…</p></div>
+      <div v-if="error" class="workspace-error" role="alert"><q-icon name="error_outline" size="21px" /><div><strong>{{ project ? 'Project updates have stopped' : 'Unable to open the project' }}</strong><p>{{ error }}</p></div><q-btn flat no-caps label="Try again" :disable="loading" @click="refresh(true)" /></div>
       <template v-if="project">
         <header class="project-heading">
-          <div><p class="eyebrow">Votre espace d’étude</p><h1>{{ project.title }}</h1><p v-if="project.description" class="project-description">{{ project.description }}</p></div>
+          <div><p class="eyebrow">Your study workspace</p><h1>{{ project.title }}</h1><p v-if="project.description" class="project-description">{{ project.description }}</p></div>
           <div class="heading-aside">
             <div class="heading-actions">
               <span class="project-status" :class="`status-${statusTone}`"><span />{{ statusText }}</span>
               <div class="heading-action-buttons">
-                <q-btn outline no-caps icon="add" label="Nouvel entraînement" color="primary" :disable="isProcessing || !latest" @click="openRestart()" />
-                <q-btn v-if="result" unelevated no-caps color="primary" icon="analytics" :icon-right="modelSummaryOpen ? 'expand_less' : 'expand_more'" class="model-summary-launcher" aria-haspopup="dialog" :aria-expanded="modelSummaryOpen" aria-label="Afficher le résumé du modèle">
-                  <span>{{ result.selectedByIaml ? 'Modèle retenu' : 'Modèle disponible' }}</span>
+                <q-btn outline no-caps icon="add" label="New training run" color="primary" :disable="isProcessing || !latest" @click="openRestart()" />
+                <q-btn v-if="result" unelevated no-caps color="primary" icon="analytics" :icon-right="modelSummaryOpen ? 'expand_less' : 'expand_more'" class="model-summary-launcher" aria-haspopup="dialog" :aria-expanded="modelSummaryOpen" aria-label="Show the model summary">
+                  <span>{{ result.selectedByIaml ? 'Selected model' : 'Available model' }}</span>
                   <span v-if="validation?.value !== null && validation?.value !== undefined" class="model-summary-launcher-score">{{ score(validation.value) }}</span>
-                  <q-menu v-model="modelSummaryOpen" anchor="bottom right" self="top right" :offset="[0, 8]" max-height="calc(100vh - 24px)" class="model-summary-popup project-workspace-colors" role="dialog" aria-label="Résumé du modèle">
+                  <q-menu v-model="modelSummaryOpen" anchor="bottom right" self="top right" :offset="[0, 8]" max-height="calc(100vh - 24px)" class="model-summary-popup project-workspace-colors" role="dialog" aria-label="Model summary">
                     <ProjectModelSummary
                       :result="result"
                       :project-id="projectId"
@@ -256,53 +256,53 @@ onUnmounted(() => {
           </div>
         </header>
         <section v-if="isProcessing || pendingResults" class="training-live" aria-labelledby="live-title" role="status">
-          <div class="live-heading"><span class="live-icon"><q-spinner v-if="isProcessing" size="22px" /><q-icon v-else name="sync" size="22px" /></span><div><h2 id="live-title">{{ isProcessing ? active[0]?.status === 'QUEUED' ? 'Votre entraînement attend son tour' : isFinalizing ? 'Le modèle est réentraîné et évalué' : 'DrIA recherche un modèle adapté à vos données' : 'Les résultats sont en cours de récupération' }}</h2><p>{{ isProcessing ? `Budget de recherche : ${formatBudget(active[0].maxDuration)}. L’évaluation finale peut ajouter du temps.` : 'Le calcul est terminé. Les modèles et leurs analyses vont apparaître une fois leur enregistrement terminé.' }}</p></div><q-btn flat no-caps dense label="Voir l’entraînement" icon-right="arrow_forward" @click="view = 'training'" /></div>
-          <q-linear-progress v-if="isProcessing" :value="progress" :indeterminate="active[0]?.status === 'QUEUED' || isFinalizing" rounded stripe color="primary" size="30px" class="training-progress"><div class="absolute-full flex flex-center"><q-badge color="white" text-color="primary" class="training-progress-label" :label="active[0]?.status === 'QUEUED' ? 'En attente' : isFinalizing ? 'Réentraînement et évaluation finale en cours…' : `${Math.floor(progress * 100)} % · Environ ${remainingText} de recherche restantes`" /></div></q-linear-progress>
+          <div class="live-heading"><span class="live-icon"><q-spinner v-if="isProcessing" size="22px" /><q-icon v-else name="sync" size="22px" /></span><div><h2 id="live-title">{{ isProcessing ? active[0]?.status === 'QUEUED' ? 'Your training run is queued' : isFinalizing ? 'The model is being refitted and evaluated' : 'DrIA is searching for a model suited to your data' : 'Results are being retrieved' }}</h2><p>{{ isProcessing ? `Search budget: ${formatBudget(active[0].maxDuration)}. Final evaluation may take additional time.` : 'The computation is complete. Models and their analyses will appear once they have been saved.' }}</p></div><q-btn flat no-caps dense label="View training run" icon-right="arrow_forward" @click="view = 'training'" /></div>
+          <q-linear-progress v-if="isProcessing" :value="progress" :indeterminate="active[0]?.status === 'QUEUED' || isFinalizing" rounded stripe color="primary" size="30px" class="training-progress"><div class="absolute-full flex flex-center"><q-badge color="white" text-color="primary" class="training-progress-label" :label="active[0]?.status === 'QUEUED' ? 'Queued' : isFinalizing ? 'Refitting and final evaluation in progress…' : `${Math.floor(progress * 100)}% · About ${remainingText} of search remaining`" /></div></q-linear-progress>
         </section>
-        <section v-else-if="lastState && (lastState.tone === 'error' || latest?.status === 'CANCELED')" class="training-alert" role="status"><q-icon name="error_outline" size="22px" /><div><strong>Dernier entraînement : {{ lastState.label }}</strong><p>{{ result ? 'Le résultat précédent reste disponible ci-dessous. Consultez le détail pour comprendre l’arrêt du dernier entraînement.' : 'Consultez le détail de l’entraînement pour comprendre ce qui a interrompu le calcul.' }}</p></div><q-btn flat no-caps label="Voir le détail" icon-right="arrow_forward" @click="view = 'training'" /></section>
+        <section v-else-if="lastState && (lastState.tone === 'error' || latest?.status === 'CANCELED')" class="training-alert" role="status"><q-icon name="error_outline" size="22px" /><div><strong>Latest training run : {{ lastState.label }}</strong><p>{{ result ? 'The previous result remains available below. View the details to understand why the latest training run stopped.' : 'View the training run details to understand why the computation stopped.' }}</p></div><q-btn flat no-caps label="View details" icon-right="arrow_forward" @click="view = 'training'" /></section>
 
-        <q-tabs v-model="view" class="project-tabs" align="left" no-caps outside-arrows mobile-arrows active-color="primary" indicator-color="primary" aria-label="Sections du projet"><q-tab name="overview" label="Vue d’ensemble" /><q-tab name="training"><span>Entraînements <span class="tab-count">{{ processes.length }}</span></span></q-tab><q-tab name="data" label="Données" /><q-tab name="configuration" label="Configuration" /></q-tabs>
+        <q-tabs v-model="view" class="project-tabs" align="left" no-caps outside-arrows mobile-arrows active-color="primary" indicator-color="primary" aria-label="Project sections"><q-tab name="overview" label="Overview" /><q-tab name="training"><span>Training runs <span class="tab-count">{{ processes.length }}</span></span></q-tab><q-tab name="data" label="Data" /><q-tab name="configuration" label="Configuration" /></q-tabs>
         <div class="workspace-content">
-          <section v-if="view === 'overview'" class="project-overview" aria-label="Vue d’ensemble du projet">
+          <section v-if="view === 'overview'" class="project-overview" aria-label="Project overview">
             <div class="overview-main">
               <article v-if="result" class="result-panel">
-                <div class="section-heading"><div><p class="eyebrow">{{ result.selectedByIaml ? 'Modèle retenu par DrIA' : 'Modèle à examiner' }}</p><h2>{{ displayServiceName(result.model.metrics.model_info?.name) || 'Modèle disponible' }}</h2><p v-if="!result.selectedByIaml">{{ result.selectionLabel }}</p></div></div>
-                <div class="result-provenance"><q-icon name="schedule" size="16px" />Entraînement du {{ formatToDDMMYYYHHmm(result.process.date) }}<span v-if="latest?.id !== result.process.id" class="historical-result">Résultat antérieur</span></div>
+                <div class="section-heading"><div><p class="eyebrow">{{ result.selectedByIaml ? 'Model selected by DrIA' : 'Model to review' }}</p><h2>{{ displayServiceName(result.model.metrics.model_info?.name) || 'Available model' }}</h2><p v-if="!result.selectedByIaml">{{ result.selectionLabel }}</p></div></div>
+                <div class="result-provenance"><q-icon name="schedule" size="16px" />Training run on {{ formatToDDMMYYYHHmm(result.process.date) }}<span v-if="latest?.id !== result.process.id" class="historical-result">Earlier result</span></div>
                 <div class="result-scoreboard">
-                  <div class="main-score"><span class="score-source">{{ validation?.label }}</span><strong>{{ score(validation?.value) }}</strong><span class="score-metric">{{ validation?.name || 'Critère principal non renseigné' }}</span><span class="metric-direction">{{ validation?.greaterIsBetter === undefined ? 'Sens du critère non renseigné' : validation.greaterIsBetter ? 'Une valeur plus élevée est préférable' : 'Une valeur plus faible est préférable' }}</span></div>
-                  <div class="test-score"><span class="score-source">Test final indépendant</span><strong v-if="test?.value !== null">{{ score(test?.value) }}</strong><strong v-else class="score-unavailable">{{ project.evaluationMode === 'cross_validation' ? 'Non prévu' : 'Indisponible' }}</strong><p>{{ project.evaluationMode === 'cross_validation' ? 'Ce projet utilise la validation interne sans fichier de test séparé.' : 'Mesuré sur des observations réservées au test, distinctes de celles utilisées pour choisir le modèle.' }}</p></div>
+                  <div class="main-score"><span class="score-source">{{ validation?.label }}</span><strong>{{ score(validation?.value) }}</strong><span class="score-metric">{{ validation?.name || 'Primary metric not specified' }}</span><span class="metric-direction">{{ validation?.greaterIsBetter === undefined ? 'Metric direction not specified' : validation.greaterIsBetter ? 'Higher values are better' : 'Lower values are better' }}</span></div>
+                  <div class="test-score"><span class="score-source">Final holdout test set</span><strong v-if="test?.value !== null">{{ score(test?.value) }}</strong><strong v-else class="score-unavailable">{{ project.evaluationMode === 'cross_validation' ? 'Not planned' : 'Unavailable' }}</strong><p>{{ project.evaluationMode === 'cross_validation' ? 'This project uses internal validation without a separate test set.' : 'Measured on observations reserved for testing, separate from those used to select the model.' }}</p></div>
                 </div>
                 <div class="result-actions">
-                  <q-btn unelevated no-caps color="primary" icon="science" label="Essayer une prédiction" :to="{ name: 'model-test', params: { id: projectId, processId: result.process.id, modelId: result.model.id }, query: { returnView: 'overview' } }" />
-                  <q-btn outline no-caps color="primary" label="Analyser ce modèle" icon-right="arrow_forward" :to="modelLink()" />
-                  <q-btn flat no-caps color="primary" icon="psychology" label="Comprendre ses prédictions" :to="modelLink('explanation')" />
+                  <q-btn unelevated no-caps color="primary" icon="science" label="Try a prediction" :to="{ name: 'model-test', params: { id: projectId, processId: result.process.id, modelId: result.model.id }, query: { returnView: 'overview' } }" />
+                  <q-btn outline no-caps color="primary" label="Analyze this model" icon-right="arrow_forward" :to="modelLink()" />
+                  <q-btn flat no-caps color="primary" icon="psychology" label="Understand its predictions" :to="modelLink('explanation')" />
                 </div>
-                <section v-if="otherMetrics.length" class="additional-metrics" aria-label="Autres métriques du modèle">
+                <section v-if="otherMetrics.length" class="additional-metrics" aria-label="Other model metrics">
                   <div class="additional-metrics-heading">
-                    <span>Compléter la lecture des résultats</span>
-                    <q-toggle v-model="showOtherMetrics" color="primary" :label="`Autres métriques (${otherMetrics.length})`" size="sm" aria-controls="overview-other-metrics" />
+                    <span>Explore more results</span>
+                    <q-toggle v-model="showOtherMetrics" color="primary" :label="`Other metrics (${otherMetrics.length})`" size="sm" aria-controls="overview-other-metrics" />
                   </div>
                   <div v-if="showOtherMetrics" id="overview-other-metrics" class="additional-metrics-content">
                     <table class="additional-metrics-table">
-                      <caption class="sr-only">Métriques complémentaires du modèle affiché, sur la validation et le test indépendant.</caption>
-                      <thead><tr><th scope="col">Métrique</th><th scope="col">{{ validation?.label }}</th><th scope="col">Test indépendant</th></tr></thead>
-                      <tbody><tr v-for="metric in otherMetrics" :key="metric.key"><th scope="row"><span>{{ metric.name }}</span><small v-if="metric.greaterIsBetter !== undefined">{{ metric.greaterIsBetter ? 'À maximiser' : 'À minimiser' }}</small></th><td :data-metric="metric.key" data-source="validation">{{ score(metric.validation) }}</td><td :data-metric="metric.key" data-source="test">{{ score(metric.test) }}</td></tr></tbody>
+                      <caption class="sr-only">Additional metrics for the displayed model, measured on validation data and the holdout test set.</caption>
+                      <thead><tr><th scope="col">Metric</th><th scope="col">{{ validation?.label }}</th><th scope="col">Holdout test set</th></tr></thead>
+                      <tbody><tr v-for="metric in otherMetrics" :key="metric.key"><th scope="row"><span>{{ metric.name }}</span><small v-if="metric.greaterIsBetter !== undefined">{{ metric.greaterIsBetter ? 'Maximize' : 'Minimize' }}</small></th><td :data-metric="metric.key" data-source="validation">{{ score(metric.validation) }}</td><td :data-metric="metric.key" data-source="test">{{ score(metric.test) }}</td></tr></tbody>
                     </table>
-                    <q-btn flat dense no-caps color="primary" label="Consulter la définition des métriques" icon-right="arrow_forward" :to="modelLink()" class="metric-definitions-link" />
+                    <q-btn flat dense no-caps color="primary" label="View metric definitions" icon-right="arrow_forward" :to="modelLink()" class="metric-definitions-link" />
                   </div>
                 </section>
                 <section class="reference-comparison" aria-labelledby="reference-heading">
                   <div class="reference-heading">
-                    <h3 id="reference-heading">Comparaison au modèle de départ</h3>
-                    <div v-if="reference?.name" class="reference-criterion"><span>{{ reference.name }}</span><span>Test indépendant</span></div>
+                    <h3 id="reference-heading">Baseline comparison</h3>
+                    <div v-if="reference?.name" class="reference-criterion"><span>{{ reference.name }}</span><span>Holdout test set</span></div>
                   </div>
                   <div v-if="reference?.baselineScore !== undefined || reference?.modelScore !== undefined" class="reference-scores" :class="{ 'reference-scores--comparable': referenceChange }">
                     <div class="reference-score">
-                      <span class="reference-score-label">Modèle de départ</span>
+                      <span class="reference-score-label">Baseline</span>
                       <strong>{{ score(reference?.baselineScore) }}</strong>
                     </div>
                     <div class="reference-score reference-score--current">
-                      <span class="reference-score-label">{{ result.selectedByIaml ? 'Modèle retenu' : 'Modèle affiché' }}</span>
+                      <span class="reference-score-label">{{ result.selectedByIaml ? 'Selected model' : 'Displayed model' }}</span>
                       <strong>{{ score(reference?.modelScore) }}</strong>
                     </div>
                     <div v-if="referenceChange" class="reference-score reference-difference" :class="`reference-difference--${referenceChange.tone}`">
@@ -312,15 +312,15 @@ onUnmounted(() => {
                   </div>
                   <div v-if="!referenceChange" class="reference-unavailable"><q-spinner v-if="baselineActive" size="16px" aria-hidden="true" /><q-icon v-else name="info_outline" size="16px" aria-hidden="true" /><p>{{ reference?.reason }}</p></div>
                   <div class="reference-footer">
-                    <p class="reference-context">Référence sans optimisation.<span v-if="reference?.comparable"> Même critère, même jeu de test.</span></p>
-                    <q-btn flat dense no-caps color="primary" label="Voir le modèle de départ" icon-right="arrow_forward" class="reference-details-link" :to="{ query: { ...route.query, view: 'training' }, hash: '#project-baseline' }" />
+                    <p class="reference-context">Baseline without optimization.<span v-if="reference?.comparable"> Same metric, same test set.</span></p>
+                    <q-btn flat dense no-caps color="primary" label="View baseline" icon-right="arrow_forward" class="reference-details-link" :to="{ query: { ...route.query, view: 'training' }, hash: '#project-baseline' }" />
                   </div>
                 </section>
               </article>
-              <article v-else class="result-empty"><span class="empty-symbol"><q-icon :name="isProcessing || pendingResults ? 'model_training' : 'science'" size="34px" /></span><p class="eyebrow">Votre prochain résultat</p><h2>{{ isProcessing || pendingResults ? 'Votre premier modèle se prépare' : 'Aucun modèle disponible pour le moment' }}</h2><p>{{ isProcessing || pendingResults ? 'Dès que l’entraînement sera terminé, vous trouverez ici le modèle retenu, ses performances et les accès à son analyse.' : 'Consultez les entraînements et leur configuration pour poursuivre votre étude.' }}</p><q-btn v-if="latest && !isProcessing && !pendingResults" unelevated no-caps color="primary" label="Consulter la configuration" icon-right="arrow_forward" @click="configure(latest.id)" /><p v-if="!latest" class="empty-detail">Aucun entraînement n’est encore enregistré dans ce projet.</p></article>
-              <div class="overview-note"><q-icon name="info_outline" size="18px" /><p>Les performances décrivent les données et l’évaluation de cette étude. L’analyse du modèle permet de consulter tous les critères, les limites des résultats et les explications disponibles.</p></div>
+              <article v-else class="result-empty"><span class="empty-symbol"><q-icon :name="isProcessing || pendingResults ? 'model_training' : 'science'" size="34px" /></span><p class="eyebrow">Your next result</p><h2>{{ isProcessing || pendingResults ? 'Your first model is on its way' : 'No model available yet' }}</h2><p>{{ isProcessing || pendingResults ? 'Once training is complete, the selected model, its performance and links to its analysis will appear here.' : 'Review training runs and their configuration to continue your study.' }}</p><q-btn v-if="latest && !isProcessing && !pendingResults" unelevated no-caps color="primary" label="View configuration" icon-right="arrow_forward" @click="configure(latest.id)" /><p v-if="!latest" class="empty-detail">No training runs have been recorded for this project yet.</p></article>
+              <div class="overview-note"><q-icon name="info_outline" size="18px" /><p>Performance reflects the data and evaluation used in this study. The model analysis provides all metrics, result limitations and available explanations.</p></div>
             </div>
-            <aside class="project-explore" aria-labelledby="explore-title"><p class="eyebrow">Pour aller plus loin</p><h2 id="explore-title">Explorer votre étude</h2><q-btn flat no-caps align="left" class="explore-link" @click="view = 'training'"><span class="explore-icon"><q-icon name="history" size="21px" /></span><span><strong>Les entraînements</strong><small>{{ processes.length }} entraînement{{ processes.length > 1 ? 's' : '' }} · {{ modelCount }} modèle{{ modelCount > 1 ? 's' : '' }} disponible{{ modelCount > 1 ? 's' : '' }}</small></span><q-icon name="chevron_right" size="20px" /></q-btn><q-btn flat no-caps align="left" class="explore-link" @click="view = 'data'"><span class="explore-icon"><q-icon name="table_view" size="21px" /></span><span><strong>Les données du projet</strong><small>Tableau, bilan des colonnes et graphiques</small></span><q-icon name="chevron_right" size="20px" /></q-btn><q-btn flat no-caps align="left" class="explore-link" @click="configure(result?.process.id)"><span class="explore-icon"><q-icon name="account_tree" size="21px" /></span><span><strong>La configuration</strong><small>Prétraitements, modèles et validation</small></span><q-icon name="chevron_right" size="20px" /></q-btn></aside>
+            <aside class="project-explore" aria-labelledby="explore-title"><p class="eyebrow">Explore further</p><h2 id="explore-title">Explore your study</h2><q-btn flat no-caps align="left" class="explore-link" @click="view = 'training'"><span class="explore-icon"><q-icon name="history" size="21px" /></span><span><strong>Training runs</strong><small>{{ processes.length }} training run{{ processes.length !== 1 ? 's' : '' }} · {{ modelCount }} model{{ modelCount !== 1 ? 's' : '' }} available</small></span><q-icon name="chevron_right" size="20px" /></q-btn><q-btn flat no-caps align="left" class="explore-link" @click="view = 'data'"><span class="explore-icon"><q-icon name="table_view" size="21px" /></span><span><strong>Project data</strong><small>Data table, column summaries and charts</small></span><q-icon name="chevron_right" size="20px" /></q-btn><q-btn flat no-caps align="left" class="explore-link" @click="configure(result?.process.id)"><span class="explore-icon"><q-icon name="account_tree" size="21px" /></span><span><strong>Configuration</strong><small>Preprocessing, models and validation</small></span><q-icon name="chevron_right" size="20px" /></q-btn></aside>
           </section>
           <ProjectTrainings v-else-if="view === 'training'" :project="project" :active="isProcessing" @configure="configure" @restart="openRestart" />
           <ProjectConfiguration v-else-if="view === 'configuration'" :project="project" :process-id="configuredProcessId" @restart="openRestart" />
@@ -328,7 +328,7 @@ onUnmounted(() => {
         </div>
       </template>
     </div>
-    <q-dialog v-model="restartDialog" :persistent="restarting"><q-card class="restart-card project-workspace-colors"><q-card-section class="restart-heading"><div><p class="eyebrow">Poursuivre votre étude</p><h2>Relancer un entraînement</h2></div><q-btn v-close-popup flat round dense icon="close" aria-label="Fermer la relance" :disable="restarting" /></q-card-section><q-card-section class="restart-body"><p>La configuration de l’entraînement du <strong>{{ formatToDDMMYYYHHmm(restartTarget?.date) }}</strong> sera réutilisée. Les résultats précédents restent disponibles.</p><q-input v-model.number="restartBudget" outlined label="Budget de recherche (secondes)" type="number" :min="60" :max="3600" :step="1" :disable="restarting" hint="De 60 à 3 600 secondes. L’évaluation finale s’ajoute à ce budget." /><p v-if="restartError" class="download-error" role="alert">{{ restartError }}</p><q-btn v-if="restartTarget" flat no-caps color="primary" label="Adapter la configuration avant de lancer" icon="tune" :disable="restarting" :to="{ name: 'pipeline-fork', params: { id: projectId, processId: restartTarget.id } }" class="restart-adapt" /></q-card-section><q-card-actions align="right"><q-btn v-close-popup flat no-caps label="Annuler" :disable="restarting" /><q-btn unelevated no-caps color="primary" label="Lancer l’entraînement" :loading="restarting" @click="restartProcess" /></q-card-actions></q-card></q-dialog>
+    <q-dialog v-model="restartDialog" :persistent="restarting"><q-card class="restart-card project-workspace-colors"><q-card-section class="restart-heading"><div><p class="eyebrow">Continue your study</p><h2>Restart a training run</h2></div><q-btn v-close-popup flat round dense icon="close" aria-label="Close restart dialog" :disable="restarting" /></q-card-section><q-card-section class="restart-body"><p>The configuration from the training run on <strong>{{ formatToDDMMYYYHHmm(restartTarget?.date) }}</strong> will be reused. Previous results remain available.</p><q-input v-model.number="restartBudget" outlined label="Search budget in seconds" type="number" :min="60" :max="3600" :step="1" :disable="restarting" hint="Between 60 and 3,600 seconds. Final evaluation takes additional time." /><p v-if="restartError" class="download-error" role="alert">{{ restartError }}</p><q-btn v-if="restartTarget" flat no-caps color="primary" label="Adjust configuration before starting" icon="tune" :disable="restarting" :to="{ name: 'pipeline-fork', params: { id: projectId, processId: restartTarget.id } }" class="restart-adapt" /></q-card-section><q-card-actions align="right"><q-btn v-close-popup flat no-caps label="Cancel" :disable="restarting" /><q-btn unelevated no-caps color="primary" label="Start training run" :loading="restarting" @click="restartProcess" /></q-card-actions></q-card></q-dialog>
   </q-page>
 </template>
 

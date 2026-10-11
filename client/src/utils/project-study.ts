@@ -53,7 +53,7 @@ const positiveClassMetrics = new Set(['RecallMetric', 'PrecisionMetric', 'F1Scor
 function objectiveComponent(settings: GuidedStudySettings): string {
   if (settings.predictionKind === 'survival') {
     if (settings.priority !== 'recommended')
-      throw new Error('Choisissez le critère recommandé pour une prédiction dans le temps.');
+      throw new Error('Choose the recommended metric for survival prediction.');
     return 'ConcordanceIndexMetric';
   }
   if (settings.predictionKind === 'quantity') {
@@ -61,7 +61,7 @@ function objectiveComponent(settings: GuidedStudySettings): string {
       return 'MeanAbsoluteErrorMetric';
     if (settings.priority === 'mse')
       return 'MeanSquaredErrorMetric';
-    throw new Error('Choisissez un critère adapté à la prédiction d’une quantité.');
+    throw new Error('Choose a metric suitable for predicting a quantity.');
   }
   const components: Partial<Record<StudyPriority, string>> = {
     recommended: 'BalancedAccuracyMetric',
@@ -71,7 +71,7 @@ function objectiveComponent(settings: GuidedStudySettings): string {
   };
   const component = components[settings.priority];
   if (!component)
-    throw new Error('Choisissez un critère adapté à la prédiction d’une catégorie.');
+    throw new Error('Choose a metric suitable for predicting a category.');
   return component;
 }
 
@@ -93,9 +93,9 @@ function setPositiveClass(recipe: IRecipe, label: TargetLabel): void {
 /** Translate the guided answers without reducing the generated IAML study. */
 export function buildGuidedStudy(base: IStudy, settings: GuidedStudySettings): IStudy {
   if (!Number.isInteger(settings.searchDuration) || settings.searchDuration < 60 || settings.searchDuration > 3600)
-    throw new Error('Le temps de recherche doit être compris entre 60 et 3 600 secondes.');
+    throw new Error('Search duration must be between 60 and 3,600 seconds.');
   if (typeof settings.positiveLabel === 'number' && !Number.isFinite(settings.positiveLabel))
-    throw new Error('La catégorie à repérer doit être une valeur finie.');
+    throw new Error('The category to detect must be a finite value.');
 
   // The API contract is JSON. This also handles Vue reactive objects, unlike
   // structuredClone, and leaves the source configuration available for Back.

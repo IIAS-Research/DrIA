@@ -17,7 +17,7 @@ const pipeline = ref<IRecipe>();
 const loading = ref(false);
 const loadError = ref('');
 const omittedSteps = ref(0);
-const modelName = computed(() => displayServiceName(props.model.metrics.model_info?.name) || `Modèle nº ${props.model.id}`);
+const modelName = computed(() => displayServiceName(props.model.metrics.model_info?.name) || `Model # ${props.model.id}`);
 let controller: AbortController | undefined;
 let requestVersion = 0;
 
@@ -34,11 +34,11 @@ function isOmitted(step: Record<string, unknown>): boolean {
 }
 function stepDescription(step: Record<string, unknown>): string {
   const roles: Record<string, string> = {
-    predictor: 'Modèle utilisé pour la prédiction.',
-    transformer: 'Préparation des données retenue pour ce modèle.',
-    resampler: 'Rééquilibrage utilisé pendant l’entraînement.',
+    predictor: 'Model used for prediction.',
+    transformer: 'Data preparation selected for this model.',
+    resampler: 'Resampling used during training.',
   };
-  const role = roles[text(step.role)] ?? 'Étape enregistrée dans le pipeline de ce modèle.';
+  const role = roles[text(step.role)] ?? 'Step recorded in this model’s pipeline.';
   const description = text(step.description);
   return description ? `${role} ${description}` : role;
 }
@@ -52,8 +52,8 @@ function retainedPipeline(payload: unknown): { node: IRecipe; omitted: number } 
   return {
     omitted: steps.length - activeSteps.length,
     node: {
-      type: 'sequence', alias: 'Parcours retenu',
-      description: 'Ces étapes sont celles du modèle retenu, dans leur ordre d’exécution. Le rééquilibrage éventuel concerne uniquement son entraînement.',
+      type: 'sequence', alias: 'Selected pipeline',
+      description: 'These are the selected model’s steps, in execution order. Any resampling applies only during training.',
       children: activeSteps.map((step) => ({
         type: 'use',
         alias: text(step.alias) || text(step.name) || text(step.class),
@@ -74,9 +74,9 @@ function canUseReportFallback(error: unknown): boolean {
 function errorMessage(error: unknown): string {
   const message = apiError(error);
   if (axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0))
-    return 'Ce parcours n’est pas accessible avec votre session actuelle.';
-  if (/introuvable|not found/i.test(message)) return 'Le détail de ce modèle n’est plus disponible.';
-  return 'DrIA ne peut pas charger le parcours retenu pour le moment.';
+    return 'This pipeline is not accessible with your current session.';
+  if (/introuvable|not found/i.test(message)) return 'Details for this model are no longer available.';
+  return 'DrIA cannot load the selected pipeline right now.';
 }
 async function loadPipeline(): Promise<void> {
   controller?.abort();
@@ -131,35 +131,35 @@ onUnmounted(() => { requestVersion += 1; controller?.abort(); });
 </script>
 
 <template>
-  <section class="retained-overview" aria-label="Parcours du modèle retenu">
+  <section class="retained-overview" aria-label="Selected model pipeline">
     <header class="retained-overview__heading">
       <div>
-        <span class="retained-overview__eyebrow">Le parcours effectivement utilisé</span>
+        <span class="retained-overview__eyebrow">The pipeline used by this model</span>
         <h3>{{ modelName }}</h3>
         <p v-if="selectionLabel" class="retained-overview__selection">{{ selectionLabel }}</p>
-        <p>Consultez les étapes et les réglages utilisés par ce modèle.</p>
+        <p>View the steps and settings used by this model.</p>
       </div>
     </header>
     <div v-if="loading" class="retained-overview__state" role="status" aria-live="polite">
       <q-spinner color="primary" size="24px" />
-      <p>Chargement du parcours retenu…</p>
+      <p>Loading selected pipeline…</p>
     </div>
     <div v-else-if="loadError" class="retained-overview__state" role="status" aria-live="polite">
       <q-icon name="info_outline" size="24px" />
-      <div><p>{{ loadError }}</p><q-btn flat dense no-caps color="primary" label="Réessayer" icon="refresh" @click="loadPipeline" /></div>
+      <div><p>{{ loadError }}</p><q-btn flat dense no-caps color="primary" label="Retry" icon="refresh" @click="loadPipeline" /></div>
     </div>
     <template v-else-if="pipeline">
       <PipelineOverview :node="pipeline" context="retained" />
       <p v-if="omittedSteps" class="retained-overview__omitted">
-        {{ omittedSteps }} étape{{ omittedSteps > 1 ? 's facultatives n’ont' : ' facultative n’a' }} pas été utilisée{{ omittedSteps > 1 ? 's' : '' }} par ce modèle.
+        {{ omittedSteps }} optional step{{ omittedSteps === 1 ? ' was' : 's were' }} not used by this model.
       </p>
     </template>
     <div v-else class="retained-overview__state" role="status">
       <q-icon name="route" size="24px" />
       <div>
-        <p>Les étapes effectivement utilisées ne sont pas disponibles pour ce modèle.</p>
-        <small>Le parcours sera affiché lorsque DrIA pourra en fournir le détail.</small>
-        <q-btn flat dense no-caps color="primary" label="Réessayer" icon="refresh" @click="loadPipeline" />
+        <p>The steps used by this model are unavailable.</p>
+        <small>The pipeline will appear when DrIA can provide its details.</small>
+        <q-btn flat dense no-caps color="primary" label="Retry" icon="refresh" @click="loadPipeline" />
       </div>
     </div>
   </section>

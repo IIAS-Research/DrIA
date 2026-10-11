@@ -18,7 +18,7 @@ const mainMetricValue = computed(() => metricScore(propsComponent.model.metrics)
 const mainMetricDirection = computed(() => {
   const metrics = propsComponent.model.metrics;
   const greater = metrics.objective?.greater_is_better ?? metrics.metrics_info?.[metricKey(metrics)]?.greater_is_better;
-  return greater === undefined ? '' : greater ? 'Maximiser' : 'Minimiser';
+  return greater === undefined ? '' : greater ? 'Maximize' : 'Minimize';
 });
 
 function forkPipeline() {
@@ -74,7 +74,7 @@ function forkPipeline() {
   </div>
   <q-item v-else>
     <q-item-label class="text-caption text-italic">
-      Aucun models Dr IA actuellement disponible
+      No DrIA models currently available
     </q-item-label>
   </q-item>
 </template>

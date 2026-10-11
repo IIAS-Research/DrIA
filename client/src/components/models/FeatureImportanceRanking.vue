@@ -29,8 +29,8 @@ const rankedFeatures = computed(() => props.features.map((feature, sourceIndex) 
 const maximumAmplitude = computed(() => rankedFeatures.value.reduce((maximum, feature) =>
   Math.max(maximum, Math.abs(feature.value ?? 0)), 0));
 const filteredFeatures = computed(() => {
-  const query = (search.value ?? '').trim().toLocaleLowerCase('fr');
-  return query ? rankedFeatures.value.filter((feature) => feature.name.toLocaleLowerCase('fr').includes(query))
+  const query = (search.value ?? '').trim().toLocaleLowerCase('en-US');
+  return query ? rankedFeatures.value.filter((feature) => feature.name.toLocaleLowerCase('en-US').includes(query))
     : rankedFeatures.value;
 });
 const visibleFeatures = computed(() => expanded.value ? filteredFeatures.value : filteredFeatures.value.slice(0, previewSize));
@@ -54,19 +54,19 @@ function barStyle(value: number) {
 </script>
 
 <template>
-  <section class="feature-ranking" aria-label="Importance des variables">
+  <section class="feature-ranking" aria-label="Feature importance">
     <header class="ranking-heading">
       <div>
-        <span class="ranking-eyebrow">Comprendre le modèle</span>
-        <h2>Importance des variables</h2>
-        <p v-if="hasNegativeValues">Les variables sont classées par amplitude. Les barres partent de zéro, vers la gauche pour les valeurs négatives et vers la droite pour les positives.</p>
-        <p v-else-if="hasScalarValues">Les variables à valeur unique sont classées de la plus importante à la moins importante. Les barres comparent leurs valeurs sur une même échelle.</p>
-        <p v-else>Les valeurs fournies pour chaque variable sont présentées ci-dessous.</p>
+        <span class="ranking-eyebrow">Understand the model</span>
+        <h2>Feature importance</h2>
+        <p v-if="hasNegativeValues">Features are ranked by magnitude. Bars start at zero, extending left for negative values and right for positive values.</p>
+        <p v-else-if="hasScalarValues">Features with a single importance value are ranked from highest to lowest. Bars compare their values on the same scale.</p>
+        <p v-else>The values returned for each feature are shown below.</p>
       </div>
-      <span class="ranking-count">{{ features.length }} variable{{ features.length > 1 ? 's' : '' }}</span>
+      <span class="ranking-count">{{ features.length }} feature{{ features.length !== 1 ? 's' : '' }}</span>
     </header>
 
-    <p v-if="explainedClassLabel" class="explained-class">Classe expliquée : <strong>{{ explainedClassLabel }}</strong></p>
+    <p v-if="explainedClassLabel" class="explained-class">Explained class: <strong>{{ explainedClassLabel }}</strong></p>
 
     <div v-if="features.length > previewSize" class="ranking-search">
       <q-input
@@ -74,17 +74,17 @@ function barStyle(value: number) {
         outlined
         dense
         clearable
-        label="Rechercher une variable"
+        label="Search for a feature"
         class="feature-search"
       >
         <template #prepend><q-icon name="search" size="20px" /></template>
       </q-input>
-      <span v-if="search?.trim()" class="search-count" aria-live="polite">{{ filteredFeatures.length }} résultat{{ filteredFeatures.length > 1 ? 's' : '' }}</span>
+      <span v-if="search?.trim()" class="search-count" aria-live="polite">{{ filteredFeatures.length }} result{{ filteredFeatures.length !== 1 ? 's' : '' }}</span>
     </div>
 
     <div v-if="visibleFeatures.length" class="ranking-table">
       <div class="ranking-labels" aria-hidden="true">
-        <span>Rang</span><span>Variable</span><span>Comparaison</span><span>Importance</span>
+        <span>Rank</span><span>Feature</span><span>Comparison</span><span>Importance</span>
       </div>
       <ol class="ranking-list">
         <li
@@ -100,7 +100,7 @@ function barStyle(value: number) {
             <span v-if="hasNegativeValues" class="zero-axis" />
           </div>
           <div v-else-if="feature.values" class="feature-values-block">
-            <span class="multiple-values-label">{{ feature.values.length > 1 ? 'Plusieurs valeurs fournies pour cette variable' : 'Valeur fournie pour cette variable' }}</span>
+            <span class="multiple-values-label">{{ feature.values.length > 1 ? 'Multiple values returned for this feature' : 'Value returned for this feature' }}</span>
             <div class="feature-values">
               <span v-for="(value, index) in feature.values" :key="index" class="array-value">{{ formatScore(value) }}</span>
             </div>
@@ -109,16 +109,16 @@ function barStyle(value: number) {
           <span v-if="!feature.values" class="feature-value">{{ formatScore(feature.value) }}</span>
         </li>
       </ol>
-      <div v-if="hasNegativeValues" class="axis-legend" aria-hidden="true"><span>Valeurs négatives</span><span>0</span><span>Valeurs positives</span></div>
+      <div v-if="hasNegativeValues" class="axis-legend" aria-hidden="true"><span>Negative values</span><span>0</span><span>Positive values</span></div>
     </div>
-    <p v-else class="ranking-empty">{{ features.length ? 'Aucune variable ne correspond à cette recherche.' : 'Aucune importance de variable n’est disponible.' }}</p>
+    <p v-else class="ranking-empty">{{ features.length ? 'No features match this search.' : 'No feature importance values are available.' }}</p>
 
     <footer v-if="features.length" class="ranking-footer">
       <div class="ranking-notes">
-        <span>{{ visibleFeatures.length }} sur {{ filteredFeatures.length }} variable{{ filteredFeatures.length > 1 ? 's' : '' }}</span>
-        <p>Valeurs arrondies à 4 décimales maximum ; les barres utilisent les valeurs avant arrondi.</p>
-        <p v-if="hasMultipleValues">Les séries de valeurs sont conservées séparément et ne sont pas classées avec les importances à valeur unique.</p>
-        <p v-if="unavailableCount">{{ unavailableCount }} importance{{ unavailableCount > 1 ? 's' : '' }} indisponible{{ unavailableCount > 1 ? 's' : '' }}.</p>
+        <span>{{ visibleFeatures.length }} of {{ filteredFeatures.length }} feature{{ filteredFeatures.length !== 1 ? 's' : '' }}</span>
+        <p>Values are rounded to at most 4 decimal places; bars use the unrounded values.</p>
+        <p v-if="hasMultipleValues">Arrays of values are shown separately and are not ranked with single-value importances.</p>
+        <p v-if="unavailableCount">{{ unavailableCount }} importance value{{ unavailableCount !== 1 ? 's' : '' }} unavailable.</p>
       </div>
       <q-btn
         v-if="filteredFeatures.length > previewSize"
@@ -126,7 +126,7 @@ function barStyle(value: number) {
         no-caps
         color="primary"
         :icon-right="expanded ? 'expand_less' : 'expand_more'"
-        :label="expanded ? 'Voir les 10 premières' : `Afficher les ${filteredFeatures.length} variables`"
+        :label="expanded ? 'Show the first 10' : `Show all ${filteredFeatures.length} features`"
         :aria-expanded="expanded"
         @click="expanded = !expanded"
       />

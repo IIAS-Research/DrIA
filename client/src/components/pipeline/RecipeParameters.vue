@@ -29,35 +29,35 @@ const form = ref<QForm>();
 const snapshots = new WeakMap<IRecipe, NodeDrafts>();
 const current = ref<NodeDrafts>({ initial: {}, present: new Set(), fields: {} });
 const labels: Record<string, [string, string?]> = {
-  n_estimators: ['Nombre d’arbres', 'Plus d’arbres peut améliorer le modèle, mais augmente le temps de calcul.'],
-  iterations: ['Nombre d’itérations'], max_iter: ['Nombre maximal d’itérations'],
-  learning_rate: ['Vitesse d’apprentissage', 'Contrôle l’importance donnée à chaque nouvelle étape d’apprentissage.'],
-  max_depth: ['Profondeur maximale des arbres'], depth: ['Profondeur des arbres'],
-  min_samples_split: ['Minimum d’observations pour une séparation'],
-  min_samples_leaf: ['Minimum d’observations par feuille'], min_data_in_leaf: ['Minimum d’observations par feuille'],
-  n_neighbors: ['Nombre de voisins'], k_neighbors: ['Voisins pour le rééquilibrage'], m_neighbors: ['Voisins pour détecter les frontières'],
-  n_components: ['Nombre de composantes'], max_features: ['Variables utilisées'], max_samples: ['Observations utilisées'],
-  random_state: ['Graine aléatoire', 'Une même graine facilite la reproduction des résultats.'],
-  strategy: ['Méthode de remplacement'], fill_value: ['Valeur de remplacement'],
-  missing_values: ['Valeur considérée comme manquante'], missing_label: ['Libellé pour les valeurs manquantes'],
-  sampling_strategy: ['Méthode de rééquilibrage'], class_weight: ['Pondération des classes'],
-  criterion: ['Critère de séparation'], loss: ['Fonction d’erreur'], loss_function: ['Fonction d’erreur'],
-  penalty: ['Type de régularisation'], solver: ['Méthode de résolution'],
-  C: ['Intensité inverse de régularisation', 'Une valeur plus faible renforce la régularisation.'],
-  alpha: ['Intensité de régularisation'], l1_ratio: ['Part de régularisation L1'],
-  tol: ['Tolérance de convergence', 'Définit à partir de quel niveau d’amélioration le calcul peut s’arrêter.'],
-  bootstrap: ['Échantillonnage avec remise'], bootstrap_features: ['Variables tirées avec remise'],
-  fit_intercept: ['Calculer une constante'], fit_prior: ['Estimer la fréquence des classes'],
-  probability: ['Calculer les probabilités'], oob_score: ['Évaluation hors échantillon'],
-  nsamples: ['Nombre d’échantillons d’explication', 'Davantage d’échantillons affine l’explication, avec un calcul plus long.'],
-  pos_label: ['Classe positive', 'Classe considérée comme l’événement à détecter.'],
-  average: ['Méthode d’agrégation'], threshold: ['Seuil'],
-  unknown_value: ['Code d’une catégorie inconnue'], start_value: ['Premier code des catégories'],
-  sort_categories: ['Trier les catégories'], copy: ['Travailler sur une copie'],
-  add_indicator: ['Ajouter un indicateur de valeur manquante'], keep_empty_features: ['Conserver les colonnes entièrement vides'],
-  kernel: ['Fonction de similarité'], gamma: ['Influence de chaque observation'],
-  degree: ['Degré du polynôme'], shrinkage: ['Régularisation de la covariance'],
-  sample_size: ['Taille de l’échantillon'],
+  n_estimators: ['Number of trees', 'More trees may improve the model but increase computation time.'],
+  iterations: ['Number of iterations'], max_iter: ['Maximum iterations'],
+  learning_rate: ['Learning rate', 'Controls the weight of each new training step.'],
+  max_depth: ['Maximum tree depth'], depth: ['Tree depth'],
+  min_samples_split: ['Minimum samples to split'],
+  min_samples_leaf: ['Minimum samples per leaf'], min_data_in_leaf: ['Minimum samples per leaf'],
+  n_neighbors: ['Number of neighbors'], k_neighbors: ['Resampling neighbors'], m_neighbors: ['Boundary detection neighbors'],
+  n_components: ['Number of components'], max_features: ['Features used'], max_samples: ['Samples used'],
+  random_state: ['Random seed', 'Using the same seed helps reproduce results.'],
+  strategy: ['Imputation strategy'], fill_value: ['Imputation value'],
+  missing_values: ['Value treated as missing'], missing_label: ['Missing value label'],
+  sampling_strategy: ['Resampling strategy'], class_weight: ['Class weights'],
+  criterion: ['Split criterion'], loss: ['Loss function'], loss_function: ['Loss function'],
+  penalty: ['Regularization type'], solver: ['Solver'],
+  C: ['Inverse regularization strength', 'A lower value increases regularization.'],
+  alpha: ['Regularization strength'], l1_ratio: ['L1 regularization ratio'],
+  tol: ['Convergence tolerance', 'Sets the improvement threshold below which computation can stop.'],
+  bootstrap: ['Sampling with replacement'], bootstrap_features: ['Features sampled with replacement'],
+  fit_intercept: ['Fit intercept'], fit_prior: ['Estimate class frequencies'],
+  probability: ['Compute probabilities'], oob_score: ['Out-of-bag evaluation'],
+  nsamples: ['Number of explanation samples', 'More samples refine the explanation but take longer to compute.'],
+  pos_label: ['Positive class', 'The class treated as the event to detect.'],
+  average: ['Averaging method'], threshold: ['Threshold'],
+  unknown_value: ['Unknown category code'], start_value: ['First category code'],
+  sort_categories: ['Sort categories'], copy: ['Work on a copy'],
+  add_indicator: ['Add a missing value indicator'], keep_empty_features: ['Keep entirely empty columns'],
+  kernel: ['Kernel function'], gamma: ['Influence of each sample'],
+  degree: ['Polynomial degree'], shrinkage: ['Covariance regularization'],
+  sample_size: ['Sample size'],
 };
 const integerKeys = new Set([
   'n_estimators', 'iterations', 'max_iter', 'max_depth', 'depth', 'min_data_in_leaf',
@@ -116,13 +116,13 @@ function description(key: string): string {
   return labels[key]?.[1] ?? descriptor(key)?.description ?? catalogueDescriptor(key)?.description ?? '';
 }
 function display(value: any): string {
-  if (value === null || value === undefined) return 'Automatique';
-  if (value === true) return 'Oui';
-  if (value === false) return 'Non';
+  if (value === null || value === undefined) return 'Automatic';
+  if (value === true) return 'Yes';
+  if (value === false) return 'No';
   const translated: Record<string, string> = {
-    mean: 'Moyenne', median: 'Médiane', most_frequent: 'Valeur la plus fréquente',
-    constant: 'Valeur constante', auto: 'Automatique', minority: 'Classe minoritaire',
-    balanced: 'Équilibrée', uniform: 'Uniforme', distance: 'Selon la distance',
+    mean: 'Mean', median: 'Median', most_frequent: 'Most frequent value',
+    constant: 'Constant value', auto: 'Automatic', minority: 'Minority class',
+    balanced: 'Balanced', uniform: 'Uniform', distance: 'Distance-based',
   };
   return typeof value === 'object' ? JSON.stringify(value) : translated[String(value)] ?? String(value);
 }
@@ -186,27 +186,27 @@ function validationError(key: string): string {
   if (!draft) return '';
   if (draft.error) return draft.error;
   if (kind(key) === 'json') {
-    try { JSON.parse(draft.json); } catch { return 'Cette valeur JSON est incomplète ou incorrecte.'; }
+    try { JSON.parse(draft.json); } catch { return 'This JSON value is incomplete or invalid.'; }
   }
   // Library defaults can retain an initial value outside their suggested search range.
   // Validate user edits without rejecting an untouched descriptor supplied by DrIA.
   if (!draft.dirty) return '';
   if (kind(key) === 'number') {
     if (draft.value === '' || draft.value === null || draft.value === undefined
-      || !Number.isFinite(Number(draft.value))) return 'Indiquez une valeur numérique.';
-    if (isInteger(key) && !Number.isInteger(Number(draft.value))) return 'Une valeur entière est attendue.';
+      || !Number.isFinite(Number(draft.value))) return 'Enter a numeric value.';
+    if (isInteger(key) && !Number.isInteger(Number(draft.value))) return 'Enter an integer.';
     if (draft.search) {
       if ([draft.low, draft.high].some((value) => value === '' || value == null || !Number.isFinite(Number(value))))
-        return 'Renseignez les deux limites de recherche.';
+        return 'Enter both search bounds.';
       const low = Number(draft.low); const high = Number(draft.high); const value = Number(draft.value);
-      if (isInteger(key) && (!Number.isInteger(low) || !Number.isInteger(high))) return 'Les limites doivent être des entiers.';
-      if (low > high) return 'La limite basse doit être inférieure ou égale à la limite haute.';
-      if (value < low || value > high) return 'La valeur de départ doit être comprise entre les deux limites.';
+      if (isInteger(key) && (!Number.isInteger(low) || !Number.isInteger(high))) return 'Bounds must be integers.';
+      if (low > high) return 'The lower bound must not exceed the upper bound.';
+      if (value < low || value > high) return 'The initial value must be within the bounds.';
     }
   }
   if (kind(key) === 'select' && draft.search) {
-    if (!draft.choices.length) return 'Choisissez au moins une valeur à explorer.';
-    if (!draft.choices.some((value) => sameValue(value, draft.value))) return 'La valeur de départ doit faire partie des valeurs à explorer.';
+    if (!draft.choices.length) return 'Choose at least one search value.';
+    if (!draft.choices.some((value) => sameValue(value, draft.value))) return 'The initial value must be one of the search values.';
   }
   return '';
 }
@@ -260,7 +260,7 @@ function update(key: string, field: keyof ParameterDraft, value: any): void {
   draft.dirty = true; draft.error = '';
   if (field === 'json') {
     try { draft.value = JSON.parse(value); }
-    catch { draft.error = 'Cette valeur JSON est incomplète ou incorrecte.'; }
+    catch { draft.error = 'This JSON value is incomplete or invalid.'; }
   }
   commit(key);
 }
@@ -290,41 +290,41 @@ defineExpose({ validate });
   <q-form ref="form" class="recipe-parameters" @submit.prevent>
     <div class="recipe-parameters__intro">
       <div>
-        <h4>Paramètres de l’étape</h4>
-        <p v-if="parameters.some(supportsSearch)">Fixez une valeur ou définissez les valeurs que DrIA peut explorer pendant la recherche.</p>
-        <p v-else-if="parameters.length">Les valeurs choisies seront utilisées à chaque exécution de cette étape.</p>
+        <h4>Step parameters</h4>
+        <p v-if="parameters.some(supportsSearch)">Set a fixed value or define values DrIA can explore during the search.</p>
+        <p v-else-if="parameters.length">These values will be used whenever this step runs.</p>
       </div>
-      <span v-if="parameters.length" class="recipe-parameters__count">{{ parameters.length }} paramètre{{ parameters.length > 1 ? 's' : '' }}</span>
+      <span v-if="parameters.length" class="recipe-parameters__count">{{ parameters.length }} parameter{{ parameters.length === 1 ? '' : 's' }}</span>
     </div>
     <div v-if="!parameters.length" class="recipe-parameters__empty">
       <q-icon name="tune" size="24px" />
-      <div>Cette étape ne propose pas de paramètre à modifier.</div>
+      <div>This step has no editable parameters.</div>
     </div>
     <section v-for="key in parameters" :key="key" class="recipe-parameter">
       <div class="recipe-parameter__heading">
         <div><h5>{{ label(key) }}</h5><code>{{ key }}</code></div>
-        <q-btn flat dense no-caps icon="restart_alt" label="Réinitialiser" :disable="disabled || !current.fields[key]?.dirty" @click="reset(key)">
-          <q-tooltip>Revenir à la configuration de cette étape avant vos modifications</q-tooltip>
+        <q-btn flat dense no-caps icon="restart_alt" label="Reset" :disable="disabled || !current.fields[key]?.dirty" @click="reset(key)">
+          <q-tooltip>Restore this step’s configuration before your changes</q-tooltip>
         </q-btn>
       </div>
       <p v-if="description(key)" class="recipe-parameter__description">{{ description(key) }}</p>
       <template v-if="current.fields[key]">
         <div class="recipe-parameter__mode">
-          <q-toggle v-if="supportsSearch(key)" :model-value="current.fields[key].search" label="Explorer plusieurs valeurs" :disable="disabled" @update:model-value="(value) => toggleSearch(key, value)" />
-          <span v-else class="recipe-parameter__fixed"><q-icon name="lock_outline" size="15px" /> Valeur fixe</span>
-          <span v-if="supportsSearch(key)" class="recipe-parameter__mode-hint">{{ current.fields[key].search ? 'DrIA recherchera la valeur la plus adaptée.' : 'Cette valeur sera identique pour tous les essais.' }}</span>
+          <q-toggle v-if="supportsSearch(key)" :model-value="current.fields[key].search" label="Explore multiple values" :disable="disabled" @update:model-value="(value) => toggleSearch(key, value)" />
+          <span v-else class="recipe-parameter__fixed"><q-icon name="lock_outline" size="15px" /> Fixed value</span>
+          <span v-if="supportsSearch(key)" class="recipe-parameter__mode-hint">{{ current.fields[key].search ? 'DrIA will search for the most suitable value.' : 'This value will be the same for every trial.' }}</span>
         </div>
-        <q-input v-if="kind(key) === 'number'" :model-value="current.fields[key].value" outlined type="number" :step="isInteger(key) ? 1 : 'any'" :label="current.fields[key].search ? 'Valeur de départ' : 'Valeur'" :disable="disabled" :error="!!validationError(key)" :error-message="validationError(key)" :rules="[() => validationError(key) || true]" lazy-rules reactive-rules @update:model-value="(value) => update(key, 'value', value)" />
-        <q-select v-else-if="kind(key) === 'select'" :model-value="current.fields[key].value" :options="availableChoices(key).map((value) => ({ label: display(value), value }))" emit-value map-options outlined :label="current.fields[key].search ? 'Valeur de départ' : 'Valeur'" :disable="disabled" :error="!!validationError(key)" :error-message="validationError(key)" :rules="[() => validationError(key) || true]" reactive-rules @update:model-value="(value) => update(key, 'value', value)" />
-        <q-toggle v-else-if="kind(key) === 'boolean'" :model-value="current.fields[key].value" :label="current.fields[key].value ? 'Activé' : 'Désactivé'" :disable="disabled" @update:model-value="(value) => update(key, 'value', value)" />
-        <q-input v-else-if="kind(key) === 'text'" :model-value="current.fields[key].value" outlined label="Valeur" :disable="disabled" @update:model-value="(value) => update(key, 'value', value)" />
-        <q-input v-else :model-value="current.fields[key].json" outlined autogrow type="textarea" label="Valeur structurée (JSON)" hint="null laisse le choix automatique. Les valeurs structurées conservent leur format." :disable="disabled" :error="!!validationError(key)" :error-message="validationError(key)" :rules="[() => validationError(key) || true]" reactive-rules class="recipe-parameter__json" @update:model-value="(value) => update(key, 'json', value)" />
+        <q-input v-if="kind(key) === 'number'" :model-value="current.fields[key].value" outlined type="number" :step="isInteger(key) ? 1 : 'any'" :label="current.fields[key].search ? 'Initial value' : 'Value'" :disable="disabled" :error="!!validationError(key)" :error-message="validationError(key)" :rules="[() => validationError(key) || true]" lazy-rules reactive-rules @update:model-value="(value) => update(key, 'value', value)" />
+        <q-select v-else-if="kind(key) === 'select'" :model-value="current.fields[key].value" :options="availableChoices(key).map((value) => ({ label: display(value), value }))" emit-value map-options outlined :label="current.fields[key].search ? 'Initial value' : 'Value'" :disable="disabled" :error="!!validationError(key)" :error-message="validationError(key)" :rules="[() => validationError(key) || true]" reactive-rules @update:model-value="(value) => update(key, 'value', value)" />
+        <q-toggle v-else-if="kind(key) === 'boolean'" :model-value="current.fields[key].value" :label="current.fields[key].value ? 'Enabled' : 'Disabled'" :disable="disabled" @update:model-value="(value) => update(key, 'value', value)" />
+        <q-input v-else-if="kind(key) === 'text'" :model-value="current.fields[key].value" outlined label="Value" :disable="disabled" @update:model-value="(value) => update(key, 'value', value)" />
+        <q-input v-else :model-value="current.fields[key].json" outlined autogrow type="textarea" label="Structured value (JSON)" hint="null uses the automatic setting. Structured values keep their format." :disable="disabled" :error="!!validationError(key)" :error-message="validationError(key)" :rules="[() => validationError(key) || true]" reactive-rules class="recipe-parameter__json" @update:model-value="(value) => update(key, 'json', value)" />
         <div v-if="current.fields[key].search && kind(key) === 'number'" class="recipe-parameter__bounds">
-          <q-input :model-value="current.fields[key].low" outlined type="number" :step="isInteger(key) ? 1 : 'any'" label="Limite basse" :disable="disabled" @update:model-value="(value) => update(key, 'low', value)" />
-          <q-input :model-value="current.fields[key].high" outlined type="number" :step="isInteger(key) ? 1 : 'any'" label="Limite haute" :disable="disabled" @update:model-value="(value) => update(key, 'high', value)" />
+          <q-input :model-value="current.fields[key].low" outlined type="number" :step="isInteger(key) ? 1 : 'any'" label="Lower bound" :disable="disabled" @update:model-value="(value) => update(key, 'low', value)" />
+          <q-input :model-value="current.fields[key].high" outlined type="number" :step="isInteger(key) ? 1 : 'any'" label="Upper bound" :disable="disabled" @update:model-value="(value) => update(key, 'high', value)" />
         </div>
-        <q-select v-if="current.fields[key].search && kind(key) === 'select'" :model-value="current.fields[key].choices" :options="availableChoices(key).map((value) => ({ label: display(value), value }))" emit-value map-options multiple use-chips outlined label="Valeurs à explorer" hint="DrIA comparera uniquement les valeurs sélectionnées." :disable="disabled" @update:model-value="(value) => update(key, 'choices', value)" />
-        <p class="recipe-parameter__initial">Configuration initiale : {{ display(parameterValue(originalDescriptor(key))) }}</p>
+        <q-select v-if="current.fields[key].search && kind(key) === 'select'" :model-value="current.fields[key].choices" :options="availableChoices(key).map((value) => ({ label: display(value), value }))" emit-value map-options multiple use-chips outlined label="Search values" hint="DrIA will compare only the selected values." :disable="disabled" @update:model-value="(value) => update(key, 'choices', value)" />
+        <p class="recipe-parameter__initial">Initial configuration: {{ display(parameterValue(originalDescriptor(key))) }}</p>
       </template>
     </section>
   </q-form>

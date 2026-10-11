@@ -61,17 +61,17 @@ onMounted(fetchProcessPipeline);
 <template>
   <q-page class="fork-page project-workspace-colors">
     <div class="fork-workspace">
-      <q-btn flat dense no-caps icon="arrow_back" label="Retour à la configuration" :to="projectLocation" class="back-link" />
+      <q-btn flat dense no-caps icon="arrow_back" label="Back to configuration" :to="projectLocation" class="back-link" />
 
       <header class="fork-heading">
-        <span class="section-eyebrow">Nouvel entraînement</span>
-        <h1>Configurer les pipelines</h1>
-        <p>Composez les chemins que DrIA pourra explorer, puis réglez chaque étape pour la prochaine recherche.</p>
-        <span class="source-context"><q-icon name="history" size="16px" />Configuration de l’entraînement nº {{ processId }}<template v-if="sourceDate"> · {{ sourceDate }}</template></span>
+        <span class="section-eyebrow">New training run</span>
+        <h1>Configure pipelines</h1>
+        <p>Build the paths DrIA can explore, then configure each step for the next search.</p>
+        <span class="source-context"><q-icon name="history" size="16px" />Configuration from training run # {{ processId }}<template v-if="sourceDate"> · {{ sourceDate }}</template></span>
       </header>
 
       <template v-if="pipeline">
-        <section class="configuration-section" aria-label="Éditeur des pipelines">
+        <section class="configuration-section" aria-label="Pipeline editor">
           <div class="editor-frame" :class="{ 'editor-running': running }">
             <PipelineProject
               ref="pipelineComponentRef"
@@ -84,23 +84,23 @@ onMounted(fetchProcessPipeline);
 
         <footer class="fork-actions">
           <div>
-            <strong>Prêt à lancer un nouvel entraînement ?</strong>
-            <p v-if="!configurationValid">Complétez les réglages signalés dans l’éditeur avant de poursuivre.</p>
-            <p v-else>DrIA vérifiera cette configuration, puis ajoutera les résultats au projet.</p>
+            <strong>Ready to start a new training run?</strong>
+            <p v-if="!configurationValid">Complete the highlighted settings in the editor before continuing.</p>
+            <p v-else>DrIA will validate this configuration and add the results to the project.</p>
           </div>
           <q-btn
-            unelevated no-caps color="primary" icon="play_arrow" label="Lancer le nouvel entraînement"
+            unelevated no-caps color="primary" icon="play_arrow" label="Start new training run"
             :loading="running" :disable="loading || editorLoading || !configurationValid"
             @click="runForkedPipeline"
           />
         </footer>
       </template>
       <div v-else-if="loading" class="fork-state" role="status">
-        <q-spinner color="primary" size="32px" /><p>Chargement de la configuration…</p>
+        <q-spinner color="primary" size="32px" /><p>Loading configuration…</p>
       </div>
       <div v-else class="fork-state">
-        <q-icon name="cloud_off" size="32px" /><h2>La configuration n’a pas pu être chargée</h2>
-        <q-btn outline no-caps color="primary" icon="refresh" label="Réessayer" @click="fetchProcessPipeline" />
+        <q-icon name="cloud_off" size="32px" /><h2>Could not load configuration</h2>
+        <q-btn outline no-caps color="primary" icon="refresh" label="Retry" @click="fetchProcessPipeline" />
       </div>
     </div>
   </q-page>

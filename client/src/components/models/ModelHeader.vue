@@ -13,18 +13,18 @@ const created = computed(() => props.model.date && Number.isFinite(Date.parse(pr
   ? formatToDDMMYYYHHmm(props.model.date) : undefined);
 const evaluationSource = computed(() => {
   if (props.model.metrics.metrics_test && Object.values(props.model.metrics.metrics_test).some((score) => typeof score === 'number' && Number.isFinite(score)))
-    return 'Évalué sur un jeu de test indépendant';
-  if (props.model.metrics.score_source === 'cross_validation') return 'Évalué par validation croisée';
-  if (props.model.metrics.score_source === 'in_sample') return 'Évalué sur les données d’entraînement';
-  return 'Consultez la source des scores dans les résultats';
+    return 'Evaluated on a holdout test set';
+  if (props.model.metrics.score_source === 'cross_validation') return 'Evaluated using cross-validation';
+  if (props.model.metrics.score_source === 'in_sample') return 'Evaluated on training data';
+  return 'View the score sources in the results';
 });
 </script>
 
 <template>
   <header class="model-header">
     <div class="model-identity">
-      <span class="model-eyebrow">Modèle entraîné</span>
-      <h1>{{ displayServiceName(model.metrics.model_info?.name) || `Modèle nº ${model.id}` }}</h1>
+      <span class="model-eyebrow">Trained model</span>
+      <h1>{{ displayServiceName(model.metrics.model_info?.name) || `Model #${model.id}` }}</h1>
       <p v-if="model.metrics.model_info?.description" class="model-description">{{ model.metrics.model_info.description }}</p>
       <div class="model-metadata">
         <span v-if="created"><q-icon name="event" size="16px" />{{ created }}</span>
@@ -37,14 +37,14 @@ const evaluationSource = computed(() => {
         no-caps
         color="primary"
         icon="science"
-        label="Essayer une prédiction"
+        label="Try a prediction"
         :to="{
           name: 'model-test',
           params: { id: routeParams.projectId, processId: routeParams.processId, modelId: routeParams.modelId },
           query: { returnView: returnView ?? 'training' },
         }"
       />
-      <p>Essayer une prédiction sur des observations.</p>
+      <p>Try a prediction for an observation.</p>
     </div>
   </header>
 </template>

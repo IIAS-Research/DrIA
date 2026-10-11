@@ -6,7 +6,7 @@ export function notifyApiError(error: unknown): void {
   if (!isSessionExpired(error)) notify('negative', apiError(error));
 }
 export function displayServiceText(value?: string | null): string {
-  return (value ?? '').replace(/\bd[’']IAML\b/g, 'de DrIA').replace(/\bIAML\b/g, 'DrIA');
+  return (value ?? '').replace(/\bIAML\b/g, 'DrIA');
 }
 export function apiError(error: unknown): string {
   if (axios.isAxiosError(error)) {
@@ -29,9 +29,9 @@ export function metricScore(metrics: IMetrics): number | null {
   const value = (metrics.metrics_test ?? metrics.metrics_train)?.[metricKey(metrics)];
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
-const scoreNumberFormat = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 4 });
+const scoreNumberFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 });
 export function formatScore(value: unknown): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 'Indisponible';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'Unavailable';
   const formatted = scoreNumberFormat.format(value);
   return formatted === '-0' ? '0' : formatted;
 }
@@ -68,8 +68,8 @@ export function validateJsonScalar(value: string): true | string {
     const parsed = JSON.parse(value);
     if (typeof parsed === 'string' || typeof parsed === 'boolean'
       || (typeof parsed === 'number' && Number.isFinite(parsed))) return true;
-    return 'Utilisez une chaîne JSON, un booléen ou un nombre fini.';
+    return 'Use a JSON string, a boolean or a finite number.';
   } catch {
-    return 'Valeur JSON invalide. Entourez les valeurs textuelles de guillemets.';
+    return 'Invalid JSON value. Enclose text values in quotation marks.';
   }
 }

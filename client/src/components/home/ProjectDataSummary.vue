@@ -46,10 +46,10 @@ const statisticAliases = new Map<string, string>([
   ['top', 'mode'], ['median_absolute_deviation', 'mad'],
 ]);
 const mainMeasures = ['mean', 'median', 'stdev', 'mode', 'most_frequent_ratio'];
-const number = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 3 });
-const numericNumber = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 6 });
-const scientificNumber = new Intl.NumberFormat('fr-FR', { notation: 'scientific', maximumSignificantDigits: 6 });
-const percent = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
+const number = new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 });
+const numericNumber = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 6 });
+const scientificNumber = new Intl.NumberFormat('en-US', { notation: 'scientific', maximumSignificantDigits: 6 });
+const percent = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 const predictors = computed(() => props.dataset.columns.filter((name) => role(name) === 'predictor'));
 const exclusions = computed(() => props.dataset.columns.filter((name) => ['identifier', 'unavailable'].includes(role(name))));
 const groups = computed(() => props.dataset.columns.filter((name) => role(name) === 'group' || props.groupColumns.includes(name)));
@@ -72,8 +72,8 @@ const eventCount = computed(() => {
   } catch { return undefined; }
 });
 const filteredColumns = computed(() => {
-  const query = (search.value ?? '').trim().toLocaleLowerCase('fr');
-  return props.dataset.columns.filter((name) => `${name} ${roleLabel(name)} ${typeLabel(props.dataset.profiles[name])}`.toLocaleLowerCase('fr').includes(query));
+  const query = (search.value ?? '').trim().toLocaleLowerCase('en-US');
+  return props.dataset.columns.filter((name) => `${name} ${roleLabel(name)} ${typeLabel(props.dataset.profiles[name])}`.toLocaleLowerCase('en-US').includes(query));
 });
 const columnStatistics = computed(() => getProjectColumnStatistics(props.statistics, props.dataset.columns, props.predictionKind));
 const hasColumnStatistics = computed(() => props.dataset.columns.some((name) => analyses(name).length > 0));
@@ -92,8 +92,8 @@ const defaultMeasures = computed(() => {
 });
 const displayedStatisticColumns = computed(() => statisticColumns.value.filter((measure) => (chosenMeasures.value ?? defaultMeasures.value).includes(measure.key)));
 const filteredStatisticColumns = computed(() => {
-  const query = (measureSearch.value ?? '').trim().toLocaleLowerCase('fr');
-  return statisticColumns.value.filter((measure) => measure.label.toLocaleLowerCase('fr').includes(query));
+  const query = (measureSearch.value ?? '').trim().toLocaleLowerCase('en-US');
+  return statisticColumns.value.filter((measure) => measure.label.toLocaleLowerCase('en-US').includes(query));
 });
 const selectedStatistics = computed(() => Object.fromEntries(props.dataset.columns.map((name) => {
   const measures = new Map<string, ProjectStatistic>();
@@ -111,84 +111,84 @@ const checks = computed<DataCheck[]>(() => {
     .filter((name) => name && props.dataset.profiles[name]?.missingCount > 0);
   if (missingOutcome.length) result.push({
     key: 'outcome-missing', blocking: true,
-    title: props.context === 'project' ? 'Valeurs manquantes dans le résultat à prédire' : 'Compléter le résultat à prédire',
-    detail: `Valeurs manquantes dans ${names(missingOutcome)}. Ces colonnes doivent être renseignées pour chaque observation.`,
+    title: props.context === 'project' ? 'Missing target values' : 'Complete the target column',
+    detail: `Missing values in ${names(missingOutcome)}. These columns must be filled in for every observation.`,
   });
   if (target.value && !target.value.distinctValuesTruncated && target.value.distinctValues.length === 1) result.push({
     key: 'outcome-constant', blocking: true,
-    title: props.context === 'project' ? 'Le résultat à prédire ne varie pas' : 'Le résultat à prédire doit varier',
-    detail: `« ${targetName.value} » ne contient qu’une seule valeur distincte. Le résultat à prédire doit contenir au moins deux valeurs différentes.`,
+    title: props.context === 'project' ? 'The target column is constant' : 'The target column must vary',
+    detail: `“${targetName.value}” contains only one distinct value. The target column must contain at least two different values.`,
   });
   const missingGroups = groups.value.filter((name) => props.dataset.profiles[name]?.missingCount > 0);
   if (missingGroups.length) result.push({
     key: 'group-missing', blocking: true,
-    title: props.context === 'project' ? 'Informations de regroupement incomplètes' : 'Compléter les informations de regroupement',
-    detail: `Valeurs manquantes dans ${names(missingGroups)}. Le regroupement doit être connu pour garder les observations liées ensemble.`,
+    title: props.context === 'project' ? 'Incomplete grouping information' : 'Complete the grouping information',
+    detail: `Missing values in ${names(missingGroups)}. Group identifiers are needed to keep related observations together.`,
   });
   const nonFinite = retained.value.filter((name) => props.dataset.profiles[name]?.nonFiniteCount > 0);
   if (nonFinite.length) result.push({
     key: 'non-finite', blocking: true,
-    title: props.context === 'project' ? 'Des valeurs ne sont pas finies' : 'Corriger les valeurs non finies',
+    title: props.context === 'project' ? 'Some values are nonfinite' : 'Correct nonfinite values',
     detail: props.context === 'project'
-      ? `Valeurs non finies dans ${names(nonFinite)}, comme NaN ou Infinity. Ces valeurs ne sont pas utilisables telles quelles par les modèles.`
-      : `Valeurs non finies dans ${names(nonFinite)}, comme NaN ou Infinity. Corrigez-les dans le fichier, ou excluez les colonnes concernées si elles ne servent pas à définir le résultat ou les groupes.`,
+      ? `Nonfinite values in ${names(nonFinite)}, such as NaN or Infinity. Models cannot use these values as they are.`
+      : `Nonfinite values in ${names(nonFinite)}, such as NaN or Infinity. Correct them in the file, or exclude the affected columns if they do not define the outcome or groups.`,
   });
   // Empty durations and non-finite values are already reported above.
   if (time.value && time.value.populatedCount > 0 && !time.value.nonFiniteCount
     && (time.value.type !== 'numeric' || (time.value.min ?? 0) < 0)) result.push({
     key: 'followup-invalid', blocking: true,
-    title: props.context === 'project' ? 'Durées de suivi non valides' : 'Corriger la durée de suivi',
-    detail: `« ${timeName.value} » ${time.value.type !== 'numeric' ? 'contient des valeurs non numériques' : 'contient des durées négatives'}. La durée de suivi doit être un nombre positif ou nul.`,
+    title: props.context === 'project' ? 'Invalid follow-up durations' : 'Correct the follow-up duration',
+    detail: `“${timeName.value}” ${time.value.type !== 'numeric' ? 'contains nonnumerical values' : 'contains negative durations'}. Follow-up duration must be a nonnegative number.`,
   });
   const empty = predictors.value.filter((name) => props.dataset.profiles[name]?.populatedCount === 0);
   if (empty.length) result.push({
-    key: 'empty', blocking: false, title: 'Des informations sont entièrement vides',
+    key: 'empty', blocking: false, title: 'Some features are entirely empty',
     detail: props.context === 'project'
-      ? `${names(empty)} : aucune valeur renseignée. Ces colonnes n’apportent aucune information à l’apprentissage.`
-      : `${names(empty)} : aucune valeur renseignée. Vous pouvez exclure ces colonnes à l’étape « Informations ».`,
+      ? `${names(empty)}: no non-missing values. These columns provide no information for training.`
+      : `${names(empty)}: no non-missing values. You can exclude these columns in the “Features” step.`,
   });
   const constant = predictors.value.filter((name) => {
     const profile = props.dataset.profiles[name];
     return profile && profile.populatedCount > 0 && !profile.distinctValuesTruncated && profile.distinctValues.length === 1;
   });
   if (constant.length) result.push({
-    key: 'constant', blocking: false, title: 'Des informations ne varient pas',
-    detail: `${names(constant)} : une seule valeur distincte parmi les cellules renseignées. Ces valeurs n’apportent pas de différence entre les observations.`,
+    key: 'constant', blocking: false, title: 'Some features are constant',
+    detail: `${names(constant)}: only one distinct non-missing value. These features do not distinguish observations.`,
   });
   if (predictorMissing.value > 0 && predictorCells.value > 0) result.push({
     key: 'predictor-missing', blocking: false,
-    title: props.context === 'project' ? 'Valeurs manquantes dans les informations pour prédire' : 'Prévoir le traitement des valeurs manquantes',
-    detail: `${number.format(predictorMissing.value)} cellules manquantes sur ${number.format(predictorCells.value)} dans les informations pour prédire (${percentage(predictorMissing.value, predictorCells.value)} %). Leur traitement fait partie de la préparation des données.`,
+    title: props.context === 'project' ? 'Missing values in features' : 'Plan how to handle missing values',
+    detail: `${number.format(predictorMissing.value)} missing cells out of ${number.format(predictorCells.value)} in the features (${percentage(predictorMissing.value, predictorCells.value)}%). Handling them is part of data preparation.`,
   });
   return result;
 });
 
 function role(name: string): string { return props.roles[name]?.role ?? 'predictor'; }
-function roleLabel(name: string): string { return props.roles[name]?.label ?? 'Pour prédire'; }
+function roleLabel(name: string): string { return props.roles[name]?.label ?? 'Feature'; }
 function roleColor(name: string): string {
   if (['identifier', 'unavailable'].includes(role(name))) return 'grey-7';
   return ['group', 'predictor'].includes(role(name)) ? 'secondary' : 'accent';
 }
 function typeLabel(profile?: ColumnProfile): string {
-  return profile ? { numeric: 'Nombre', boolean: 'Oui / non', text: 'Texte ou catégorie', empty: 'Vide' }[profile.type] : 'En cours';
+  return profile ? { numeric: 'Number', boolean: 'Yes / no', text: 'Text or category', empty: 'Empty' }[profile.type] : 'In progress';
 }
 function percentage(count: number, total: number): string { return percent.format(total > 0 ? 100 * count / total : 0); }
 function ratio(count: number, total: number): number { return total > 0 ? count / total : 0; }
 function names(columns: string[]): string {
-  return `${columns.slice(0, 4).map((name) => `« ${name} »`).join(', ')}${columns.length > 4 ? ` et ${columns.length - 4} autre${columns.length > 5 ? 's' : ''} colonne${columns.length > 5 ? 's' : ''}` : ''}`;
+  return `${columns.slice(0, 4).map((name) => `“${name}”`).join(', ')}${columns.length > 4 ? ` and ${columns.length - 4} other column${columns.length > 5 ? 's' : ''}` : ''}`;
 }
-function scalarLabel(value: ProjectScalar): string { return typeof value === 'boolean' ? (value ? 'Vrai' : 'Faux') : String(value); }
+function scalarLabel(value: ProjectScalar): string { return typeof value === 'boolean' ? (value ? 'True' : 'False') : String(value); }
 function numericLabel(value: number): string {
   const magnitude = Math.abs(value);
   return (magnitude > 0 && (magnitude < 0.001 || magnitude >= 1000000) ? scientificNumber : numericNumber).format(value);
 }
 function numericRange(profile?: ColumnProfile): string {
   if (profile?.type !== 'numeric' || !Number.isFinite(profile.min) || !Number.isFinite(profile.max)) return '';
-  return `${numericLabel(profile.min as number)} à ${numericLabel(profile.max as number)}`;
+  return `${numericLabel(profile.min as number)} to ${numericLabel(profile.max as number)}`;
 }
 function distinctLabel(profile?: ColumnProfile): string {
   if (!profile) return '—';
-  return `${profile.distinctValuesTruncated ? 'Au moins ' : ''}${number.format(profile.distinctValues.length)}`;
+  return `${profile.distinctValuesTruncated ? 'At least ' : ''}${number.format(profile.distinctValues.length)}`;
 }
 function analyses(name: string) {
   return (columnStatistics.value[name] ?? []).filter((analysis) => analysis.statistics.some((statistic) => projectStatisticHasValue(statistic.value)));
@@ -236,149 +236,149 @@ function statisticValue(statistic: ReturnType<typeof availableStatistics>[number
 }
 function statisticLabel(statistic: ReturnType<typeof availableStatistics>[number]): string {
   const key = canonicalStatisticKey(statistic.key);
-  if (key === 'median') return 'Médiane';
-  if (key === 'nunique') return 'Valeurs distinctes (DrIA)';
-  if (key === 'count') return 'Valeurs renseignées (DrIA)';
-  return key === 'most_frequent_ratio' ? 'Part la plus fréquente (%)' : statistic.label;
+  if (key === 'median') return 'Median';
+  if (key === 'nunique') return 'Distinct values (DrIA)';
+  if (key === 'count') return 'Non-missing values (DrIA)';
+  return key === 'most_frequent_ratio' ? 'Most frequent share (%)' : statistic.label;
 }
 </script>
 
 <template>
   <div class="data-summary">
     <div class="summary-heading">
-      <h2 class="text-subtitle1 text-weight-medium q-my-none">Comprendre vos données</h2>
+      <h2 class="text-subtitle1 text-weight-medium q-my-none">Understand your data</h2>
       <p class="text-caption text-grey-7 q-mt-xs q-mb-none">
         <template v-if="dataset.isComplete">
-          Bilan calculé sur toutes les observations du fichier{{ filename ? ` « ${filename} »` : '' }}.
-          <template v-if="context === 'project'">Les rôles attribués aux colonnes sont ceux du projet.</template>
-          <template v-else>Il s’adapte au rôle des colonnes.</template>
+          Summary calculated from all observations in the file{{ filename ? ` “${filename}”` : '' }}.
+          <template v-if="context === 'project'">Column roles are those assigned in the project.</template>
+          <template v-else>It adapts to the role of each column.</template>
         </template>
-        <template v-else>Le bilan sera disponible lorsque la lecture complète du fichier sera terminée.</template>
+        <template v-else>The summary will be available once the full file has been read.</template>
       </p>
     </div>
 
     <div v-if="!dataset.isComplete" class="summary-loading" role="status" aria-live="polite">
       <q-spinner color="primary" size="32px" aria-hidden="true" />
-      <span>Analyse de l’ensemble du fichier en cours…</span>
+      <span>Analyzing the entire file…</span>
     </div>
 
     <template v-else>
-      <div class="summary-metrics" aria-label="Vue d’ensemble du fichier">
+      <div class="summary-metrics" aria-label="File overview">
         <div class="summary-metric"><strong>{{ number.format(dataset.rowCount) }}</strong><span>observations</span></div>
-        <div class="summary-metric"><strong>{{ number.format(dataset.columns.length) }}</strong><span>colonnes importées</span></div>
-        <div class="summary-metric"><strong>{{ number.format(predictors.length) }}</strong><span>informations pour prédire</span></div>
-        <div class="summary-metric"><strong>{{ percentage(populatedCells, totalCells) }}<small> %</small></strong><span>cellules renseignées</span></div>
+        <div class="summary-metric"><strong>{{ number.format(dataset.columns.length) }}</strong><span>imported columns</span></div>
+        <div class="summary-metric"><strong>{{ number.format(predictors.length) }}</strong><span>features</span></div>
+        <div class="summary-metric"><strong>{{ percentage(populatedCells, totalCells) }}<small> %</small></strong><span>non-missing cells</span></div>
       </div>
       <p class="text-caption text-grey-7 q-mt-sm q-mb-md">
-        {{ number.format(populatedCells) }} cellules renseignées sur {{ number.format(totalCells) }} dans le fichier entier, y compris les colonnes exclues.
-        <template v-if="exclusions.length">{{ exclusions.length }} colonne{{ exclusions.length > 1 ? 's sont exclues' : ' est exclue' }} de l’apprentissage.</template>
-        <template v-if="groups.length">{{ groups.length }} colonne{{ groups.length > 1 ? 's servent' : ' sert' }} au regroupement, sans servir à prédire.</template>
+        {{ number.format(populatedCells) }} non-missing cells out of {{ number.format(totalCells) }} in the full file, including excluded columns.
+        <template v-if="exclusions.length">{{ exclusions.length }} column{{ exclusions.length > 1 ? 's are' : ' is' }} excluded from training.</template>
+        <template v-if="groups.length">{{ groups.length }} column{{ groups.length > 1 ? 's are' : ' is' }} used for grouping, without being used for prediction.</template>
       </p>
 
       <section class="summary-section" aria-labelledby="summary-checks-title">
         <div class="section-title">
           <q-icon name="fact_check" color="primary" size="21px" aria-hidden="true" />
-          <h3 id="summary-checks-title" class="text-subtitle2 q-my-none">{{ context === 'project' ? 'Points d’attention' : 'À vérifier' }}</h3>
+          <h3 id="summary-checks-title" class="text-subtitle2 q-my-none">{{ context === 'project' ? 'Points to review' : 'Things to check' }}</h3>
         </div>
         <ul v-if="checks.length" class="checks-list">
           <li v-for="check in checks" :key="check.key" class="data-check" :class="{ 'blocking-check': check.blocking && context === 'creation' }">
             <q-icon :name="check.blocking && context === 'creation' ? 'error_outline' : 'info_outline'" :color="check.blocking && context === 'creation' ? 'negative' : 'primary'" size="20px" aria-hidden="true" />
             <div>
-              <div class="check-title">{{ check.title }} <span v-if="check.blocking && context === 'creation'" class="blocking-label">Avant de lancer</span></div>
+              <div class="check-title">{{ check.title }} <span v-if="check.blocking && context === 'creation'" class="blocking-label">Before starting</span></div>
               <p class="text-caption text-grey-8 q-my-none">{{ check.detail }}</p>
             </div>
           </li>
         </ul>
         <p v-else class="text-caption text-grey-7 q-mt-sm q-mb-none">
-          Aucune valeur manquante ou non finie détectée dans les colonnes retenues, ni information pour prédire vide ou constante.
+          No missing or nonfinite values were detected in the selected columns, and no features are empty or constant.
         </p>
       </section>
 
       <section class="summary-section" aria-labelledby="summary-outcome-title">
         <div class="section-title">
           <q-icon name="flag" color="primary" size="21px" aria-hidden="true" />
-          <h3 id="summary-outcome-title" class="text-subtitle2 q-my-none">Le résultat à prédire</h3>
+          <h3 id="summary-outcome-title" class="text-subtitle2 q-my-none">The target column</h3>
         </div>
-        <p v-if="!target" class="text-body2 text-grey-7 q-mt-sm q-mb-none">{{ context === 'project' ? 'Le résultat à prédire n’est pas renseigné dans la configuration de ce projet.' : 'Choisissez le résultat à l’étape « Prédire » pour voir sa répartition ici.' }}</p>
+        <p v-if="!target" class="text-body2 text-grey-7 q-mt-sm q-mb-none">{{ context === 'project' ? 'The target column is not specified in this project configuration.' : 'Choose the target column in the “Predict” step to see its distribution here.' }}</p>
         <template v-else>
           <div class="outcome-column q-mt-sm">{{ targetName }}</div>
-          <div class="text-caption text-grey-7 q-mb-sm">{{ number.format(target.populatedCount) }} observations renseignées · {{ number.format(target.missingCount) }} valeurs manquantes</div>
+          <div class="text-caption text-grey-7 q-mb-sm">{{ number.format(target.populatedCount) }} observations with values · {{ number.format(target.missingCount) }} missing values</div>
 
           <template v-if="predictionKind === 'survival'">
             <div v-if="eventCount !== undefined" class="survival-counts">
-              <div><strong>{{ number.format(eventCount) }}</strong><span>avec l’événement observé</span><small>{{ percentage(eventCount, target.populatedCount) }} % des observations renseignées</small></div>
-              <div><strong>{{ number.format(target.populatedCount - eventCount) }}</strong><span>sans événement observé</span><small>L’événement n’a pas été observé pendant le suivi.</small></div>
+              <div><strong>{{ number.format(eventCount) }}</strong><span>with an observed event</span><small>{{ percentage(eventCount, target.populatedCount) }} % of observations with values</small></div>
+              <div><strong>{{ number.format(target.populatedCount - eventCount) }}</strong><span>without an observed event</span><small>The event was not observed during follow-up.</small></div>
             </div>
-            <p v-else class="text-caption text-grey-7 q-my-sm">{{ context === 'project' ? 'Les effectifs par événement ne sont pas disponibles pour la valeur configurée dans ce projet.' : 'Choisissez la valeur indiquant l’événement observé à l’étape « Prédire » pour afficher les effectifs.' }}</p>
+            <p v-else class="text-caption text-grey-7 q-my-sm">{{ context === 'project' ? 'Event counts are unavailable for the value configured in this project.' : 'Choose the observed-event value in the “Predict” step to display the counts.' }}</p>
             <div class="followup-details q-mt-sm">
               <template v-if="time">
-                <div class="text-body2 text-weight-medium">Durée de suivi · {{ timeName }}</div>
-                <div v-if="numericRange(time)" class="text-body2">De {{ numericRange(time) }} {{ timeUnit }}</div>
-                <div v-else class="text-caption text-grey-7">La durée doit être une valeur numérique finie.</div>
-                <div class="text-caption text-grey-7">{{ number.format(time.missingCount) }} durée{{ time.missingCount > 1 ? 's' : '' }} manquante{{ time.missingCount > 1 ? 's' : '' }}</div>
+                <div class="text-body2 text-weight-medium">Follow-up duration · {{ timeName }}</div>
+                <div v-if="numericRange(time)" class="text-body2">From {{ numericRange(time) }} {{ timeUnit }}</div>
+                <div v-else class="text-caption text-grey-7">Duration must be a finite numerical value.</div>
+                <div class="text-caption text-grey-7">{{ number.format(time.missingCount) }} missing duration{{ time.missingCount > 1 ? 's' : '' }}</div>
               </template>
-              <span v-else class="text-caption text-grey-7">{{ context === 'project' ? 'La colonne de durée de suivi n’est pas disponible dans ce fichier.' : 'La durée de suivi apparaîtra ici une fois sa colonne choisie.' }}</span>
+              <span v-else class="text-caption text-grey-7">{{ context === 'project' ? 'The follow-up duration column is unavailable in this file.' : 'The follow-up duration will appear here once you choose its column.' }}</span>
             </div>
           </template>
 
           <template v-else-if="predictionKind === 'quantity'">
-            <div v-if="numericRange(target)" class="quantity-range"><span>Valeurs observées</span><strong>{{ numericRange(target) }}</strong><small>Minimum et maximum sur toutes les valeurs renseignées.</small></div>
-            <p v-else class="text-caption text-grey-7 q-my-none">Le résultat doit être une quantité numérique finie.</p>
+            <div v-if="numericRange(target)" class="quantity-range"><span>Observed values</span><strong>{{ numericRange(target) }}</strong><small>Minimum and maximum across all non-missing values.</small></div>
+            <p v-else class="text-caption text-grey-7 q-my-none">The outcome must be a finite numerical quantity.</p>
           </template>
 
           <template v-else-if="categoryCounts.length">
-            <p class="text-caption text-grey-7 q-mt-none q-mb-sm">Répartition parmi les {{ number.format(target.populatedCount) }} observations dont le résultat est renseigné.</p>
+            <p class="text-caption text-grey-7 q-mt-none q-mb-sm">Distribution among the {{ number.format(target.populatedCount) }} observations with a recorded outcome.</p>
             <div v-for="(entry, index) in categoryCounts" :key="JSON.stringify(entry.value)" class="category-row">
               <div class="category-label"><span>{{ scalarLabel(entry.value) }}</span><span>{{ number.format(entry.count) }} · {{ percentage(entry.count, target.populatedCount) }} %</span></div>
               <q-linear-progress rounded size="8px" :value="ratio(entry.count, target.populatedCount)" :color="index % 2 ? 'accent' : 'primary'" track-color="grey-3" aria-hidden="true" />
             </div>
           </template>
-          <p v-else class="text-caption text-grey-7 q-my-none">{{ distinctLabel(target) }} valeurs distinctes. La répartition n’est affichée ici que lorsque toutes les catégories sont connues et qu’il y en a au plus 12.</p>
+          <p v-else class="text-caption text-grey-7 q-my-none">{{ distinctLabel(target) }} distinct values. The distribution is shown only when all categories are known and there are no more than 12.</p>
         </template>
       </section>
 
       <section class="summary-section" aria-labelledby="summary-columns-title">
         <div class="section-title q-mb-sm">
           <q-icon name="view_column" color="primary" size="21px" aria-hidden="true" />
-          <h3 id="summary-columns-title" class="text-subtitle2 q-my-none">Le bilan par colonne</h3>
+          <h3 id="summary-columns-title" class="text-subtitle2 q-my-none">Column summary</h3>
         </div>
         <div v-if="statisticsLoading" class="statistics-status" role="status" aria-live="polite">
           <q-spinner color="primary" size="20px" aria-hidden="true" />
-          <span>Calcul automatique des statistiques DrIA… Le bilan du fichier reste disponible.</span>
+          <span>Calculating DrIA statistics automatically… The file summary remains available.</span>
         </div>
         <div v-else-if="statisticsError" class="statistics-status statistics-status-error" role="status">
           <q-icon name="error_outline" color="negative" size="20px" aria-hidden="true" />
-          <div class="statistics-status-copy"><strong>Les statistiques DrIA n’ont pas pu être calculées.</strong><span>{{ statisticsError }}</span></div>
-          <q-btn flat dense no-caps color="primary" label="Réessayer" @click="emit('retry-statistics')" />
+          <div class="statistics-status-copy"><strong>DrIA statistics could not be calculated.</strong><span>{{ statisticsError }}</span></div>
+          <q-btn flat dense no-caps color="primary" label="Try again" @click="emit('retry-statistics')" />
         </div>
         <div v-else-if="statisticsUnavailableReason" class="statistics-status" role="status">
           <q-icon name="info_outline" color="primary" size="20px" aria-hidden="true" />
           <span>{{ statisticsUnavailableReason }}</span>
         </div>
         <p v-else-if="hasColumnStatistics" class="text-caption text-grey-7 q-mt-none q-mb-sm">
-          Les statistiques DrIA ajoutent des colonnes au bilan. Les mesures portent sur toutes les observations par défaut ; choisissez un sous-ensemble sous le nom d’une variable pour consulter ses résultats séparément.
+          DrIA statistics add columns to the summary. Measures cover all observations by default; choose a subset under a feature name to view its results separately.
         </p>
-        <p v-else-if="statistics" class="text-caption text-grey-7 q-mt-none q-mb-sm">DrIA n’a pas renvoyé de statistiques rattachées aux colonnes de ce fichier. Le bilan du fichier reste disponible.</p>
+        <p v-else-if="statistics" class="text-caption text-grey-7 q-mt-none q-mb-sm">DrIA did not return statistics for the columns in this file. The file summary remains available.</p>
         <div class="summary-table-tools q-mb-sm">
-          <q-input v-model="search" outlined dense clearable label="Rechercher dans le bilan des colonnes" class="summary-search">
+          <q-input v-model="search" outlined dense clearable label="Search the column summary" class="summary-search">
             <template #prepend><q-icon name="search" aria-hidden="true" /></template>
           </q-input>
           <q-btn-dropdown
             v-if="statisticColumns.length"
             outline dense no-caps color="primary" icon="view_column"
-            :label="`Mesures DrIA : ${displayedStatisticColumns.length} / ${statisticColumns.length}`"
+            :label="`DrIA measures: ${displayedStatisticColumns.length} / ${statisticColumns.length}`"
             :content-class="context === 'project' ? 'project-workspace-colors' : 'project-creation-colors'"
             @show="measureSearch = ''"
           >
             <div class="measure-menu q-pa-md">
-              <div class="text-subtitle2">Mesures affichées</div>
-              <p class="text-caption text-grey-7 q-mt-xs q-mb-sm">Chaque mesure ajoute une colonne au tableau.</p>
+              <div class="text-subtitle2">Visible measures</div>
+              <p class="text-caption text-grey-7 q-mt-xs q-mb-sm">Each measure adds a column to the table.</p>
               <div class="row q-gutter-x-xs q-mb-sm">
-                <q-btn flat dense no-caps color="primary" label="Principales" @click="chosenMeasures = null" />
-                <q-btn flat dense no-caps color="primary" label="Tout afficher" @click="chosenMeasures = statisticColumns.map(measure => measure.key)" />
+                <q-btn flat dense no-caps color="primary" label="Main measures" @click="chosenMeasures = null" />
+                <q-btn flat dense no-caps color="primary" label="Show all" @click="chosenMeasures = statisticColumns.map(measure => measure.key)" />
               </div>
-              <q-input v-model="measureSearch" outlined dense clearable label="Rechercher une mesure" class="q-mb-sm" />
-              <div class="measure-list" role="group" aria-label="Statistiques DrIA à afficher">
+              <q-input v-model="measureSearch" outlined dense clearable label="Search measures" class="q-mb-sm" />
+              <div class="measure-list" role="group" aria-label="DrIA statistics to display">
                 <q-checkbox
                   v-for="measure in filteredStatisticColumns"
                   :key="measure.key"
@@ -386,14 +386,14 @@ function statisticLabel(statistic: ReturnType<typeof availableStatistics>[number
                   dense color="primary" :label="measure.label" class="measure-option"
                   @update:model-value="setMeasureVisibility(measure.key, $event)"
                 />
-                <p v-if="!filteredStatisticColumns.length" class="text-caption text-grey-7 q-my-sm">Aucune mesure ne correspond à votre recherche.</p>
+                <p v-if="!filteredStatisticColumns.length" class="text-caption text-grey-7 q-my-sm">No measures match your search.</p>
               </div>
             </div>
           </q-btn-dropdown>
         </div>
-        <div v-if="filteredColumns.length" class="summary-table-scroll" tabindex="0" role="region" aria-label="Bilan de chaque colonne, défilement possible">
+        <div v-if="filteredColumns.length" class="summary-table-scroll" tabindex="0" role="region" aria-label="Column summary with scrolling">
           <table class="summary-table" :style="{ '--summary-statistic-count': displayedStatisticColumns.length }">
-            <caption class="sr-only">Rôle, type, complétude, valeurs distinctes et statistiques DrIA de toutes les colonnes du fichier</caption>
+            <caption class="sr-only">Role, type, completeness, distinct values, and DrIA statistics for all columns in the file</caption>
             <colgroup>
               <col class="variable-width">
               <col class="completeness-width">
@@ -402,9 +402,9 @@ function statisticLabel(statistic: ReturnType<typeof availableStatistics>[number
             </colgroup>
             <thead>
               <tr>
-                <th scope="col">Colonne et rôle</th>
-                <th scope="col">Valeurs renseignées</th>
-                <th scope="col">Valeurs distinctes</th>
+                <th scope="col">Column and role</th>
+                <th scope="col">Non-missing values</th>
+                <th scope="col">Distinct values</th>
                 <th v-for="measure in displayedStatisticColumns" :key="measure.key" scope="col" class="statistic-heading">{{ measure.label }}</th>
               </tr>
             </thead>
@@ -419,22 +419,22 @@ function statisticLabel(statistic: ReturnType<typeof availableStatistics>[number
                     :model-value="selectedAnalysisKey(name)"
                     :options="analysisOptions(name)"
                     emit-value map-options outlined dense
-                    :label="`Observations pour ${name}`"
+                    :label="`Observations for ${name}`"
                     class="statistics-subset q-mt-sm"
                     :popup-content-class="context === 'project' ? 'project-workspace-colors' : 'project-creation-colors'"
                     @update:model-value="selectAnalysis(name, $event)"
                   />
-                  <p v-if="analyses(name).length && !selectedAnalysis(name)" class="text-caption text-grey-7 q-mt-xs q-mb-none">Choisissez un sous-ensemble pour consulter ses statistiques.</p>
-                  <p v-else-if="statistics && !statisticsLoading && !analyses(name).length" class="text-caption text-grey-7 q-mt-xs q-mb-none">{{ exclusions.includes(name) ? 'Exclue de l’analyse' : 'Non analysée par DrIA' }}</p>
+                  <p v-if="analyses(name).length && !selectedAnalysis(name)" class="text-caption text-grey-7 q-mt-xs q-mb-none">Choose a subset to view its statistics.</p>
+                  <p v-else-if="statistics && !statisticsLoading && !analyses(name).length" class="text-caption text-grey-7 q-mt-xs q-mb-none">{{ exclusions.includes(name) ? 'Excluded from analysis' : 'Not analyzed by DrIA' }}</p>
                 </th>
                 <td>
                   <strong>{{ percentage(dataset.profiles[name]?.populatedCount ?? 0, dataset.rowCount) }} %</strong>
                   <div class="text-caption text-grey-7">{{ number.format(dataset.profiles[name]?.populatedCount ?? 0) }} / {{ number.format(dataset.rowCount) }} observations</div>
-                  <div v-if="dataset.profiles[name]?.nonFiniteCount" class="text-caption text-negative">{{ number.format(dataset.profiles[name].nonFiniteCount) }} non finie{{ dataset.profiles[name].nonFiniteCount > 1 ? 's' : '' }}</div>
+                  <div v-if="dataset.profiles[name]?.nonFiniteCount" class="text-caption text-negative">{{ number.format(dataset.profiles[name].nonFiniteCount) }} nonfinite value{{ dataset.profiles[name].nonFiniteCount > 1 ? 's' : '' }}</div>
                 </td>
                 <td>
                   <strong>{{ distinctLabel(dataset.profiles[name]) }}</strong>
-                  <div v-if="numericRange(dataset.profiles[name])" class="text-caption text-grey-7">De {{ numericRange(dataset.profiles[name]) }}</div>
+                  <div v-if="numericRange(dataset.profiles[name])" class="text-caption text-grey-7">From {{ numericRange(dataset.profiles[name]) }}</div>
                 </td>
                 <td v-for="measure in displayedStatisticColumns" :key="measure.key" class="statistic-cell" :class="{ 'missing-statistic': !selectedStatistics[name]?.has(measure.key), 'numeric-statistic': typeof selectedStatistics[name]?.get(measure.key)?.value === 'number' }" :data-statistic="measure.key">
                   <div class="statistic-value" :title="statisticCell(name, measure.key)">{{ statisticCell(name, measure.key) }}</div>
@@ -443,9 +443,9 @@ function statisticLabel(statistic: ReturnType<typeof availableStatistics>[number
             </tbody>
           </table>
         </div>
-        <p v-else class="text-caption text-grey-7 q-my-sm">Aucune colonne ne correspond à votre recherche.</p>
-        <p v-if="displayedStatisticColumns.length" class="text-caption text-grey-7 q-mt-sm q-mb-none">Défilez horizontalement pour parcourir les mesures. Le nom des variables reste visible à gauche.</p>
-        <p class="text-caption text-grey-7 q-mt-sm q-mb-none">Les valeurs distinctes sont comptées hors cellules vides. Au-delà du catalogue de 100 valeurs, un minimum est indiqué.</p>
+        <p v-else class="text-caption text-grey-7 q-my-sm">No columns match your search.</p>
+        <p v-if="displayedStatisticColumns.length" class="text-caption text-grey-7 q-mt-sm q-mb-none">Scroll horizontally to browse the measures. Feature names remain visible on the left.</p>
+        <p class="text-caption text-grey-7 q-mt-sm q-mb-none">Distinct value counts exclude empty cells. Beyond the 100-value catalogue, the count shown is a lower bound.</p>
       </section>
 
       <slot />

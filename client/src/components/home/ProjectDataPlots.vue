@@ -45,7 +45,7 @@ const imageFailed = ref(false);
 const preferSynthesis = ref(false);
 let plotController: AbortController | undefined;
 let plotRevision = 0;
-const number = new Intl.NumberFormat('fr-FR');
+const number = new Intl.NumberFormat('en-US');
 
 const missingInsight = computed(() => props.dataset.isComplete
   ? buildMissingInsight(props.dataset, props.columns) : null);
@@ -61,9 +61,9 @@ const associationInsight = computed(() => buildAssociationInsight(
   props.statistics, props.dataset, props.columns, props.targetColumn, props.predictionKind,
 ));
 const choices = computed(() => [
-  { value: 'missing' as const, label: 'Données manquantes', description: 'Quelles informations sont incomplètes ?', icon: 'fact_check', source: missingPlan.value ? 'Graphique original' : missingInsight.value ? 'Vue synthétique' : '' },
-  ...(comparableColumns.value.length || (props.statisticsLoading && selectedAnalysis.value === 'comparison') ? [{ value: 'comparison' as const, label: 'Comparer les groupes du résultat', description: 'Comment une information varie-t-elle selon le résultat ?', icon: 'stacked_bar_chart', source: nativeColumns.value.length ? 'Graphiques originaux' : 'Vue synthétique' }] : []),
-  ...(associationInsight.value || (props.statisticsLoading && selectedAnalysis.value === 'association') ? [{ value: 'association' as const, label: 'Lien avec le résultat', description: 'Quelles informations sont associées au résultat ?', icon: 'insights', source: 'Vue synthétique' }] : []),
+  { value: 'missing' as const, label: 'Missing data', description: 'Which features are incomplete?', icon: 'fact_check', source: missingPlan.value ? 'Original chart' : missingInsight.value ? 'Summary view' : '' },
+  ...(comparableColumns.value.length || (props.statisticsLoading && selectedAnalysis.value === 'comparison') ? [{ value: 'comparison' as const, label: 'Compare outcome groups', description: 'How does a feature vary with the outcome?', icon: 'stacked_bar_chart', source: nativeColumns.value.length ? 'Original charts' : 'Summary view' }] : []),
+  ...(associationInsight.value || (props.statisticsLoading && selectedAnalysis.value === 'association') ? [{ value: 'association' as const, label: 'Association with the outcome', description: 'Which features are associated with the outcome?', icon: 'insights', source: 'Summary view' }] : []),
 ]);
 const columnOptions = computed(() => comparableColumns.value.filter((column) => searchable(column).includes(searchable(columnSearch.value))));
 const selectionKey = computed(() => JSON.stringify([
@@ -72,8 +72,8 @@ const selectionKey = computed(() => JSON.stringify([
 const currentInsight = computed(() => cache.value[selectionKey.value]);
 const currentNativePlot = computed(() => !preferSynthesis.value ? nativeCache.value[selectionKey.value] : undefined);
 const currentAnalysis = computed(() => currentNativePlot.value
-  ? { ...currentNativePlot.value.plan, source: 'Graphique original · service DrIA' }
-  : currentInsight.value && { ...currentInsight.value, source: `${currentInsight.value.source} · vue synthétique` });
+  ? { ...currentNativePlot.value.plan, source: 'Original chart · DrIA service' }
+  : currentInsight.value && { ...currentInsight.value, source: `${currentInsight.value.source} · summary view` });
 const nativePlan = computed(() => selectedAnalysis.value === 'comparison'
   ? nativeComparisonPlan(props.dataset, selectedColumn.value, props.targetColumn, props.predictionKind)
   : selectedAnalysis.value === 'missing'
@@ -103,17 +103,17 @@ const nativeAvailability = computed(() => {
   if (!props.dataset.isComplete || props.unavailableReason || props.predictionKind === 'survival') return '';
   if (nativeColumns.value.length || missingPlan.value) return '';
   return props.predictionKind === 'quantity'
-    ? 'Pour un résultat numérique, les comparaisons par catégorie ne s’appliquent pas. Aucun graphique original du service DrIA n’est disponible pour cette sélection ; les analyses proposées sont des vues synthétiques.'
-    : 'Aucun graphique original du service DrIA n’est disponible pour cette sélection. Les vues synthétiques restent accessibles lorsque les statistiques le permettent.';
+    ? 'Category comparisons do not apply to a numerical outcome. No original DrIA chart is available for this selection; the available analyses are summary views.'
+    : 'No original DrIA chart is available for this selection. Summary views remain available when supported by the statistics.';
 });
 const contextualReason = computed(() => {
-  if (!props.dataset.isComplete) return 'Attendez la fin de la lecture du fichier pour explorer toutes les observations.';
-  if (props.predictionKind === 'survival') return 'Pour la survie, le bilan présente les événements observés et les durées de suivi. Les statistiques disponibles ici ne permettent pas de tracer une courbe de survie.';
+  if (!props.dataset.isComplete) return 'Wait for the file to finish loading to explore all observations.';
+  if (props.predictionKind === 'survival') return 'For survival analysis, the summary presents observed events and follow-up durations. The statistics available here cannot produce a survival curve.';
   if (props.unavailableReason) return props.unavailableReason;
   const needsStatistics = selectedAnalysis.value === 'association' || (selectedAnalysis.value === 'comparison' && !nativePlan.value);
-  if (needsStatistics && props.statisticsLoading) return 'Les statistiques DrIA préparent les comparaisons et les liens avec le résultat…';
+  if (needsStatistics && props.statisticsLoading) return 'DrIA statistics are preparing comparisons and associations with the outcome…';
   if (needsStatistics && props.statisticsError) return props.statisticsError;
-  if (needsStatistics && !props.statistics) return 'Les statistiques DrIA sont nécessaires pour explorer les liens avec le résultat.';
+  if (needsStatistics && !props.statistics) return 'DrIA statistics are needed to explore associations with the outcome.';
   return '';
 });
 
@@ -122,7 +122,7 @@ function chooseAnalysis(analysis: ProjectAnalysisKind) {
   selectedAnalysis.value = analysis;
 }
 function searchable(value: string): string {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('en-US');
 }
 function filterColumns(value: string, update: (callback: () => void) => void) {
   update(() => { columnSearch.value = value; });
@@ -217,13 +217,13 @@ onUnmounted(cancelPlot);
     <div class="insights-intro">
       <span class="insights-icon"><q-icon name="query_stats" size="24px" aria-hidden="true" /></span>
       <div>
-        <h2 id="data-insights-title">Comprendre vos données</h2>
-        <p>{{ context === 'project' ? 'Des vues ciblées pour explorer les données du projet, sur le fichier entier et les informations retenues pour prédire.' : 'Des vues ciblées pour préparer votre étude, sur le fichier entier et les informations retenues pour prédire.' }}</p>
+        <h2 id="data-insights-title">Understand your data</h2>
+        <p>{{ context === 'project' ? 'Focused views to explore project data, using the full file and the features selected for prediction.' : 'Focused views to prepare your study, using the full file and the features selected for prediction.' }}</p>
       </div>
     </div>
-    <div class="insights-scope">{{ number.format(dataset.rowCount) }} observations · {{ columns.length }} information{{ columns.length > 1 ? 's' : '' }} retenue{{ columns.length > 1 ? 's' : '' }}<template v-if="targetColumn"> · Résultat : <strong>{{ targetColumn }}</strong></template></div>
+    <div class="insights-scope">{{ number.format(dataset.rowCount) }} observations · {{ columns.length }} selected feature{{ columns.length > 1 ? 's' : '' }}<template v-if="targetColumn"> · Outcome: <strong>{{ targetColumn }}</strong></template></div>
 
-    <div class="insight-choices" :class="{ 'single-choice': choices.length === 1, 'two-choices': choices.length === 2 }" aria-label="Questions à explorer">
+    <div class="insight-choices" :class="{ 'single-choice': choices.length === 1, 'two-choices': choices.length === 2 }" aria-label="Questions to explore">
       <q-btn
         v-for="choice in choices" :key="choice.value"
         flat no-caps align="left"
@@ -241,62 +241,62 @@ onUnmounted(cancelPlot);
 
     <div v-if="contextualReason" class="insight-context" role="status">
       <q-spinner v-if="statisticsLoading && predictionKind !== 'survival'" size="16px" class="q-mr-sm" />{{ contextualReason }}
-      <q-btn v-if="statisticsError && !unavailableReason" flat dense no-caps label="Réessayer les statistiques" color="primary" :disable="disabled || statisticsLoading" @click="emit('retry-statistics')" />
+      <q-btn v-if="statisticsError && !unavailableReason" flat dense no-caps label="Retry statistics" color="primary" :disable="disabled || statisticsLoading" @click="emit('retry-statistics')" />
     </div>
 
     <div v-if="selectedAnalysis === 'comparison'" class="comparison-selector">
       <q-select
         v-model="selectedColumn" :options="columnOptions" :disable="disabled"
         outlined dense use-input hide-selected fill-input input-debounce="0"
-        label="Information à comparer" color="primary"
+        label="Feature to compare" color="primary"
         :popup-content-class="context === 'project' ? 'project-workspace-colors' : 'project-creation-colors'" @filter="filterColumns"
       >
         <template #option="scope">
           <q-item v-bind="scope.itemProps"><q-item-section class="insight-option">{{ scope.opt }}</q-item-section></q-item>
         </template>
-        <template #no-option><q-item><q-item-section>Aucune information correspondante.</q-item-section></q-item></template>
+        <template #no-option><q-item><q-item-section>No matching feature.</q-item-section></q-item></template>
       </q-select>
-      <p v-if="nativePlan">Choisissez une information. Le graphique est adapté à ses valeurs : distribution des nombres ou effectifs des catégories, selon le résultat à prédire.</p>
-      <p v-else>Comparez les groupes de <strong>{{ targetColumn }}</strong>. Cette vue synthétique utilise les statistiques DrIA et regroupe les catégories lorsque leur nombre empêche une lecture claire.</p>
+      <p v-if="nativePlan">Choose a feature. The chart adapts to its values: numerical distributions or category counts, grouped by the outcome.</p>
+      <p v-else>Compare the groups in <strong>{{ targetColumn }}</strong>. This summary view uses DrIA statistics and combines categories when there are too many to read clearly.</p>
     </div>
 
     <div v-if="selectedAnalysis === 'missing' && dataset.isComplete" class="quality-context">
       <q-icon :name="retainedMissing ? 'data_usage' : 'check_circle'" size="21px" aria-hidden="true" />
-      <span v-if="retainedMissing">{{ retainedMissing }} information{{ retainedMissing > 1 ? 's contiennent' : ' contient' }} des valeurs manquantes. La vue d’ensemble permet de repérer les colonnes les plus incomplètes.</span>
-      <span v-else>Aucune valeur manquante dans les informations actuellement retenues. Un graphique supplémentaire n’est pas nécessaire.</span>
+      <span v-if="retainedMissing">{{ retainedMissing }} feature{{ retainedMissing > 1 ? 's have' : ' has' }} missing values. The overview highlights the most incomplete columns.</span>
+      <span v-else>The selected features have no missing values. No additional chart is needed.</span>
     </div>
 
     <div v-if="!currentAnalysis && pendingAnalysis" class="insight-action">
-      <p>{{ pendingAnalysis.description }}<span v-if="nativePlan" class="native-calculation-note">Cette image est le graphique original produit par le service DrIA. Il est calculé uniquement à votre demande.</span></p>
-      <q-btn outline no-caps color="primary" icon="bar_chart" :label="nativePlan ? 'Calculer le graphique original' : 'Afficher la vue synthétique'" :loading="plotLoading" :disable="!ready" @click="display" />
+      <p>{{ pendingAnalysis.description }}<span v-if="nativePlan" class="native-calculation-note">This is the original chart produced by the DrIA service. It is calculated only on request.</span></p>
+      <q-btn outline no-caps color="primary" icon="bar_chart" :label="nativePlan ? 'Calculate the original chart' : 'Show the summary view'" :loading="plotLoading" :disable="!ready" @click="display" />
     </div>
-    <p v-if="changed && !currentAnalysis && pendingAnalysis" class="insight-note" role="status">Vos choix ont changé. Affichez de nouveau l’analyse pour utiliser les données actuelles.</p>
-    <div v-if="plotError" class="plot-error" role="alert"><q-icon name="error_outline" size="20px" /><p>{{ plotError }}</p><div><q-btn flat dense no-caps color="primary" label="Réessayer" :disable="!ready" @click="display" /><q-btn v-if="proposedInsight" flat dense no-caps color="primary" label="Afficher la vue synthétique" :disable="disabled" @click="useSynthesis" /></div></div>
+    <p v-if="changed && !currentAnalysis && pendingAnalysis" class="insight-note" role="status">Your selections have changed. Display the analysis again to use the current data.</p>
+    <div v-if="plotError" class="plot-error" role="alert"><q-icon name="error_outline" size="20px" /><p>{{ plotError }}</p><div><q-btn flat dense no-caps color="primary" label="Try again" :disable="!ready" @click="display" /><q-btn v-if="proposedInsight" flat dense no-caps color="primary" label="Show the summary view" :disable="disabled" @click="useSynthesis" /></div></div>
 
     <figure v-if="currentAnalysis" class="selected-insight" aria-live="polite" :aria-busy="plotLoading">
       <figcaption class="insight-heading">
         <div><div class="insight-source">{{ currentAnalysis.source }}</div><h3>{{ currentAnalysis.title }}</h3></div>
-        <q-btn flat round dense color="primary" icon="zoom_in" aria-label="Agrandir l’analyse" :disable="imageFailed" @click="viewerOpen = true" />
+        <q-btn flat round dense color="primary" icon="zoom_in" aria-label="Enlarge the analysis" :disable="imageFailed" @click="viewerOpen = true" />
       </figcaption>
       <div class="insight-body">
         <p class="insight-description">{{ currentAnalysis.description }}</p>
         <div v-if="currentNativePlot" class="plot-image">
-          <p v-if="imageFailed" class="plot-error" role="alert">L’image du graphique DrIA n’a pas pu être affichée.</p>
+          <p v-if="imageFailed" class="plot-error" role="alert">The DrIA chart image could not be displayed.</p>
           <img v-else :src="nativeImage" :alt="currentAnalysis.title" @error="imageFailed = true" />
         </div>
         <ProjectInsightChart v-else-if="currentInsight" :chart="currentInsight.chart" />
-        <p v-if="comparisonGroups.length" class="plot-group-sizes">Valeurs renseignées par groupe : {{ comparisonGroups.map((group) => `${group.label} : ${number.format(group.count)}`).join(' · ') }}.</p>
+        <p v-if="comparisonGroups.length" class="plot-group-sizes">Non-missing values by group: {{ comparisonGroups.map((group) => `${group.label} : ${number.format(group.count)}`).join(' · ') }}.</p>
       </div>
-      <div class="insight-reading"><q-icon name="info_outline" size="18px" aria-hidden="true" /><p>{{ currentAnalysis.note }}<span v-if="currentInsight?.omittedCount"> {{ currentInsight.omittedCount }} autre{{ currentInsight.omittedCount > 1 ? 's' : '' }} colonne{{ currentInsight.omittedCount > 1 ? 's' : '' }} reste{{ currentInsight.omittedCount > 1 ? 'nt' : '' }} disponible{{ currentInsight.omittedCount > 1 ? 's' : '' }} dans le bilan chiffré.</span></p></div>
-      <div v-if="currentNativePlot || (preferSynthesis && nativePlan)" class="plot-recalculate"><q-btn v-if="currentNativePlot?.plan.nativeTitle === 'Bar plot' && proposedInsight" flat dense no-caps color="primary" label="Comparer les proportions" :disable="disabled || plotLoading" @click="useSynthesis" /><q-btn v-if="preferSynthesis" flat dense no-caps color="primary" label="Voir le graphique original" :disable="disabled || plotLoading" @click="useNativePlot" /><q-btn v-else flat dense no-caps color="primary" icon="refresh" label="Recalculer ce graphique" :loading="plotLoading" :disable="!ready" @click="display" /></div>
+      <div class="insight-reading"><q-icon name="info_outline" size="18px" aria-hidden="true" /><p>{{ currentAnalysis.note }}<span v-if="currentInsight?.omittedCount"> {{ currentInsight.omittedCount }} other column{{ currentInsight.omittedCount > 1 ? 's remain' : ' remains' }} available in the numerical summary.</span></p></div>
+      <div v-if="currentNativePlot || (preferSynthesis && nativePlan)" class="plot-recalculate"><q-btn v-if="currentNativePlot?.plan.nativeTitle === 'Bar plot' && proposedInsight" flat dense no-caps color="primary" label="Compare proportions" :disable="disabled || plotLoading" @click="useSynthesis" /><q-btn v-if="preferSynthesis" flat dense no-caps color="primary" label="View the original chart" :disable="disabled || plotLoading" @click="useNativePlot" /><q-btn v-else flat dense no-caps color="primary" icon="refresh" label="Recalculate this chart" :loading="plotLoading" :disable="!ready" @click="display" /></div>
     </figure>
-    <p v-if="!currentAnalysis && !pendingAnalysis && selectedAnalysis !== 'missing' && !statisticsLoading" class="insight-note">Les statistiques disponibles ne suffisent pas à représenter cette sélection.</p>
+    <p v-if="!currentAnalysis && !pendingAnalysis && selectedAnalysis !== 'missing' && !statisticsLoading" class="insight-note">The available statistics are insufficient to chart this selection.</p>
 
     <q-dialog v-model="viewerOpen" :maximized="$q.screen.lt.sm" aria-labelledby="project-insight-title">
       <q-card v-if="currentAnalysis" class="insight-viewer" :class="context === 'project' ? 'project-workspace-colors' : 'project-creation-colors'" tabindex="-1" data-autofocus>
         <q-card-section class="viewer-heading">
           <div><div class="insight-source">{{ currentAnalysis.source }}</div><h4 id="project-insight-title">{{ currentAnalysis.title }}</h4></div>
-          <q-btn v-close-popup flat round dense icon="close" aria-label="Fermer l’analyse" />
+          <q-btn v-close-popup flat round dense icon="close" aria-label="Close the analysis" />
         </q-card-section>
         <div class="viewer-scroll"><p class="insight-description">{{ currentAnalysis.description }}</p><div v-if="currentNativePlot" class="plot-image"><img :src="nativeImage" :alt="currentAnalysis.title" /></div><ProjectInsightChart v-else-if="currentInsight" :chart="currentInsight.chart" /><p class="insight-note">{{ currentAnalysis.note }}</p></div>
       </q-card>

@@ -32,7 +32,7 @@ const plots = computed(() => explanation.value?.plots ?? {});
 const plotList = computed(() => Object.values(plots.value));
 const currentExplain = computed(() => plotList.value[currentExplainIndex.value]);
 const plotOptions = computed(() => plotList.value.map((plot, index) => ({
-  label: displayServiceText(plot.title) || `Graphique ${index + 1}`, value: index,
+  label: displayServiceText(plot.title) || `Chart ${index + 1}`, value: index,
 })));
 const nativeImage = computed(() => {
   const image = currentExplain.value?.image;
@@ -139,7 +139,7 @@ async function refresh() {
         await loadPlots();
         const reports = [result.report, result.configured_report].flat().filter(Boolean);
         if (reports.some(report => report.status === "error")) {
-          $q.notify({ type: "warning", message: "Certaines explications sont indisponibles ; les résultats disponibles sont affichés." });
+          $q.notify({ type: "warning", message: "Some explanations are unavailable; the available results are shown." });
         }
         if (result.cache_error) $q.notify({ type: "warning", message: displayServiceText(result.cache_error) });
       }
@@ -154,7 +154,7 @@ async function getExplanation() {
   explainedClass.value = undefined;
   try {
     const created = await startModeleExplanationById(propsComponent.model.id);
-    if (!created?.id) throw new Error("L’explication n’a pas pu être lancée.");
+    if (!created?.id) throw new Error("The explanation could not start.");
     status.value = statusName(created.status);
     await refresh();
   } catch (error) {
@@ -189,33 +189,33 @@ onUnmounted(() => {
   <div class="model-explains">
     <div v-if="!hasExplanation" class="explanation-empty">
       <span class="empty-explanation-icon"><q-icon name="bar_chart" size="30px" /></span>
-      <div><h3>Importance des variables</h3><p>{{ isLoadingExplanation ? 'DrIA calcule l’importance des variables et les graphiques de cette analyse.' : 'Découvrez quelles variables contribuent le plus aux prédictions de ce modèle.' }}</p></div>
-      <q-btn unelevated no-caps color="primary" icon="analytics" :label="isLoadingExplanation ? 'Analyse en cours' : 'Calculer l’importance des variables'" :loading="isLoadingExplanation" @click="getExplanation" />
+      <div><h3>Feature importance</h3><p>{{ isLoadingExplanation ? 'DrIA is computing feature importance and charts for this analysis.' : 'Discover which features contribute most to this model’s predictions.' }}</p></div>
+      <q-btn unelevated no-caps color="primary" icon="analytics" :label="isLoadingExplanation ? 'Analysis in progress' : 'Compute feature importance'" :loading="isLoadingExplanation" @click="getExplanation" />
     </div>
     <template v-else>
-      <div v-if="isLoadingExplanation" class="explanation-progress" role="status"><q-spinner color="primary" size="20px" /><span>L’analyse se poursuit. Les résultats disponibles sont affichés ci-dessous.</span></div>
+      <div v-if="isLoadingExplanation" class="explanation-progress" role="status"><q-spinner color="primary" size="20px" /><span>The analysis is still running. Available results are shown below.</span></div>
       <div class="explanation-layout" :class="{ 'single-panel': !features.length || (!plotList.length && !isLoadingPlots) }">
         <FeatureImportanceRanking v-if="features.length" :features="features" :explained-class="explainedClass" />
         <section v-if="plotList.length || isLoadingPlots" class="explanation-figures" aria-labelledby="explanation-figures-title">
-          <header class="figures-heading"><div><span class="analysis-eyebrow">Explorer l’analyse</span><h3 id="explanation-figures-title">Graphiques de l’explication</h3><p>Consultez les graphiques associés à cette analyse.</p></div><q-btn v-if="nativeImage && !imageFailed" flat round dense color="primary" icon="open_in_full" aria-label="Agrandir le graphique" @click="plotViewerOpen = true" /></header>
-          <div v-if="isLoadingPlots && !plotList.length" class="figures-loading" role="status"><q-spinner color="primary" size="26px" /><p>Chargement des graphiques…</p></div>
+          <header class="figures-heading"><div><span class="analysis-eyebrow">Explore the analysis</span><h3 id="explanation-figures-title">Explanation charts</h3><p>View the charts associated with this analysis.</p></div><q-btn v-if="nativeImage && !imageFailed" flat round dense color="primary" icon="open_in_full" aria-label="Enlarge chart" @click="plotViewerOpen = true" /></header>
+          <div v-if="isLoadingPlots && !plotList.length" class="figures-loading" role="status"><q-spinner color="primary" size="26px" /><p>Loading charts…</p></div>
           <template v-else>
             <div class="figure-selection">
-              <q-select v-if="plotList.length > 1" :model-value="currentExplainIndex" :options="plotOptions" emit-value map-options outlined dense label="Graphique de l’explication" popup-content-class="project-workspace-colors" @update:model-value="changeExplain" />
+              <q-select v-if="plotList.length > 1" :model-value="currentExplainIndex" :options="plotOptions" emit-value map-options outlined dense label="Explanation chart" popup-content-class="project-workspace-colors" @update:model-value="changeExplain" />
               <h4 v-else>{{ displayServiceText(currentExplain?.title) }}</h4>
             </div>
             <figure class="native-figure">
-              <div v-if="imageFailed || !nativeImage" class="figure-unavailable" role="status"><q-icon name="image_not_supported" size="28px" /><p>Ce graphique ne peut pas être affiché pour le moment.</p></div>
-              <img v-else :src="nativeImage" :alt="displayServiceText(currentExplain?.title) || 'Graphique de l’explication du modèle'" @error="imageFailed = true" />
+              <div v-if="imageFailed || !nativeImage" class="figure-unavailable" role="status"><q-icon name="image_not_supported" size="28px" /><p>This chart cannot be displayed right now.</p></div>
+              <img v-else :src="nativeImage" :alt="displayServiceText(currentExplain?.title) || 'Model explanation chart'" @error="imageFailed = true" />
               <figcaption v-if="currentExplain?.description">{{ displayServiceText(currentExplain.description) }}</figcaption>
             </figure>
-            <footer class="figure-navigation"><span>Graphique {{ currentExplainIndex + 1 }} sur {{ plotList.length }}</span><div v-if="plotList.length > 1"><q-btn flat round dense icon="chevron_left" color="primary" aria-label="Graphique précédent" :disable="currentExplainIndex === 0" @click="changeExplain(currentExplainIndex - 1)" /><q-btn flat round dense icon="chevron_right" color="primary" aria-label="Graphique suivant" :disable="currentExplainIndex === plotList.length - 1" @click="changeExplain(currentExplainIndex + 1)" /></div></footer>
+            <footer class="figure-navigation"><span>Chart {{ currentExplainIndex + 1 }} of {{ plotList.length }}</span><div v-if="plotList.length > 1"><q-btn flat round dense icon="chevron_left" color="primary" aria-label="Previous chart" :disable="currentExplainIndex === 0" @click="changeExplain(currentExplainIndex - 1)" /><q-btn flat round dense icon="chevron_right" color="primary" aria-label="Next chart" :disable="currentExplainIndex === plotList.length - 1" @click="changeExplain(currentExplainIndex + 1)" /></div></footer>
           </template>
         </section>
       </div>
     </template>
     <q-dialog v-model="plotViewerOpen">
-      <q-card class="figure-viewer project-workspace-colors"><q-card-section class="viewer-heading"><h3>{{ displayServiceText(currentExplain?.title) }}</h3><q-btn v-close-popup flat round dense icon="close" aria-label="Fermer le graphique" /></q-card-section><div class="viewer-image"><img :src="nativeImage" :alt="displayServiceText(currentExplain?.title) || 'Graphique de l’explication du modèle'" /><p v-if="currentExplain?.description">{{ displayServiceText(currentExplain.description) }}</p></div></q-card>
+      <q-card class="figure-viewer project-workspace-colors"><q-card-section class="viewer-heading"><h3>{{ displayServiceText(currentExplain?.title) }}</h3><q-btn v-close-popup flat round dense icon="close" aria-label="Close chart" /></q-card-section><div class="viewer-image"><img :src="nativeImage" :alt="displayServiceText(currentExplain?.title) || 'Model explanation chart'" /><p v-if="currentExplain?.description">{{ displayServiceText(currentExplain.description) }}</p></div></q-card>
     </q-dialog>
   </div>
 </template>

@@ -34,15 +34,15 @@ const bibliography = computed<IStructuredBibliography[]>(() => {
   return modelReport.value!.bibliography.filter(object).map((item) => ({
     step: typeof item.step === 'string' ? item.step : '',
     year: typeof item.year === 'number' ? item.year : 0,
-    name: typeof item.name === 'string' ? item.name : 'Référence bibliographique',
+    name: typeof item.name === 'string' ? item.name : 'Bibliographic reference',
     authors: Array.isArray(item.authors) ? item.authors.filter((author): author is string => typeof author === 'string') : [],
     doi: typeof item.doi === 'string' ? item.doi : null,
     publisher: typeof item.publisher === 'string' ? item.publisher : null,
   }));
 });
 const technicalDocuments = computed(() => [
-  { name: 'Rapport complet du modèle (JSON)', value: modelReport.value },
-  { name: 'Audit complet du modèle (JSON)', value: modelAudit.value },
+  { name: 'Complete model report in JSON', value: modelReport.value },
+  { name: 'Complete model audit in JSON', value: modelAudit.value },
 ].filter((item) => item.value));
 
 function json(value: unknown): string {
@@ -76,9 +76,9 @@ async function loadReports() {
   if (version !== requestVersion) return;
   const [report, audit] = results;
   if (report.status === 'fulfilled' && object(report.value.data)) modelReport.value = report.value.data;
-  else reportError.value = 'Le rapport du modèle n’est pas disponible pour le moment.';
+  else reportError.value = 'The model report is currently unavailable.';
   if (audit.status === 'fulfilled' && object(audit.value.data)) modelAudit.value = audit.value.data;
-  else auditError.value = 'L’audit du modèle n’est pas disponible pour le moment.';
+  else auditError.value = 'The model audit is currently unavailable.';
   loadingReports.value = false;
 }
 
@@ -96,13 +96,13 @@ async function download(kind: 'model' | 'markdown') {
     const url = URL.createObjectURL(response.data);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = kind === 'model' ? `dria-modele-${props.model.id}.pickle` : `dria-modele-${props.model.id}-rapport.md`;
+    anchor.download = kind === 'model' ? `dria-model-${props.model.id}.pickle` : `dria-model-${props.model.id}-report.md`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch {
-    if (version === downloadVersion) downloadError.value = 'Le téléchargement n’est pas disponible pour le moment. Réessayez.';
+    if (version === downloadVersion) downloadError.value = 'The download is currently unavailable. Try again.';
   } finally {
     if (version === downloadVersion) downloading.value = undefined;
   }
@@ -126,7 +126,7 @@ onUnmounted(() => { requestVersion += 1; downloadVersion += 1; reportsController
 
 <template>
   <div class="methodology-content">
-    <section class="retained-pipeline" aria-label="Pipeline retenu pour ce modèle">
+    <section class="retained-pipeline" aria-label="Selected pipeline for this model">
       <RetainedPipelineOverview
         :model="model"
         @audit-loaded="modelAudit = $event"
@@ -137,15 +137,15 @@ onUnmounted(() => { requestVersion += 1; downloadVersion += 1; reportsController
 
     <div class="methodology-columns">
       <section class="method-card">
-        <div class="method-card-heading"><q-icon name="account_tree" size="20px" /><h3>Explication des étapes</h3></div>
+        <div class="method-card-heading"><q-icon name="account_tree" size="20px" /><h3>Step descriptions</h3></div>
         <div v-if="explanations.length" class="step-descriptions">
           <div v-for="(text, index) in explanations" :key="index" class="markdown-content" v-html="marked(text)" />
         </div>
-        <p v-else class="method-empty">Aucune description des étapes n’est enregistrée pour ce modèle. Le rapport détaillé peut apporter des informations complémentaires.</p>
+        <p v-else class="method-empty">No step descriptions were saved for this model. The detailed report may provide more information.</p>
       </section>
 
       <section class="method-card">
-        <div class="method-card-heading"><q-icon name="menu_book" size="20px" /><h3>Références des méthodes</h3></div>
+        <div class="method-card-heading"><q-icon name="menu_book" size="20px" /><h3>Method references</h3></div>
         <ol v-if="bibliography.length" class="bibliography-list">
           <li v-for="(reference, index) in bibliography" :key="index">
             <span v-if="reference.step" class="reference-step">{{ reference.step }}</span>
@@ -157,38 +157,38 @@ onUnmounted(() => { requestVersion += 1; downloadVersion += 1; reportsController
             <div class="reference-publication"><span v-if="reference.year">{{ reference.year }}</span><span v-if="reference.publisher">{{ reference.publisher }}</span></div>
           </li>
         </ol>
-        <p v-else class="method-empty">Aucune référence bibliographique n’est enregistrée pour ce modèle.</p>
+        <p v-else class="method-empty">No bibliographic references were saved for this model.</p>
       </section>
     </div>
 
-    <section class="model-exports" aria-label="Télécharger les informations du modèle">
+    <section class="model-exports" aria-label="Download model information">
       <div>
-        <h3>Conserver et partager</h3>
-        <p>Exportez le modèle entraîné ou son rapport pour conserver une copie de ce résultat.</p>
+        <h3>Save and share</h3>
+        <p>Export the trained model or its report to keep a copy of this result.</p>
       </div>
       <div class="export-actions">
-        <q-btn flat no-caps color="primary" icon="download" label="Rapport Markdown" :loading="downloading === 'markdown'" :disable="Boolean(downloading) && downloading !== 'markdown'" @click="download('markdown')" />
-        <q-btn outline no-caps color="primary" icon="download" label="Télécharger le modèle" :loading="downloading === 'model'" :disable="Boolean(downloading) && downloading !== 'model'" @click="download('model')" />
+        <q-btn flat no-caps color="primary" icon="download" label="Markdown report" :loading="downloading === 'markdown'" :disable="Boolean(downloading) && downloading !== 'markdown'" @click="download('markdown')" />
+        <q-btn outline no-caps color="primary" icon="download" label="Download model" :loading="downloading === 'model'" :disable="Boolean(downloading) && downloading !== 'model'" @click="download('model')" />
       </div>
       <p v-if="downloadError" class="download-error" role="alert">{{ downloadError }}</p>
     </section>
 
-    <section class="full-reports" aria-label="Rapports complets du modèle">
-      <h3>Rapports complets et configuration</h3>
-      <p>Le rapport contient aussi la recette de recherche : elle décrit les choix proposés à DrIA. Les étapes retenues pour ce modèle sont présentées dans le pipeline ci-dessus.</p>
+    <section class="full-reports" aria-label="Complete model reports">
+      <h3>Complete reports and configuration</h3>
+      <p>The report also includes the search configuration, which describes the options available to DrIA. The steps selected for this model are shown in the pipeline above.</p>
       <q-btn
         v-if="!modelReport || !modelAudit"
         outline
         no-caps
         color="primary"
         icon="description"
-        :label="reportsRequested && (reportError || auditError) ? 'Réessayer le chargement' : 'Charger les rapports complets'"
+        :label="reportsRequested && (reportError || auditError) ? 'Try loading again' : 'Load complete reports'"
         :loading="loadingReports"
         :disable="loadingPipeline"
         class="full-reports__load"
         @click="loadReports"
       />
-      <p v-if="loadingPipeline && (!modelReport || !modelAudit)" class="full-reports__waiting" role="status">Les informations du pipeline sont en cours de chargement.</p>
+      <p v-if="loadingPipeline && (!modelReport || !modelAudit)" class="full-reports__waiting" role="status">Pipeline information is loading.</p>
       <div v-if="reportError || auditError" class="report-errors" role="status">
         <p v-if="reportError">{{ reportError }}</p>
         <p v-if="auditError">{{ auditError }}</p>

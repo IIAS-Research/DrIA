@@ -13,7 +13,7 @@ const props = defineProps<{
   historical?: boolean;
 }>();
 
-const modelName = computed(() => displayServiceName(props.result.model.metrics.model_info?.name) || 'Modèle disponible');
+const modelName = computed(() => displayServiceName(props.result.model.metrics.model_info?.name) || 'Available model');
 const hasTestScore = computed(() => typeof props.test?.value === 'number' && Number.isFinite(props.test.value));
 const modelParams = computed(() => ({
   id: props.projectId,
@@ -35,10 +35,10 @@ function modelLink(view: 'performance' | 'explanation') {
 </script>
 
 <template>
-  <article class="project-model-summary" aria-label="Résumé du modèle et accès à son analyse">
+  <article class="project-model-summary" aria-label="Model summary and analysis links">
     <div class="summary-heading">
-      <p class="summary-eyebrow">{{ result.selectedByIaml ? 'Modèle retenu par DrIA' : 'Modèle à examiner' }}</p>
-      <span v-if="historical" class="summary-history">Résultat antérieur</span>
+      <p class="summary-eyebrow">{{ result.selectedByIaml ? 'Model selected by DrIA' : 'Model to review' }}</p>
+      <span v-if="historical" class="summary-history">Earlier result</span>
     </div>
 
     <div class="summary-result">
@@ -47,21 +47,21 @@ function modelLink(view: 'performance' | 'explanation') {
         <p v-if="!result.selectedByIaml" class="summary-selection">{{ result.selectionLabel }}</p>
       </div>
       <div class="summary-score">
-        <span class="summary-source">{{ validation?.label || 'Évaluation interne' }}</span>
+        <span class="summary-source">{{ validation?.label || 'Internal evaluation' }}</span>
         <strong :class="{ 'score-unavailable': validation?.value === null || validation?.value === undefined }">{{ formatScore(validation?.value) }}</strong>
-        <span class="summary-metric">{{ validation?.name || 'Critère non précisé' }}</span>
+        <span class="summary-metric">{{ validation?.name || 'Metric not specified' }}</span>
       </div>
     </div>
 
     <p v-if="hasTestScore" class="summary-test">
-      <span>Test indépendant <span class="test-metric">· {{ test?.name }}</span></span>
+      <span>Holdout test set <span class="test-metric">· {{ test?.name }}</span></span>
       <strong>{{ formatScore(test?.value) }}</strong>
     </p>
 
     <div class="summary-actions">
-      <q-btn unelevated no-caps color="primary" icon="science" label="Essayer une prédiction" :to="predictionLink" class="summary-predict" />
-      <q-btn flat no-caps color="primary" label="Analyser ce modèle" icon-right="arrow_forward" :to="modelLink('performance')" />
-      <q-btn flat no-caps color="primary" icon="psychology" label="Comprendre ses prédictions" :to="modelLink('explanation')" />
+      <q-btn unelevated no-caps color="primary" icon="science" label="Try a prediction" :to="predictionLink" class="summary-predict" />
+      <q-btn flat no-caps color="primary" label="Analyze this model" icon-right="arrow_forward" :to="modelLink('performance')" />
+      <q-btn flat no-caps color="primary" icon="psychology" label="Understand its predictions" :to="modelLink('explanation')" />
     </div>
   </article>
 </template>

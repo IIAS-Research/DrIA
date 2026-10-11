@@ -42,13 +42,13 @@ async function submit() {
 
       <q-form class="q-gutter-y-sm q-pt-lg" @submit="submit">
         <div class="text-h6 text-center">
-          Connexion
+          Sign in
         </div>
         <q-input v-model="login.email" label="Email" filled type="email"
-          :rules="[(val, rules) => rules.email(val) || `Format d'adresse email invalide`]" lazy-rules />
-        <q-input v-model="login.password" type="password" label="Mot de passe" filled lazy-rules />
+          :rules="[(val, rules) => rules.email(val) || `Enter a valid email address`]" lazy-rules />
+        <q-input v-model="login.password" type="password" label="Password" filled lazy-rules />
 
-        <q-btn color="primary" type="submit" label="Connexion" class="full-width q-mt-md" :loading="submitting" />
+        <q-btn color="primary" type="submit" label="Sign in" class="full-width q-mt-md" :loading="submitting" />
       </q-form>
     </div>
   </q-page>

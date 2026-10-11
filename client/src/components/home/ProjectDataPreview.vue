@@ -52,8 +52,8 @@ const displayedColumns = computed(() => {
   return [...requiredColumns.value, ...selected];
 });
 const filteredColumns = computed(() => {
-  const search = (columnSearch.value ?? '').trim().toLocaleLowerCase('fr');
-  return columns.value.filter((name) => `${name} ${props.roles[name]?.label ?? ''}`.toLocaleLowerCase('fr').includes(search));
+  const search = (columnSearch.value ?? '').trim().toLocaleLowerCase('en-US');
+  return columns.value.filter((name) => `${name} ${props.roles[name]?.label ?? ''}`.toLocaleLowerCase('en-US').includes(search));
 });
 const pageCount = computed(() => Math.max(1, Math.ceil((props.dataset?.rows.length ?? 0) / rowsPerPage.value)));
 const displayedRows = computed(() => (props.dataset?.rows ?? []).slice((page.value - 1) * rowsPerPage.value, page.value * rowsPerPage.value));
@@ -67,7 +67,7 @@ const relatedGroups = computed(() => {
   return groups;
 });
 const hasRelatedRows = computed(() => [...relatedGroups.value.values()].some((count) => count > 1));
-const number = new Intl.NumberFormat('fr-FR');
+const number = new Intl.NumberFormat('en-US');
 
 watch(() => props.dataset, (dataset) => {
   page.value = 1;
@@ -142,8 +142,8 @@ function relatedCount(row: Record<string, string>): number {
 function columnDescription(name: string): string {
   const profile = props.dataset?.profiles[name];
   if (!profile) return '';
-  const type = { numeric: 'Nombre', boolean: 'Oui / non', text: 'Texte ou catégorie', empty: 'Colonne vide' }[profile.type];
-  return profile.missingCount ? `${type} · ${number.format(profile.missingCount)} valeur${profile.missingCount > 1 ? 's' : ''} manquante${profile.missingCount > 1 ? 's' : ''}` : type;
+  const type = { numeric: 'Number', boolean: 'Yes / no', text: 'Text or category', empty: 'Empty column' }[profile.type];
+  return profile.missingCount ? `${type} · ${number.format(profile.missingCount)} missing value${profile.missingCount > 1 ? 's' : ''}` : type;
 }
 
 function selectColumn(name: string) {
@@ -156,23 +156,23 @@ function selectColumn(name: string) {
     <div ref="previewHeading" class="preview-heading q-pa-md">
       <div class="row items-start justify-between q-col-gutter-sm">
         <div class="col">
-          <div class="text-subtitle1 text-weight-medium">Vos données</div>
+          <div class="text-subtitle1 text-weight-medium">Your data</div>
           <div v-if="dataset" class="text-caption text-grey-7">
             <template v-if="dataset.isComplete">
               {{ number.format(dataset.rowCount) }} observation{{ dataset.rowCount > 1 ? 's' : '' }}
-              · {{ dataset.columns.length }} colonne{{ dataset.columns.length > 1 ? 's' : '' }}
+              · {{ dataset.columns.length }} column{{ dataset.columns.length > 1 ? 's' : '' }}
             </template>
-            <template v-else>Analyse du fichier en cours…</template>
+            <template v-else>Analyzing the file…</template>
           </div>
         </div>
         <div v-if="dataset" class="col-auto">
-          <q-badge color="secondary" outline label="Aperçu" />
+          <q-badge color="secondary" outline label="Preview" />
         </div>
       </div>
       <div v-if="dataset" class="text-caption text-grey-7 q-mt-sm">
-        Les {{ dataset.rows.length }} premières observations sont affichées.
-        <template v-if="context === 'project'">Les rôles indiqués sont ceux attribués dans ce projet.</template>
-        <template v-else>Vos réponses précisent le rôle des colonnes.</template>
+        The first {{ dataset.rows.length }} observations are shown.
+        <template v-if="context === 'project'">The roles shown are those assigned in this project.</template>
+        <template v-else>Your answers define the role of each column.</template>
       </div>
       <div v-if="dataset" class="column-controls q-mt-sm">
         <q-btn-dropdown
@@ -181,19 +181,19 @@ function selectColumn(name: string) {
           no-caps
           color="primary"
           icon="view_column"
-          :label="`Colonnes : ${displayedColumns.length} / ${columns.length}`"
+          :label="`Columns: ${displayedColumns.length} / ${columns.length}`"
           :content-class="context === 'project' ? 'project-workspace-colors' : 'project-creation-colors'"
           @show="columnSearch = ''"
         >
           <div class="column-menu q-pa-md">
-            <div class="text-subtitle2">Colonnes affichées</div>
-            <p class="text-caption text-grey-7 q-mt-xs q-mb-sm">Masquer une colonne ici ne l’exclut pas de l’étude.</p>
+            <div class="text-subtitle2">Visible columns</div>
+            <p class="text-caption text-grey-7 q-mt-xs q-mb-sm">Hiding a column here does not exclude it from the study.</p>
             <div class="row q-gutter-x-xs q-mb-sm">
-              <q-btn flat dense no-caps color="primary" label="Vue automatique" @click="chosenColumns = null" />
-              <q-btn flat dense no-caps color="primary" label="Tout afficher" @click="chosenColumns = [...columns]" />
+              <q-btn flat dense no-caps color="primary" label="Automatic view" @click="chosenColumns = null" />
+              <q-btn flat dense no-caps color="primary" label="Show all" @click="chosenColumns = [...columns]" />
             </div>
-            <q-input v-model="columnSearch" dense outlined clearable label="Rechercher une colonne" class="q-mb-sm" />
-            <div class="column-list" role="group" aria-label="Colonnes de l’aperçu">
+            <q-input v-model="columnSearch" dense outlined clearable label="Search columns" class="q-mb-sm" />
+            <div class="column-list" role="group" aria-label="Preview columns">
               <q-checkbox
                 v-for="name in filteredColumns"
                 :key="name"
@@ -207,15 +207,15 @@ function selectColumn(name: string) {
                 <div class="column-option-name">{{ name }}</div>
                 <div v-if="requiredColumns.includes(name) || (!showExcluded && isExcluded(name))" class="text-caption text-grey-7">
                   <q-icon :name="!showExcluded && isExcluded(name) ? 'visibility_off' : 'lock'" size="12px" aria-hidden="true" />
-                  {{ roles[name]?.label }} · {{ !showExcluded && isExcluded(name) ? 'masquée' : 'toujours visible' }}
+                  {{ roles[name]?.label }} · {{ !showExcluded && isExcluded(name) ? 'hidden' : 'always visible' }}
                 </div>
               </q-checkbox>
-              <div v-if="!filteredColumns.length" class="text-caption text-grey-7 q-py-sm">Aucune colonne ne correspond à votre recherche.</div>
+              <div v-if="!filteredColumns.length" class="text-caption text-grey-7 q-py-sm">No columns match your search.</div>
             </div>
           </div>
         </q-btn-dropdown>
         <span v-if="columns.length > displayedColumns.length" class="text-caption text-grey-7">
-          {{ columns.length - displayedColumns.length }} autre{{ columns.length - displayedColumns.length > 1 ? 's' : '' }} colonne{{ columns.length - displayedColumns.length > 1 ? 's' : '' }} disponible{{ columns.length - displayedColumns.length > 1 ? 's' : '' }}
+          {{ columns.length - displayedColumns.length }} other column{{ columns.length - displayedColumns.length > 1 ? 's' : '' }} available
         </span>
       </div>
       <div v-if="selectable && selectionHint" class="selection-hint q-mt-sm" role="status">
@@ -227,17 +227,17 @@ function selectColumn(name: string) {
         color="primary"
         dense
         class="q-mt-sm text-caption"
-        :label="`Afficher les ${excludedColumns.length} colonne${excludedColumns.length > 1 ? 's' : ''} exclue${excludedColumns.length > 1 ? 's' : ''}`"
+        :label="`Show ${excludedColumns.length} excluded column${excludedColumns.length > 1 ? 's' : ''}`"
       />
     </div>
 
     <template v-if="dataset">
-      <div class="preview-scroll" tabindex="0" role="region" aria-label="Aperçu du fichier, défilement horizontal possible">
+      <div class="preview-scroll" tabindex="0" role="region" aria-label="File preview with horizontal scrolling">
         <table class="preview-table">
-          <caption class="sr-only">Aperçu des données importées et rôle de chaque colonne dans l’étude</caption>
+          <caption class="sr-only">Preview of imported data and the role of each column in the study</caption>
           <thead>
             <tr>
-              <th class="observation-number" scope="col">N°</th>
+              <th class="observation-number" scope="col">No.</th>
               <th
                 v-for="name in displayedColumns"
                 :key="name"
@@ -254,7 +254,7 @@ function selectColumn(name: string) {
                   class="column-header"
                   :class="{ 'selectable-header': selectable }"
                   :disabled="!selectable"
-                  :aria-label="selectable ? `Sélectionner la colonne ${name}` : name"
+                  :aria-label="selectable ? `Select column ${name}` : name"
                   :aria-pressed="selectable ? activeColumns.includes(name) : undefined"
                   @click="selectColumn(name)"
                 >
@@ -280,7 +280,7 @@ function selectColumn(name: string) {
               <th class="observation-number" scope="row">
                 {{ (page - 1) * rowsPerPage + rowIndex + 1 }}
                 <q-icon v-if="relatedCount(row) > 1" name="link" color="secondary" size="16px" class="related-icon">
-                  <q-tooltip>Cette observation et {{ relatedCount(row) - 1 }} autre{{ relatedCount(row) > 2 ? 's' : '' }} partagent le même regroupement dans cet aperçu.</q-tooltip>
+                  <q-tooltip>This observation and {{ relatedCount(row) - 1 }} other{{ relatedCount(row) > 2 ? 's' : '' }} belong to the same group in this preview.</q-tooltip>
                 </q-icon>
               </th>
               <td
@@ -295,9 +295,9 @@ function selectColumn(name: string) {
                 }"
               >
                 <span v-if="row[name]?.trim()" class="cell-value" :title="row[name]">{{ row[name] }}</span>
-                <span v-else class="missing-value" aria-label="Valeur manquante">
+                <span v-else class="missing-value" aria-label="Missing value">
                   —
-                  <q-tooltip>Valeur manquante</q-tooltip>
+                  <q-tooltip>Missing value</q-tooltip>
                 </span>
               </td>
             </tr>
@@ -308,7 +308,7 @@ function selectColumn(name: string) {
       <div class="preview-footer q-pa-sm">
         <div class="row items-center justify-between q-col-gutter-sm">
           <div class="col-auto row items-center">
-            <label for="preview-row-count" class="text-caption text-grey-7 q-mr-sm">Lignes par page</label>
+            <label for="preview-row-count" class="text-caption text-grey-7 q-mr-sm">Rows per page</label>
             <select id="preview-row-count" v-model.number="rowsPerPage" class="row-count-select">
               <option :value="10">10</option>
               <option :value="20">20</option>
@@ -318,17 +318,17 @@ function selectColumn(name: string) {
           <q-pagination v-model="page" :max="pageCount" :max-pages="4" color="primary" size="sm" direction-links boundary-numbers />
         </div>
         <div v-if="missingCells" class="text-caption text-grey-7 q-mt-sm">
-          <span class="missing-key" aria-hidden="true" />{{ number.format(missingCells) }} cellule{{ missingCells > 1 ? 's' : '' }} vide{{ missingCells > 1 ? 's' : '' }} {{ dataset.isComplete ? 'dans le fichier' : 'dans les lignes analysées' }}.
+          <span class="missing-key" aria-hidden="true" />{{ number.format(missingCells) }} empty cell{{ missingCells > 1 ? 's' : '' }} {{ dataset.isComplete ? 'in the file' : 'in the analyzed rows' }}.
         </div>
         <div v-if="hasRelatedRows" class="text-caption text-grey-7 q-mt-xs">
-          <q-icon name="link" color="secondary" size="16px" /> Les lignes marquées sont liées dans cet aperçu. Le regroupement de l’étude s’applique au fichier entier.
+          <q-icon name="link" color="secondary" size="16px" /> Marked rows are related in this preview. Study grouping applies to the entire file.
         </div>
       </div>
     </template>
     <div v-else class="empty-preview q-pa-xl text-center">
       <q-icon name="table_chart" color="secondary" size="44px" />
-      <div class="text-subtitle2 q-mt-md">Votre tableau apparaîtra ici</div>
-      <p class="text-caption text-grey-7 q-mt-sm q-mb-none">Importez vos données pour les explorer et préparer votre étude, étape par étape.</p>
+      <div class="text-subtitle2 q-mt-md">Your table will appear here</div>
+      <p class="text-caption text-grey-7 q-mt-sm q-mb-none">Upload your data to explore it and prepare your study, step by step.</p>
     </div>
   </q-card>
 </template>

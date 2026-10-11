@@ -17,7 +17,7 @@ const router = useRouter();
 
 const leftDrawerOpen = ref(false);
 const userName = computed(() => [userStore.currentUser?.firstName, userStore.currentUser?.lastName]
-  .filter(Boolean).join(' ') || userStore.currentUser?.email || 'Mon compte');
+  .filter(Boolean).join(' ') || userStore.currentUser?.email || 'My account');
 const alreadyNotifiedAccessTokenWillExpireSoon = ref(false);
 let sessionInterval: ReturnType<typeof setInterval> | undefined;
 
@@ -36,14 +36,14 @@ async function checkJwtValidity() {
   const timeoutBeforeAccessTokenIsExpired = (new Date(userStore.accessTokenExpirationTime * 1000).getTime()
     - new Date().getTime());
   $q.notify({
-    message: 'Votre session va bientôt expirer',
+    message: 'Your session will expire soon',
     timeout: timeoutBeforeAccessTokenIsExpired,
     closeBtn: true,
     icon: 'info',
     multiLine: true,
     actions: [
       {
-        label: 'Rester connecter',
+        label: 'Stay signed in',
         color: 'primary',
         handler: async () => {
           try {
@@ -77,7 +77,7 @@ async function logout() {
     <div v-if="userStore.isUserConnected" class="menu-trigger-row">
       <q-btn
         no-caps unelevated class="menu-trigger dria-navigation-colors"
-        :aria-label="leftDrawerOpen ? 'Fermer le menu de navigation' : 'Ouvrir le menu de navigation'"
+        :aria-label="leftDrawerOpen ? 'Close navigation menu' : 'Open navigation menu'"
         :aria-expanded="leftDrawerOpen"
         aria-controls="dria-navigation"
         @click="leftDrawerOpen = !leftDrawerOpen"

@@ -31,7 +31,7 @@ export function mustBeAdmin(
 ): void {
   const store = useUserStore();
   if (!store.currentUser?.isAdmin) {
-    notify('negative', 'Vous devez être administrateur pour accéder à cette ressource 😡');
+    notify('negative', 'Administrator access is required to view this resource.');
     next(from);
   } else next();
 }

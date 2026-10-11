@@ -25,17 +25,17 @@ const search = ref<string | null>('');
 let requestRevision = 0;
 
 function searchable(value: string) {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('en-US');
 }
 
 const filteredProjects = computed(() => {
   const query = searchable(search.value?.trim() ?? '');
   return query ? userProjects.value.filter((project) => searchable(project.title).includes(query)) : userProjects.value;
 });
-const userName = computed(() => [props.user?.firstName, props.user?.lastName].filter(Boolean).join(' ') || 'Mon compte');
+const userName = computed(() => [props.user?.firstName, props.user?.lastName].filter(Boolean).join(' ') || 'My account');
 const userInitials = computed(() => {
   const initials = [props.user?.firstName?.trim()[0], props.user?.lastName?.trim()[0]].filter(Boolean).join('');
-  return (initials || props.user?.email?.[0] || 'U').toLocaleUpperCase('fr');
+  return (initials || props.user?.email?.[0] || 'U').toLocaleUpperCase('en-US');
 });
 const isAdminRoute = computed(() => route.path.startsWith('/admin-dashboard'));
 
@@ -44,14 +44,14 @@ function isProjectActive(projectId: number) {
   return selectedId !== undefined && String(projectId) === selectedId;
 }
 
-const dateFormatter = new Intl.DateTimeFormat('fr-FR', {
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
   day: '2-digit', month: 'short', year: 'numeric',
 });
 
 function projectDate(project: IProject) {
   for (const entry of [
-    { value: project.updatedAt, label: 'Mis à jour le' },
-    { value: project.createdAt, label: 'Créé le' },
+    { value: project.updatedAt, label: 'Updated on' },
+    { value: project.createdAt, label: 'Created on' },
   ]) {
     if (!entry.value || !/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?)?$/.test(entry.value)) continue;
     const parsed = new Date(entry.value);
@@ -72,7 +72,7 @@ async function loadProjects() {
     if (projects.length <= 6) search.value = '';
   } catch {
     if (revision !== requestRevision || !props.isUserConnected || !props.isOpen) return;
-    error.value = 'Les projets n’ont pas pu être chargés.';
+    error.value = 'Could not load projects.';
   } finally {
     if (revision === requestRevision) loading.value = false;
   }
@@ -97,13 +97,13 @@ onUnmounted(() => { requestRevision += 1; });
   <nav
     id="dria-navigation"
     class="dria-navigation dria-navigation-colors"
-    aria-label="Navigation principale"
+    aria-label="Main navigation"
   >
     <header class="navigation-header">
       <router-link
         :to="{ name: 'home' }"
         class="navigation-brand"
-        aria-label="DrIA, accueil"
+        aria-label="DrIA home"
         @click="emits('navigate')"
       >
         <img src="/images/baiddy_logo.svg" width="38" height="31" alt="">
@@ -115,7 +115,7 @@ onUnmounted(() => { requestRevision += 1; });
         dense
         icon="close"
         class="navigation-close"
-        aria-label="Fermer le menu"
+        aria-label="Close menu"
         @click="emits('close')"
       />
     </header>
@@ -133,15 +133,15 @@ onUnmounted(() => { requestRevision += 1; });
       >
         <q-item-section avatar><q-icon name="home" size="21px" /></q-item-section>
         <q-item-section>
-          <q-item-label>Accueil</q-item-label>
-          <q-item-label caption>Créer une étude</q-item-label>
+          <q-item-label>Home</q-item-label>
+          <q-item-label caption>Create a study</q-item-label>
         </q-item-section>
       </q-item>
     </q-list>
 
     <section class="navigation-projects" aria-labelledby="navigation-projects-title">
       <div class="projects-heading">
-        <h2 id="navigation-projects-title">Mes projets</h2>
+        <h2 id="navigation-projects-title">My projects</h2>
         <span v-if="!loading && !error" class="projects-count">{{ userProjects.length }}</span>
       </div>
       <q-input
@@ -151,8 +151,8 @@ onUnmounted(() => { requestRevision += 1; });
         dense
         clearable
         :debounce="120"
-        placeholder="Rechercher un projet"
-        aria-label="Rechercher un projet"
+        placeholder="Search projects"
+        aria-label="Search projects"
         class="projects-search"
       >
         <template #prepend><q-icon name="search" size="18px" /></template>
@@ -161,30 +161,30 @@ onUnmounted(() => { requestRevision += 1; });
       <div class="projects-scroll">
         <div v-if="loading" class="projects-state" role="status">
           <q-spinner size="24px" class="projects-spinner" />
-          <p>Chargement de vos projets…</p>
+          <p>Loading your projects…</p>
         </div>
         <div v-else-if="error" class="projects-state projects-error" role="alert">
           <q-icon name="cloud_off" size="25px" />
           <p>{{ error }}</p>
-          <q-btn flat no-caps dense label="Réessayer" icon="refresh" @click="loadProjects" />
+          <q-btn flat no-caps dense label="Retry" icon="refresh" @click="loadProjects" />
         </div>
         <div v-else-if="!userProjects.length" class="projects-state">
           <q-icon name="folder_open" size="28px" />
-          <p>Aucun projet pour le moment.</p>
-          <span>Vos études apparaîtront ici.</span>
+          <p>No projects yet.</p>
+          <span>Your studies will appear here.</span>
           <q-btn
             flat
             no-caps
             dense
-            label="Créer une étude"
+            label="Create a study"
             :to="{ name: 'home' }"
             @click="emits('navigate')"
           />
         </div>
         <div v-else-if="!filteredProjects.length" class="projects-state">
           <q-icon name="search" size="25px" />
-          <p>Aucun projet ne correspond.</p>
-          <q-btn flat no-caps dense label="Effacer la recherche" @click="search = ''" />
+          <p>No matching projects.</p>
+          <q-btn flat no-caps dense label="Clear search" @click="search = ''" />
         </div>
         <q-list v-else class="projects-list">
           <q-item
@@ -241,7 +241,7 @@ onUnmounted(() => { requestRevision += 1; });
         no-caps
         align="left"
         icon="logout"
-        label="Se déconnecter"
+        label="Sign out"
         class="navigation-logout"
         @click="emits('logout')"
       />
