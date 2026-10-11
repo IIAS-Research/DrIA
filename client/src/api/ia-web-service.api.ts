@@ -14,3 +14,12 @@ export async function getDefaultPipeline(): Promise<IPipeline | undefined> {
     return undefined;
   }
 }
+export async function getCatalogue(): Promise<any> {
+  return (await api.get('IaWebService/catalogue')).data;
+}
+export async function validateStudy(configuration: IPipeline): Promise<{
+  configuration: IPipeline;
+  description: any;
+}> {
+  return (await api.post('IaWebService/validate', { configuration })).data;
+}
