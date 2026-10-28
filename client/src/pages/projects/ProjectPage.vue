@@ -34,7 +34,7 @@ const restartId = ref<number>();
 const restartBudget = ref(300);
 const restartError = ref('');
 const progress = ref(0);
-const isFinalizing = ref(false);
+const searchBudgetReached = ref(false);
 const remainingSeconds = ref(0);
 const processes = computed(() => [...(project.value?.processes ?? [])].sort((a, b) =>
   Date.parse(String(b.date)) - Date.parse(String(a.date)) || b.id - a.id));
@@ -159,7 +159,7 @@ function updateProgress() {
   const process = active.value[0];
   if (!process || process.status === 'QUEUED') {
     trackedProcessId = undefined; startProcessTime = undefined;
-    progress.value = 0; isFinalizing.value = false; remainingSeconds.value = 0;
+    progress.value = 0; searchBudgetReached.value = false; remainingSeconds.value = 0;
     return;
   }
   if (trackedProcessId !== process.id) { trackedProcessId = process.id; startProcessTime = Date.now(); }
@@ -167,7 +167,7 @@ function updateProgress() {
   const duration = process.maxDuration * 1000;
   if (!duration || startProcessTime === undefined) return;
   const elapsed = Math.max(0, Date.now() - startProcessTime);
-  isFinalizing.value = elapsed >= duration;
+  searchBudgetReached.value = elapsed >= duration;
   progress.value = Math.min(elapsed / duration, 0.99);
   remainingSeconds.value = Math.max(0, Math.ceil((duration - elapsed) / 1000));
 }
@@ -256,8 +256,8 @@ onUnmounted(() => {
           </div>
         </header>
         <section v-if="isProcessing || pendingResults" class="training-live" aria-labelledby="live-title" role="status">
-          <div class="live-heading"><span class="live-icon"><q-spinner v-if="isProcessing" size="22px" /><q-icon v-else name="sync" size="22px" /></span><div><h2 id="live-title">{{ isProcessing ? active[0]?.status === 'QUEUED' ? 'Your training run is queued' : isFinalizing ? 'The model is being refitted and evaluated' : 'DrIA is searching for a model suited to your data' : 'Results are being retrieved' }}</h2><p>{{ isProcessing ? `Search budget: ${formatBudget(active[0].maxDuration)}. Final evaluation may take additional time.` : 'The computation is complete. Models and their analyses will appear once they have been saved.' }}</p></div><q-btn flat no-caps dense label="View training run" icon-right="arrow_forward" @click="view = 'training'" /></div>
-          <q-linear-progress v-if="isProcessing" :value="progress" :indeterminate="active[0]?.status === 'QUEUED' || isFinalizing" rounded stripe color="primary" size="30px" class="training-progress"><div class="absolute-full flex flex-center"><q-badge color="white" text-color="primary" class="training-progress-label" :label="active[0]?.status === 'QUEUED' ? 'Queued' : isFinalizing ? 'Refitting and final evaluation in progress…' : `${Math.floor(progress * 100)}% · About ${remainingText} of search remaining`" /></div></q-linear-progress>
+          <div class="live-heading"><span class="live-icon"><q-spinner v-if="isProcessing" size="22px" /><q-icon v-else name="sync" size="22px" /></span><div><h2 id="live-title">{{ isProcessing ? active[0]?.status === 'QUEUED' ? 'Your training run is queued' : searchBudgetReached ? 'Your training run is still being processed' : 'DrIA is searching for a model suited to your data' : 'Results are being retrieved' }}</h2><p>{{ isProcessing ? searchBudgetReached ? `The requested search budget of ${formatBudget(active[0].maxDuration)} has been reached. Processing is still ongoing.` : `Search budget: ${formatBudget(active[0].maxDuration)}. Final evaluation may take additional time.` : 'The computation is complete. Models and their analyses will appear once they have been saved.' }}</p></div><q-btn flat no-caps dense label="View training run" icon-right="arrow_forward" @click="view = 'training'" /></div>
+          <q-linear-progress v-if="isProcessing" :value="progress" :indeterminate="active[0]?.status === 'QUEUED' || searchBudgetReached" rounded stripe color="primary" size="30px" class="training-progress"><div class="absolute-full flex flex-center"><q-badge color="white" text-color="primary" class="training-progress-label" :label="active[0]?.status === 'QUEUED' ? 'Queued' : searchBudgetReached ? 'Search budget reached · Processing continues…' : `${Math.floor(progress * 100)}% · About ${remainingText} of search remaining`" /></div></q-linear-progress>
         </section>
         <section v-else-if="lastState && (lastState.tone === 'error' || latest?.status === 'CANCELED')" class="training-alert" role="status"><q-icon name="error_outline" size="22px" /><div><strong>Latest training run : {{ lastState.label }}</strong><p>{{ result ? 'The previous result remains available below. View the details to understand why the latest training run stopped.' : 'View the training run details to understand why the computation stopped.' }}</p></div><q-btn flat no-caps label="View details" icon-right="arrow_forward" @click="view = 'training'" /></section>
 
