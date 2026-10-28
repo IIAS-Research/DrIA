@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use DrIA in your research, please cite this software."
+type: software
+title: DrIA
+version: 0.7.3 # x-release-please-version
+authors:
+  - family-names: Merieux
+    given-names: Rudy
+    orcid: https://orcid.org/0009-0004-6643-8555
+    affiliation: >-
+      IIAS - Institute of Artificial Intelligence in Health, CHU de Reims,
+      Université de Reims Champagne-Ardenne, Reims, France
+  - family-names: Bertili
+    given-names: Brian
+    affiliation: >-
+      IIAS - Institute of Artificial Intelligence in Health, CHU de Reims,
+      Université de Reims Champagne-Ardenne, Reims, France
+  - family-names: Debaumont
+    given-names: Jules
+    affiliation: >-
+      IIAS - Institute of Artificial Intelligence in Health, CHU de Reims,
+      Université de Reims Champagne-Ardenne, Reims, France
+  - family-names: Vuiblet
+    given-names: Vincent
+    orcid: https://orcid.org/0000-0002-1959-326X
+    affiliation: >-
+      IIAS - Institute of Artificial Intelligence in Health, CHU de Reims,
+      Université de Reims Champagne-Ardenne, Reims, France
+license: GPL-3.0-only
+repository-code: https://github.com/IIAS-Research/DrIA
+abstract: >-
+  DrIA helps physicians create AI models from their data. Its guided workflow
+  lets users upload a CSV file, explore the data, train models, understand the
+  results and try predictions. Computation is handled by the IAML web service.
+keywords:
+  - machine learning
+  - artificial intelligence
+  - medical research
+  - data exploration
+  - model interpretability
