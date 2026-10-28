@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the application version across release, package and image files."""
+"""Check the application version across release, citation, package and image files."""
 
 import argparse
 import json
@@ -17,8 +17,21 @@ def check_version(root: Path, expected_tag: str | None = None) -> str:
     lock = json.loads((root / "client/package-lock.json").read_text())
     manifest = json.loads((root / ".release-please-manifest.json").read_text())
     project = ET.parse(root / "Server/server.csproj")
+    citation_versions = re.findall(
+        r"^version:[ \t]*(.*)$",
+        (root / "CITATION.cff").read_text(),
+        re.MULTILINE,
+    )
+    if len(citation_versions) != 1:
+        raise ValueError("CITATION.cff must declare one top-level stable semantic version.")
+    citation_version = re.fullmatch(
+        r"(['\"]?)(\d+\.\d+\.\d+)\1(?:[ \t]+#.*)?[ \t]*", citation_versions[0]
+    )
+    if citation_version is None:
+        raise ValueError("CITATION.cff must declare one top-level stable semantic version.")
     versions = {
         ".release-please-manifest.json": manifest.get("."),
+        "CITATION.cff": citation_version.group(2),
         "client/package.json": package.get("version"),
         "client/package-lock.json": lock.get("version"),
         "client/package-lock.json packages['']": lock.get("packages", {}).get("", {}).get("version"),
