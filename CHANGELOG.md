@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1](https://github.com/IIAS-Research/DrIA/compare/v0.8.0...v0.8.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* keep citation metadata aligned with the release version ([98d8a64](https://github.com/IIAS-Research/DrIA/commit/98d8a646048b18e73dd96a3780f5864013903a59))
+* keep citation metadata aligned with the release version ([a62f37f](https://github.com/IIAS-Research/DrIA/commit/a62f37ff5a29c4c100c453723c25b993a8b0ac97))
+
 ## [0.8.0](https://github.com/IIAS-Research/DrIA/compare/v0.7.3...v0.8.0) (2026-10-11)
 
 
